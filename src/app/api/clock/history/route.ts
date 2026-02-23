@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
     projectName: e.allocations[0]?.project.name ?? null,
     projectColor: e.allocations[0]?.project.color ?? null,
     entryDate: e.entryDate.toISOString(),
+    source: e.source,
   }))
 
   const totalMinutes = mapped.reduce((s, e) => s + (e.totalMinutes ?? 0), 0)
