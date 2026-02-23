@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { cacheLife } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { DashboardClient } from './dashboard-client'
@@ -8,6 +8,7 @@ import type { ActiveSession, ProjectOption } from '@/types'
 async function getCachedProjects(userId: string) {
   'use cache'
   cacheLife({ stale: 60, revalidate: 60, expire: 3600 })
+  cacheTag(`projects-${userId}`)
   return prisma.project.findMany({
     where: { userId, isActive: true },
     orderBy: { name: 'asc' },

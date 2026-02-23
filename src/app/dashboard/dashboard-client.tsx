@@ -31,6 +31,7 @@ export function DashboardClient({
     fetch('/api/clock/summary')
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setSummary(data) })
+      .catch(() => {})
   }, [])
 
   async function refreshSummary() {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { isAllowedEmail } from '@/lib/auth'
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  revalidateTag(`projects-${user.id}`, { expire: 0 })
   return NextResponse.json(project, { status: 201 })
 }
 
@@ -69,5 +71,6 @@ export async function PUT(req: NextRequest) {
     },
   })
 
+  revalidateTag(`projects-${user.id}`, { expire: 0 })
   return NextResponse.json(updated)
 }

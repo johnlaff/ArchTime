@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { isAllowedEmail } from '@/lib/auth'
@@ -57,5 +58,6 @@ export async function DELETE(
     })
   })
 
+  revalidateTag(`projects-${user.id}`, { expire: 0 })
   return new NextResponse(null, { status: 204 })
 }
