@@ -35,8 +35,10 @@ export function DashboardClient({
   }, [])
 
   async function refreshSummary() {
-    const res = await fetch('/api/clock/summary')
-    if (res.ok) setSummary(await res.json())
+    try {
+      const res = await fetch('/api/clock/summary')
+      if (res.ok) setSummary(await res.json())
+    } catch { }
   }
 
   async function handleClockIn() {
