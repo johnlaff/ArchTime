@@ -25,6 +25,7 @@ interface HistoryEntry {
   projectName: string | null
   projectColor: string | null
   entryDate: string
+  source: string
 }
 
 interface HistoryData {
