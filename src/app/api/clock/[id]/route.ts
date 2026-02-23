@@ -66,3 +66,44 @@ export async function PUT(
 
   return NextResponse.json(updated)
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id } = await params
+
+  const entry = await prisma.clockEntry.findFirst({
+    where: { id, userId: user.id },
+  })
+
+  if (!entry) {
+    return NextResponse.json({ error: 'Entrada não encontrada' }, { status: 404 })
+  }
+
+  if (!entry.clockOut) {
+    return NextResponse.json(
+      { error: 'Não é possível apagar uma sessão em andamento' },
+      { status: 409 }
+    )
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
+    await tx.clockEntry.delete({ where: { id } })
+    await tx.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'delete_entry',
+        entityId: id,
+        newData: { deletedAt: new Date().toISOString() },
+        userAgent: req.headers.get('user-agent'),
+      },
+    })
+  })
+
+  return new NextResponse(null, { status: 204 })
+}
