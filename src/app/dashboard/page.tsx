@@ -2,9 +2,8 @@ import { redirect } from 'next/navigation'
 import { cacheLife } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { getLocalDate } from '@/lib/dates'
 import { DashboardClient } from './dashboard-client'
-import type { ActiveSession, DailySummary, ProjectOption } from '@/types'
+import type { ActiveSession, ProjectOption } from '@/types'
 
 async function getCachedProjects(userId: string) {
   'use cache'
@@ -20,9 +19,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const today = new Date(getLocalDate() + 'T00:00:00.000Z')
-
-  const [activeEntry, todayEntries, projects] = await Promise.all([
+  const [activeEntry, projects] = await Promise.all([
     prisma.clockEntry.findFirst({
       where: { userId: user.id, clockOut: null },
       include: {
@@ -31,17 +28,6 @@ export default async function DashboardPage() {
           take: 1,
         },
       },
-    }),
-    prisma.clockEntry.findMany({
-      where: { userId: user.id, entryDate: today, clockOut: { not: null } },
-      include: {
-        allocations: {
-          include: { project: { select: { name: true, color: true } } },
-          take: 1,
-        },
-      },
-      orderBy: { clockIn: 'desc' },
-      take: 5,
     }),
     getCachedProjects(user.id),
   ])
@@ -56,19 +42,6 @@ export default async function DashboardPage() {
       }
     : null
 
-  const summary: DailySummary = {
-    totalMinutes: todayEntries.reduce((s, e) => s + (e.totalMinutes ?? 0), 0),
-    sessionCount: todayEntries.length,
-    entries: todayEntries.map(e => ({
-      id: e.id,
-      clockIn: e.clockIn.toISOString(),
-      clockOut: e.clockOut?.toISOString() ?? null,
-      totalMinutes: e.totalMinutes,
-      projectName: e.allocations[0]?.project.name ?? null,
-      projectColor: e.allocations[0]?.project.color ?? null,
-    })),
-  }
-
   const projectOptions: ProjectOption[] = projects.map(p => ({
     id: p.id,
     name: p.name,
@@ -81,7 +54,6 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       initialSession={session}
-      initialSummary={summary}
       projects={projectOptions}
     />
   )

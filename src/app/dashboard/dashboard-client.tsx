@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ClockButton } from '@/components/clock-button'
 import { CurrentSession } from '@/components/current-session'
 import { DailySummaryCard } from '@/components/daily-summary'
@@ -13,21 +13,25 @@ import type { ActiveSession, DailySummary, ProjectOption } from '@/types'
 
 interface DashboardClientProps {
   initialSession: ActiveSession | null
-  initialSummary: DailySummary
   projects: ProjectOption[]
 }
 
 export function DashboardClient({
   initialSession,
-  initialSummary,
   projects,
 }: DashboardClientProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     initialSession?.projectId ?? null
   )
-  const [summary, setSummary] = useState(initialSummary)
+  const [summary, setSummary] = useState<DailySummary | null>(null)
 
   const { session, setSession, clockIn, clockOut, loading } = useClock(initialSession)
+
+  useEffect(() => {
+    fetch('/api/clock/summary')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSummary(data) })
+  }, [])
 
   async function refreshSummary() {
     const res = await fetch('/api/clock/summary')
@@ -82,7 +86,13 @@ export function DashboardClient({
         loading={loading}
       />
 
-      <DailySummaryCard summary={summary} />
+      {summary === null ? (
+        <div className="space-y-3">
+          <div className="h-24 rounded-xl bg-muted/50 animate-pulse" />
+        </div>
+      ) : (
+        <DailySummaryCard summary={summary} />
+      )}
     </div>
   )
 }
