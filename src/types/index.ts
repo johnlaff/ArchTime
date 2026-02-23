@@ -27,6 +27,7 @@ export interface ProjectOption {
   clientName: string | null
   color: string
   hourlyRate: number | null
+  isActive: boolean
 }
 
 export interface PendingEntry {
