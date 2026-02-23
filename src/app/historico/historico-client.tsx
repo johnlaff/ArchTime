@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react'
 import { format, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -16,6 +16,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { formatBRT, formatMinutes } from '@/lib/dates'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface HistoryEntry {
   id: string
@@ -34,6 +43,12 @@ interface HistoryData {
   sessionCount: number
 }
 
+interface EditForm {
+  clockInTime: string   // "HH:MM" BRT
+  clockOutTime: string  // "HH:MM" BRT
+  projectId: string     // "" = sem projeto
+}
+
 function toYYYYMM(date: Date): string {
   return format(date, 'yyyy-MM')
 }
@@ -44,13 +59,21 @@ export function HistoricoClient() {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [editTarget, setEditTarget] = useState<HistoryEntry | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ clockInTime: '', clockOutTime: '', projectId: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([])
 
   const load = useCallback(async (date: Date) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/clock/history?month=${toYYYYMM(date)}`)
-      if (!res.ok) throw new Error()
-      setData(await res.json())
+      const [histRes, projRes] = await Promise.all([
+        fetch(`/api/clock/history?month=${toYYYYMM(date)}`),
+        fetch('/api/projects'),
+      ])
+      if (!histRes.ok) throw new Error()
+      setData(await histRes.json())
+      if (projRes.ok) setProjects(await projRes.json())
     } catch {
       toast.error('Erro ao carregar histórico')
     } finally {
@@ -91,6 +114,63 @@ export function HistoricoClient() {
     } finally {
       setDeleting(false)
       setDeleteTarget(null)
+    }
+  }
+
+  function openEdit(entry: HistoryEntry) {
+    setEditForm({
+      clockInTime: formatBRT(entry.clockIn),
+      clockOutTime: formatBRT(entry.clockOut),
+      projectId: projects.find(p => p.name === entry.projectName)?.id ?? '',
+    })
+    setEditTarget(entry)
+  }
+
+  async function handleEdit() {
+    if (!editTarget) return
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/clock/${editTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clockInTime: editForm.clockInTime,
+          clockOutTime: editForm.clockOutTime,
+          projectId: editForm.projectId || null,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        toast.error(d.error ?? 'Erro ao salvar')
+        return
+      }
+      const updated = await res.json()
+      const proj = projects.find(p => p.id === editForm.projectId)
+      setData((d) => {
+        if (!d) return null
+        return {
+          ...d,
+          entries: d.entries.map((e) =>
+            e.id === editTarget.id
+              ? {
+                  ...e,
+                  clockIn: updated.clockIn,
+                  clockOut: updated.clockOut,
+                  totalMinutes: updated.totalMinutes,
+                  source: updated.source,
+                  projectName: proj?.name ?? null,
+                  projectColor: e.projectColor,
+                }
+              : e
+          ),
+        }
+      })
+      toast.success('Registro atualizado')
+      setEditTarget(null)
+    } catch {
+      toast.error('Erro ao salvar')
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -157,11 +237,18 @@ export function HistoricoClient() {
                         />
                       )}
                       <div>
-                        {entry.projectName && (
-                          <p className="text-xs text-muted-foreground leading-none mb-0.5">
-                            {entry.projectName}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          {entry.projectName && (
+                            <p className="text-xs text-muted-foreground leading-none">
+                              {entry.projectName}
+                            </p>
+                          )}
+                          {entry.source === 'edited' && (
+                            <span className="text-xs text-muted-foreground/60 leading-none">
+                              (editado)
+                            </span>
+                          )}
+                        </div>
                         <span className="tabular-nums">
                           {formatBRT(entry.clockIn)} — {formatBRT(entry.clockOut)}
                         </span>
@@ -173,6 +260,14 @@ export function HistoricoClient() {
                           {formatMinutes(entry.totalMinutes)}
                         </span>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => openEdit(entry)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -199,6 +294,64 @@ export function HistoricoClient() {
           </div>
         </div>
       )}
+
+      {/* Edit dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar registro</DialogTitle>
+            <DialogDescription>
+              Os horários devem estar no fuso de Brasília (BRT).
+              A alteração ficará registrada no histórico de auditoria.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="edit-in">Entrada</Label>
+                <Input
+                  id="edit-in"
+                  type="time"
+                  value={editForm.clockInTime}
+                  onChange={(e) => setEditForm((f) => ({ ...f, clockInTime: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-out">Saída</Label>
+                <Input
+                  id="edit-out"
+                  type="time"
+                  value={editForm.clockOutTime}
+                  onChange={(e) => setEditForm((f) => ({ ...f, clockOutTime: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Projeto</Label>
+              <Select
+                value={editForm.projectId}
+                onValueChange={(v) => setEditForm((f) => ({ ...f, projectId: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem projeto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem projeto</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>Cancelar</Button>
+            <Button onClick={handleEdit} disabled={editSaving}>
+              {editSaving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
