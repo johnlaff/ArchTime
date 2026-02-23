@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
     totalMinutes: e.totalMinutes,
     projectName: e.allocations[0]?.project.name ?? null,
     projectColor: e.allocations[0]?.project.color ?? null,
+    projectId: e.allocations[0]?.projectId ?? null,
     entryDate: e.entryDate.toISOString(),
     source: e.source,
   }))

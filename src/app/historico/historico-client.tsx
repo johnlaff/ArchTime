@@ -33,6 +33,7 @@ interface HistoryEntry {
   totalMinutes: number | null
   projectName: string | null
   projectColor: string | null
+  projectId: string | null
   entryDate: string
   source: string
 }
@@ -121,7 +122,7 @@ export function HistoricoClient() {
     setEditForm({
       clockInTime: formatBRT(entry.clockIn),
       clockOutTime: formatBRT(entry.clockOut),
-      projectId: projects.find(p => p.name === entry.projectName)?.id ?? '',
+      projectId: entry.projectId ?? '',
     })
     setEditTarget(entry)
   }
@@ -237,18 +238,20 @@ export function HistoricoClient() {
                         />
                       )}
                       <div>
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          {entry.projectName && (
-                            <p className="text-xs text-muted-foreground leading-none">
-                              {entry.projectName}
-                            </p>
-                          )}
-                          {entry.source === 'edited' && (
-                            <span className="text-xs text-muted-foreground/60 leading-none">
-                              (editado)
-                            </span>
-                          )}
-                        </div>
+                        {(entry.projectName || entry.source === 'edited') && (
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            {entry.projectName && (
+                              <p className="text-xs text-muted-foreground leading-none">
+                                {entry.projectName}
+                              </p>
+                            )}
+                            {entry.source === 'edited' && (
+                              <span className="text-xs text-muted-foreground/60 leading-none">
+                                (editado)
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <span className="tabular-nums">
                           {formatBRT(entry.clockIn)} — {formatBRT(entry.clockOut)}
                         </span>
