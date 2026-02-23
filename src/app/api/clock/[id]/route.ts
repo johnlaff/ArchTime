@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { isAllowedEmail } from '@/lib/auth'
 import { calcDurationMinutes } from '@/lib/dates'
 import { generateEntryHash } from '@/lib/hash'
-import { fromZonedTime } from 'date-fns-tz'
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
 import { TIMEZONE } from '@/lib/constants'
 
 async function getAuthenticatedUser() {
@@ -129,6 +129,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Horários são obrigatórios' }, { status: 400 })
   }
 
+  const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
+  if (!TIME_RE.test(clockInTime) || !TIME_RE.test(clockOutTime)) {
+    return NextResponse.json({ error: 'Formato de horário inválido (HH:MM)' }, { status: 400 })
+  }
+
   const entry = await prisma.clockEntry.findFirst({
     where: { id, userId: user.id },
     include: { allocations: { take: 1 } },
@@ -146,7 +151,7 @@ export async function PATCH(
   }
 
   // Reconstruir datas UTC a partir do horário BRT + data do registro
-  const brtDate = entry.entryDate.toISOString().slice(0, 10)
+  const brtDate = formatInTimeZone(entry.clockIn, TIMEZONE, 'yyyy-MM-dd')
   const newClockIn = fromZonedTime(`${brtDate}T${clockInTime}:00`, TIMEZONE)
   const newClockOut = fromZonedTime(`${brtDate}T${clockOutTime}:00`, TIMEZONE)
 
@@ -180,10 +185,9 @@ export async function PATCH(
 
     // Atualizar TimeAllocation
     if (projectId) {
-      await tx.timeAllocation.upsert({
-        where: { id: entry.allocations[0]?.id ?? '' },
-        update: { projectId, minutes: totalMinutes },
-        create: { clockEntryId: id, projectId, minutes: totalMinutes },
+      await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
+      await tx.timeAllocation.create({
+        data: { clockEntryId: id, projectId, minutes: totalMinutes },
       })
     } else {
       await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
