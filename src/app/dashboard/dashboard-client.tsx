@@ -7,6 +7,7 @@ import { DailySummaryCard } from '@/components/daily-summary'
 import { ProjectSelector } from '@/components/project-selector'
 import { OfflineIndicator } from '@/components/offline-indicator'
 import { OrphanSessionBanner } from '@/components/orphan-session-banner'
+import { InstallPrompt } from '@/components/install-prompt'
 import { useClock } from '@/hooks/use-clock'
 import type { ActiveSession, DailySummary, ProjectOption } from '@/types'
 
@@ -72,6 +73,8 @@ export function DashboardClient({
           disabled={loading}
         />
       )}
+
+      <InstallPrompt />
 
       <ClockButton
         isClockedIn={!!session}
