@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { isAllowedEmail } from '@/lib/auth'
 import { calcDurationMinutes } from '@/lib/dates'
 import { generateEntryHash } from '@/lib/hash'
+import { fromZonedTime } from 'date-fns-tz'
+import { TIMEZONE } from '@/lib/constants'
 
 async function getAuthenticatedUser() {
   const supabase = await createClient()
@@ -106,4 +108,112 @@ export async function DELETE(
   })
 
   return new NextResponse(null, { status: 204 })
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getAuthenticatedUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id } = await params
+  const body = await req.json()
+  const { clockInTime, clockOutTime, projectId } = body as {
+    clockInTime: string       // "HH:MM" em BRT
+    clockOutTime: string      // "HH:MM" em BRT
+    projectId: string | null
+  }
+
+  if (!clockInTime || !clockOutTime) {
+    return NextResponse.json({ error: 'Horários são obrigatórios' }, { status: 400 })
+  }
+
+  const entry = await prisma.clockEntry.findFirst({
+    where: { id, userId: user.id },
+    include: { allocations: { take: 1 } },
+  })
+
+  if (!entry) {
+    return NextResponse.json({ error: 'Entrada não encontrada' }, { status: 404 })
+  }
+
+  if (!entry.clockOut) {
+    return NextResponse.json(
+      { error: 'Não é possível editar uma sessão em andamento' },
+      { status: 409 }
+    )
+  }
+
+  // Reconstruir datas UTC a partir do horário BRT + data do registro
+  const brtDate = entry.entryDate.toISOString().slice(0, 10)
+  const newClockIn = fromZonedTime(`${brtDate}T${clockInTime}:00`, TIMEZONE)
+  const newClockOut = fromZonedTime(`${brtDate}T${clockOutTime}:00`, TIMEZONE)
+
+  if (newClockOut <= newClockIn) {
+    return NextResponse.json(
+      { error: 'Horário de saída deve ser posterior ao de entrada' },
+      { status: 400 }
+    )
+  }
+
+  const totalMinutes = calcDurationMinutes(newClockIn, newClockOut)
+  const hash = await generateEntryHash({
+    clockIn: newClockIn.toISOString(),
+    clockOut: newClockOut.toISOString(),
+    userId: user.id,
+    entryDate: entry.entryDate.toISOString(),
+  })
+
+  const oldData = {
+    clockIn: entry.clockIn.toISOString(),
+    clockOut: entry.clockOut.toISOString(),
+    totalMinutes: entry.totalMinutes,
+    projectId: entry.allocations[0]?.projectId ?? null,
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedEntry = await tx.clockEntry.update({
+      where: { id },
+      data: { clockIn: newClockIn, clockOut: newClockOut, totalMinutes, hash, source: 'edited' },
+    })
+
+    // Atualizar TimeAllocation
+    if (projectId) {
+      await tx.timeAllocation.upsert({
+        where: { id: entry.allocations[0]?.id ?? '' },
+        update: { projectId, minutes: totalMinutes },
+        create: { clockEntryId: id, projectId, minutes: totalMinutes },
+      })
+    } else {
+      await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
+    }
+
+    await tx.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'edit_entry',
+        entityId: id,
+        oldData,
+        newData: {
+          clockIn: newClockIn.toISOString(),
+          clockOut: newClockOut.toISOString(),
+          totalMinutes,
+          projectId: projectId ?? null,
+        },
+        userAgent: req.headers.get('user-agent'),
+      },
+    })
+
+    return updatedEntry
+  })
+
+  return NextResponse.json({
+    id: updated.id,
+    clockIn: updated.clockIn.toISOString(),
+    clockOut: updated.clockOut!.toISOString(),
+    totalMinutes: updated.totalMinutes,
+    source: updated.source,
+    projectId: projectId ?? null,
+  })
 }
