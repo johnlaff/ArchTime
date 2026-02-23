@@ -6,6 +6,8 @@ import { Navbar } from '@/components/navbar'
 
 const geist = Geist({ subsets: ['latin'] })
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archtime.netlify.app'
+
 export const metadata: Metadata = {
   title: 'ArchTime',
   description: 'Time tracking para freelancers e profissionais independentes',
@@ -17,6 +19,27 @@ export const metadata: Metadata = {
   },
   icons: {
     apple: '/icons/icon-192.png',
+  },
+  openGraph: {
+    title: 'ArchTime',
+    description: 'Time tracking para freelancers e profissionais independentes',
+    url: appUrl,
+    siteName: 'ArchTime',
+    images: [
+      {
+        url: `${appUrl}/icons/icon-512.png`,
+        width: 512,
+        height: 512,
+        alt: 'ArchTime',
+      },
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'ArchTime',
+    description: 'Time tracking para freelancers e profissionais independentes',
+    images: [`${appUrl}/icons/icon-512.png`],
   },
 }
 
