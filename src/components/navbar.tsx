@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Moon, Sun, Clock, FolderOpen, History, LogOut } from 'lucide-react'
@@ -17,6 +18,10 @@ export function Navbar() {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
+
+  useEffect(() => {
+    navItems.forEach(({ href }) => router.prefetch(href))
+  }, [router])
 
   async function handleLogout() {
     const supabase = createClient()
