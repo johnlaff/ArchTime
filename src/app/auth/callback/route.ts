@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { isAllowedEmail } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -40,21 +41,22 @@ export async function GET(request: NextRequest) {
   const { user } = data.session
 
   // Verifica email permitido DEPOIS da troca — nunca antes
-  if (!user.email || user.email !== process.env.ALLOWED_EMAIL) {
+  if (!isAllowedEmail(user.email)) {
     await supabase.auth.signOut()
     return NextResponse.redirect(`${origin}/login?error=unauthorized`)
   }
 
-  // Sincroniza usuário na base de dados
+  // Sincroniza usuário na base de dados (email garantido não-nulo pela guarda acima)
+  const email = user.email!
   await prisma.user.upsert({
-    where: { email: user.email },
+    where: { email },
     update: {
       name: user.user_metadata?.full_name ?? null,
       avatarUrl: user.user_metadata?.avatar_url ?? null,
     },
     create: {
       id: user.id,
-      email: user.email,
+      email,
       name: user.user_metadata?.full_name ?? null,
       avatarUrl: user.user_metadata?.avatar_url ?? null,
     },
