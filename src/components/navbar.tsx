@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Moon, Sun, Clock, FolderOpen, LogOut } from 'lucide-react'
+import { Moon, Sun, Clock, FolderOpen, History, LogOut } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/dashboard', label: 'Ponto', icon: Clock },
+  { href: '/historico', label: 'Histórico', icon: History },
   { href: '/projetos', label: 'Projetos', icon: FolderOpen },
 ]
 
