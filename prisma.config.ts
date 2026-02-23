@@ -5,8 +5,8 @@ dotenv.config({ path: ".env.local" });
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrate: {
-    // DIRECT_URL: conexão direta sem pgbouncer — necessário para db push / migrations
+  // DIRECT_URL: conexão direta sem pgbouncer — necessário para db push / migrations
+  datasource: {
     url: process.env.DIRECT_URL,
   },
 });
