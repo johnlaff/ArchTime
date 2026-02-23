@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   title: 'ArchTime',
   description: 'Time tracking para freelancers e profissionais independentes',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'ArchTime',
+  },
+  icons: {
+    apple: '/icons/icon-192.png',
+  },
 }
 
 export const viewport: Viewport = {
