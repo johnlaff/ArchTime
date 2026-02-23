@@ -27,11 +27,13 @@ export async function DELETE(
     return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 })
   }
 
+  const isAdmin = user.email === process.env.ADMIN_EMAIL
+
   const allocationCount = await prisma.timeAllocation.count({
     where: { projectId: id },
   })
 
-  if (allocationCount > 0) {
+  if (allocationCount > 0 && !isAdmin) {
     return NextResponse.json(
       { error: 'Este projeto possui registros de horas e não pode ser apagado. Use Arquivar para ocultá-lo.' },
       { status: 409 }
@@ -39,6 +41,10 @@ export async function DELETE(
   }
 
   await prisma.$transaction(async (tx) => {
+    // Admin pode apagar projetos com registros — remove alocações antes do projeto
+    if (allocationCount > 0) {
+      await tx.timeAllocation.deleteMany({ where: { projectId: id } })
+    }
     await tx.project.delete({ where: { id } })
     await tx.auditLog.create({
       data: {
