@@ -1,7 +1,7 @@
 {
-  "name": "PontoArq",
-  "short_name": "PontoArq",
-  "description": "Registro de ponto para arquiteta PJ",
+  "name": "ArchTime",
+  "short_name": "ArchTime",
+  "description": "Time tracking para freelancers e profissionais independentes",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",

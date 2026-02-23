@@ -7,8 +7,8 @@ import { Navbar } from '@/components/navbar'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PontoArq',
-  description: 'Registro de ponto para arquiteta PJ',
+  title: 'ArchTime',
+  description: 'Time tracking para freelancers e profissionais independentes',
   manifest: '/manifest.json',
 }
 

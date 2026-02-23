@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb'
 import type { PendingEntry } from '@/types'
 
-const DB_NAME = 'pontoarq-offline'
+const DB_NAME = 'archtime-offline'
 const DB_VERSION = 1
 const STORE = 'pending-entries'
 

@@ -36,7 +36,7 @@ export function InstallPrompt() {
   return (
     <Card className="border-indigo-500/50">
       <CardContent className="py-3 flex items-center justify-between gap-3">
-        <p className="text-sm">Instalar PontoArq na tela inicial?</p>
+        <p className="text-sm">Instalar ArchTime na tela inicial?</p>
         <div className="flex gap-2">
           <Button size="sm" variant="ghost" onClick={() => setDismissed(true)}>Agora não</Button>
           <Button size="sm" onClick={handleInstall} className="gap-1">

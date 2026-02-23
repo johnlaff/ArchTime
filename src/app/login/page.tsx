@@ -24,8 +24,8 @@ function LoginContent() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">PontoArq</CardTitle>
-          <CardDescription>Registro de ponto para arquiteta PJ</CardDescription>
+          <CardTitle className="text-2xl font-bold">ArchTime</CardTitle>
+          <CardDescription>Time tracking para freelancers e profissionais independentes</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {error === 'unauthorized' && (
