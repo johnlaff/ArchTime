@@ -34,31 +34,40 @@ export async function GET(request: NextRequest) {
   // Troca o code PKCE por sessão — email só é confiado após essa troca
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-  if (error || !data.session) {
-    return NextResponse.redirect(`${origin}/login?error=exchange_failed`)
+  // Se o exchange falhou, verifica se a sessão já existe (race condition do PKCE:
+  // o mesmo code pode chegar duas vezes; o segundo retorna error mas os cookies
+  // já foram gravados pelo primeiro).
+  let user = data?.session?.user ?? null
+
+  if (!user) {
+    if (error) {
+      const { data: { user: existingUser } } = await supabase.auth.getUser()
+      user = existingUser ?? null
+    }
+    if (!user) {
+      return NextResponse.redirect(`${origin}/login?error=exchange_failed`)
+    }
   }
 
-  const { user } = data.session
-
   // Verifica email permitido DEPOIS da troca — nunca antes
-  if (!isAllowedEmail(user.email)) {
+  if (!isAllowedEmail(user!.email)) {
     await supabase.auth.signOut()
     return NextResponse.redirect(`${origin}/login?error=unauthorized`)
   }
 
   // Sincroniza usuário na base de dados (email garantido não-nulo pela guarda acima)
-  const email = user.email!
+  const email = user!.email!
   await prisma.user.upsert({
     where: { email },
     update: {
-      name: user.user_metadata?.full_name ?? null,
-      avatarUrl: user.user_metadata?.avatar_url ?? null,
+      name: user!.user_metadata?.full_name ?? null,
+      avatarUrl: user!.user_metadata?.avatar_url ?? null,
     },
     create: {
-      id: user.id,
+      id: user!.id,
       email,
-      name: user.user_metadata?.full_name ?? null,
-      avatarUrl: user.user_metadata?.avatar_url ?? null,
+      name: user!.user_metadata?.full_name ?? null,
+      avatarUrl: user!.user_metadata?.avatar_url ?? null,
     },
   })
 

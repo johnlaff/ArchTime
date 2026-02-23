@@ -33,6 +33,11 @@ function LoginContent() {
               Acesso não autorizado. Use o e-mail cadastrado.
             </p>
           )}
+          {(error === 'exchange_failed' || error === 'no_code') && (
+            <p className="text-sm text-destructive text-center">
+              Falha ao autenticar. Tente novamente.
+            </p>
+          )}
           <Button onClick={handleGoogleLogin} className="w-full" size="lg">
             Entrar com Google
           </Button>
