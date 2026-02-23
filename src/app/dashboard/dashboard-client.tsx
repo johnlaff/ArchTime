@@ -47,7 +47,7 @@ export function DashboardClient({
     session && new Date(session.clockIn).toDateString() !== new Date().toDateString()
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in-up">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Ponto</h1>
         <OfflineIndicator />
