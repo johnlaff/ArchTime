@@ -2,8 +2,6 @@ import { NextRequest } from 'next/server'
 import { ImageResponse } from 'next/og'
 import { cookies } from 'next/headers'
 
-export const runtime = 'edge'
-
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies()
   const bg = cookieStore.get('archtime-accent-color')?.value ?? '#6366f1'
