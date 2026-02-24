@@ -1,9 +1,19 @@
 import { redirect } from 'next/navigation'
+import { cacheLife } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { getLocalDate } from '@/lib/dates'
 import { DashboardClient } from './dashboard-client'
 import type { ActiveSession, DailySummary, ProjectOption } from '@/types'
+
+async function getCachedProjects(userId: string) {
+  'use cache'
+  cacheLife({ stale: 60, revalidate: 60, expire: 3600 })
+  return prisma.project.findMany({
+    where: { userId, isActive: true },
+    orderBy: { name: 'asc' },
+  })
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -33,10 +43,7 @@ export default async function DashboardPage() {
       orderBy: { clockIn: 'desc' },
       take: 5,
     }),
-    prisma.project.findMany({
-      where: { userId: user.id, isActive: true },
-      orderBy: { name: 'asc' },
-    }),
+    getCachedProjects(user.id),
   ])
 
   const session: ActiveSession | null = activeEntry
