@@ -9,7 +9,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <SyncProvider>
         {children}
-        <Toaster richColors position="top-center" />
+        <Toaster richColors position="bottom-center" closeButton />
       </SyncProvider>
     </ThemeProvider>
   )
