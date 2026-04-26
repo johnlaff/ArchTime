@@ -23,7 +23,7 @@ export function validateMutationOrigin(req: NextRequest): NextResponse | null {
   const originHeader = req.headers.get('origin')
   const origin = normalizeOrigin(originHeader)
   const refererHeader = req.headers.get('referer') ?? req.headers.get('referrer') ?? req.referrer
-  const referer = originHeader ? null : normalizeOrigin(refererHeader)
+  const referer = origin ? null : normalizeOrigin(refererHeader)
   const requestOrigin = origin ?? referer
 
   const allowed = new Set<string>()
