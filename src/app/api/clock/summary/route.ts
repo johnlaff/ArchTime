@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import {
   endExclusiveOfLocalDayBRT,
   getLocalDateBRT,
-  getMonthRangeBRT,
   getWeekRangeBRT,
   splitIntervalByLocalDay,
   startOfLocalDayBRT,
@@ -20,26 +19,28 @@ export async function GET() {
   const todayStart = startOfLocalDayBRT(todayDate)
   const todayEnd = endExclusiveOfLocalDayBRT(todayDate)
   const week = getWeekRangeBRT()
-  const month = getMonthRangeBRT(todayDate.slice(0, 7))
 
-  const entries = await prisma.clockEntry.findMany({
-    where: {
-      userId: user.id,
-      deletedAt: null,
-      clockOut: { not: null },
-      clockIn: { lt: todayEnd },
-      AND: [{ clockOut: { gt: todayStart } }],
-    },
-    include: {
-      allocations: {
-        include: { project: { select: { name: true, color: true } } },
-        take: 1,
+  const todayEntryWhere = {
+    userId: user.id,
+    deletedAt: null,
+    clockOut: { not: null },
+    clockIn: { lt: todayEnd },
+    AND: [{ clockOut: { gt: todayStart } }],
+  }
+
+  const [entries, sessionCount, today, weekBalance, monthBalance] = await Promise.all([
+    prisma.clockEntry.findMany({
+      where: todayEntryWhere,
+      include: {
+        allocations: {
+          include: { project: { select: { name: true, color: true } } },
+          take: 1,
+        },
       },
-    },
-    orderBy: { clockIn: 'desc' },
-  })
-
-  const [today, weekBalance, monthBalance] = await Promise.all([
+      orderBy: { clockIn: 'desc' },
+      take: 10,
+    }),
+    prisma.clockEntry.count({ where: todayEntryWhere }),
     buildPeriodBalance(user.id, todayDate, todayDate),
     buildPeriodBalance(user.id, week.startDate, week.endDate),
     buildHourBankMonth(user.id, todayDate.slice(0, 7)),
@@ -47,7 +48,7 @@ export async function GET() {
 
   const summary: DailySummary = {
     totalMinutes: today.actualMinutes,
-    sessionCount: entries.length,
+    sessionCount,
     today,
     week: weekBalance,
     month: {
@@ -56,7 +57,7 @@ export async function GET() {
       balanceMinutes: monthBalance.balanceMinutes,
       cumulativeBalance: monthBalance.cumulativeBalance,
     },
-    entries: entries.slice(0, 10).map((entry) => {
+    entries: entries.map((entry) => {
       const dayMinutes = splitIntervalByLocalDay(entry.clockIn, entry.clockOut!)
         .filter((segment) => segment.date === todayDate)
         .reduce((sum, segment) => sum + segment.minutes, 0)
