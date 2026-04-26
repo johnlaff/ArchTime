@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 function normalizeOrigin(value: string | null | undefined): string | null {
-  if (!value) return null
+  if (!value || value === 'about:client') return null
   try {
-    return new URL(value).origin
+    const origin = new URL(value).origin
+    return origin === 'null' ? null : origin
   } catch {
     return null
   }
@@ -19,16 +20,22 @@ function isLocalOrigin(origin: string): boolean {
 }
 
 export function validateMutationOrigin(req: NextRequest): NextResponse | null {
-  const origin = normalizeOrigin(req.headers.get('origin'))
-  if (!origin) return null
+  const originHeader = req.headers.get('origin')
+  const origin = normalizeOrigin(originHeader)
+  const refererHeader = req.headers.get('referer') ?? req.headers.get('referrer') ?? req.referrer
+  const referer = originHeader ? null : normalizeOrigin(refererHeader)
+  const requestOrigin = origin ?? referer
 
   const allowed = new Set<string>()
   const appOrigin = normalizeOrigin(process.env.NEXT_PUBLIC_APP_URL)
   if (appOrigin) allowed.add(appOrigin)
   allowed.add(req.nextUrl.origin)
 
-  if (allowed.has(origin)) return null
-  if (process.env.NODE_ENV !== 'production' && isLocalOrigin(origin)) return null
+  if (requestOrigin && allowed.has(requestOrigin)) return null
+  if (requestOrigin && process.env.NODE_ENV !== 'production' && isLocalOrigin(requestOrigin)) {
+    return null
+  }
+  if (!requestOrigin && process.env.NODE_ENV !== 'production') return null
 
   return NextResponse.json({ error: 'Origin não permitido' }, { status: 403 })
 }

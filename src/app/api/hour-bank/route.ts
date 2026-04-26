@@ -13,6 +13,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Mês inválido. Use YYYY-MM.' }, { status: 400 })
   }
 
-  const data = await buildHourBankMonth(user.id, month, { persist: true })
+  const data = await buildHourBankMonth(user.id, month, { persist: false })
   return NextResponse.json(data)
 }

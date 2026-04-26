@@ -16,6 +16,11 @@ function permanentError(message: string, status: number) {
   return NextResponse.json({ ok: false, permanent: true, error: message }, { status })
 }
 
+function isUniqueConstraintError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error &&
+    (error as { code?: string }).code === 'P2002'
+}
+
 export async function POST(req: NextRequest) {
   const originError = validateMutationOrigin(req)
   if (originError) return originError
@@ -45,11 +50,14 @@ export async function POST(req: NextRequest) {
     const entryDate = toDateOnlyUTC(getLocalDateBRT(clockIn))
     const clockEntryId = entry.entryId ?? entry.id
 
-    const duplicate = await prisma.clockEntry.findFirst({
-      where: { id: clockEntryId, userId: user.id, deletedAt: null },
-      select: { id: true },
+    const duplicate = await prisma.clockEntry.findUnique({
+      where: { id: clockEntryId },
+      select: { id: true, userId: true },
     })
-    if (duplicate) return NextResponse.json({ ok: true, idempotent: true })
+    if (duplicate?.userId === user.id) {
+      return NextResponse.json({ ok: true, idempotent: true })
+    }
+    if (duplicate) return permanentError('Entrada offline duplicada inválida', 409)
 
     if (entry.projectId) {
       const project = await prisma.project.findFirst({
@@ -107,8 +115,30 @@ export async function POST(req: NextRequest) {
       })
     } catch (error) {
       const maybeError = error as { message?: string; code?: string; entryId?: string }
-      if (maybeError.message === 'open-session' || maybeError.code === 'P2002') {
+      if (maybeError.message === 'open-session') {
         return permanentError('Já existe uma entrada em aberto', 409)
+      }
+      if (isUniqueConstraintError(error)) {
+        const [duplicateAfterConflict, existingOpen] = await Promise.all([
+          prisma.clockEntry.findUnique({
+            where: { id: clockEntryId },
+            select: { id: true, userId: true },
+          }),
+          prisma.clockEntry.findFirst({
+            where: { userId: user.id, clockOut: null, deletedAt: null },
+            select: { id: true },
+          }),
+        ])
+
+        if (duplicateAfterConflict?.userId === user.id) {
+          return NextResponse.json({ ok: true, idempotent: true })
+        }
+        if (duplicateAfterConflict) {
+          return permanentError('Entrada offline duplicada inválida', 409)
+        }
+        if (existingOpen) {
+          return permanentError('Já existe uma entrada em aberto', 409)
+        }
       }
       throw error
     }
