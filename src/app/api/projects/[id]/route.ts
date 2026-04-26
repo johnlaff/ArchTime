@@ -49,7 +49,12 @@ export async function DELETE(
   }
 
   const allocationCount = await prisma.timeAllocation.count({
-    where: { projectId: id },
+    where: {
+      projectId: id,
+      clockEntry: {
+        deletedAt: null,
+      },
+    },
   })
 
   if (allocationCount > 0) {
@@ -73,7 +78,7 @@ export async function DELETE(
 
     revalidateTag(`projects-${user.id}`, { expire: 0 })
     return NextResponse.json({
-      ...archived,
+      ...serializeProject(archived),
       archivedInsteadOfDeleted: true,
       message: 'Projeto arquivado porque possui registros de horas.',
     })

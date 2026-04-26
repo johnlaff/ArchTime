@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react'
 import { format, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -15,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { formatBRT, formatMinutes } from '@/lib/dates'
+import { formatBRT, formatMinutes, getLocalDateBRT } from '@/lib/dates'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -25,32 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-interface HistoryEntry {
-  id: string
-  entryId: string
-  clockIn: string
-  clockOut: string
-  totalMinutes: number | null
-  segmentDate: string
-  segmentMinutes: number
-  totalEntryMinutes: number | null
-  isPartial: boolean
-  projectName: string | null
-  projectColor: string | null
-  projectId: string | null
-  entryDate: string
-  source: string
-}
-
-interface HistoryData {
-  entries: HistoryEntry[]
-  totalMinutes: number
-  sessionCount: number
-  page: number
-  pageSize: number
-  hasMore: boolean
-}
+import { HistoryAuthError, parseHistoryBundleResponse } from '@/lib/history-client'
+import type { HistoryBundle } from '@/lib/history'
+import type { HistoryData, HistoryEntry, ProjectOption } from '@/types'
 
 interface EditForm {
   clockInAt: string
@@ -62,7 +40,8 @@ interface HourBankData {
   expectedMinutes: number
   actualMinutes: number
   balanceMinutes: number
-  cumulativeBalance: number
+  cumulativeBalance: number | null
+  showCumulativeBalance: boolean
   weeks: Array<{
     startDate: string
     endDate: string
@@ -76,48 +55,65 @@ function toYYYYMM(date: Date): string {
   return format(date, 'yyyy-MM')
 }
 
-export function HistoricoClient() {
-  const [currentMonth, setCurrentMonth] = useState(() => new Date())
-  const [data, setData] = useState<HistoryData | null>(null)
-  const [hourBank, setHourBank] = useState<HourBankData | null>(null)
-  const [loading, setLoading] = useState(true)
+function monthToDate(month: string): Date {
+  return new Date(`${month}-15T12:00:00`)
+}
+
+export function HistoricoClient({
+  initialMonth = getLocalDateBRT().slice(0, 7),
+  initialBundle,
+}: {
+  initialMonth?: string
+  initialBundle?: HistoryBundle
+}) {
+  const [currentMonth, setCurrentMonth] = useState(() => monthToDate(initialMonth))
+  const [data, setData] = useState<HistoryData | null>(initialBundle?.history ?? null)
+  const [hourBank, setHourBank] = useState<HourBankData | null>(initialBundle?.hourBank ?? null)
+  const [loading, setLoading] = useState(!initialBundle)
   const [loadingMore, setLoadingMore] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editTarget, setEditTarget] = useState<HistoryEntry | null>(null)
   const [editForm, setEditForm] = useState<EditForm>({ clockInAt: '', clockOutAt: '', projectId: '' })
   const [editSaving, setEditSaving] = useState(false)
-  const [projects, setProjects] = useState<{ id: string; name: string; color: string }[]>([])
+  const [projects, setProjects] = useState<ProjectOption[]>(initialBundle?.projects ?? [])
+  const didMount = useRef(false)
+  const router = useRouter()
 
   const load = useCallback(async (date: Date, page = 1, append = false) => {
     if (append) setLoadingMore(true)
     else setLoading(true)
     try {
       const month = toYYYYMM(date)
-      const [histRes, projRes, bankRes] = await Promise.all([
-        fetch(`/api/clock/history?month=${month}&page=${page}&pageSize=50`),
-        fetch('/api/projects'),
-        fetch(`/api/hour-bank?month=${month}`),
-      ])
-      if (!histRes.ok) throw new Error()
-      const history = await histRes.json()
+      const res = await fetch(`/api/history?month=${month}&page=${page}&pageSize=50`)
+      const bundle = await parseHistoryBundleResponse(res)
+      const history = bundle.history
       setData((current) => append && current
         ? { ...history, entries: [...current.entries, ...history.entries] }
         : history
       )
-      if (projRes.ok) setProjects(await projRes.json())
-      if (bankRes.ok) setHourBank(await bankRes.json())
-    } catch {
+      setProjects(bundle.projects)
+      setHourBank(bundle.hourBank)
+    } catch (error) {
+      if (error instanceof HistoryAuthError) {
+        router.replace('/login')
+        return
+      }
       toast.error('Erro ao carregar histórico')
     } finally {
       if (append) setLoadingMore(false)
       else setLoading(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true
+      if (!initialBundle) load(currentMonth)
+      return
+    }
     load(currentMonth)
-  }, [currentMonth, load])
+  }, [currentMonth, initialBundle, load])
 
   function prevMonth() {
     setCurrentMonth((m) => subMonths(m, 1))
@@ -197,7 +193,9 @@ export function HistoricoClient() {
   const dayKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
 
   const monthLabel = format(currentMonth, 'MMMM yyyy', { locale: ptBR })
-  const isCurrentMonth = toYYYYMM(currentMonth) === toYYYYMM(new Date())
+  const isCurrentMonth = toYYYYMM(currentMonth) === getLocalDateBRT().slice(0, 7)
+  const showCumulative =
+    hourBank?.showCumulativeBalance && hourBank.cumulativeBalance != null
 
   return (
     <div className="space-y-4 animate-fade-in-up">
@@ -217,7 +215,7 @@ export function HistoricoClient() {
       {hourBank && (
         <Card>
           <CardContent className="py-4 space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className={`${showCumulative ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'} grid gap-3 text-center text-sm`}>
               <div>
                 <p className="text-xs text-muted-foreground">Previsto</p>
                 <p className="font-medium tabular-nums">{formatMinutes(hourBank.expectedMinutes)}</p>
@@ -230,10 +228,12 @@ export function HistoricoClient() {
                 <p className="text-xs text-muted-foreground">Saldo</p>
                 <p className="font-medium tabular-nums">{formatMinutes(hourBank.balanceMinutes)}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Acumulado</p>
-                <p className="font-medium tabular-nums">{formatMinutes(hourBank.cumulativeBalance)}</p>
-              </div>
+              {showCumulative && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Acumulado</p>
+                  <p className="font-medium tabular-nums">{formatMinutes(hourBank.cumulativeBalance!)}</p>
+                </div>
+              )}
             </div>
             <div className="space-y-1">
               {hourBank.weeks.map((week, index) => (

@@ -12,7 +12,10 @@ export interface DailySummary {
   entries: RecentEntry[]
   today: BalanceSummary
   week: BalanceSummary
-  month: BalanceSummary & { cumulativeBalance: number }
+  month: BalanceSummary & {
+    cumulativeBalance: number | null
+    showCumulativeBalance: boolean
+  }
 }
 
 export interface RecentEntry {
@@ -37,6 +40,32 @@ export interface ProjectOption {
   color: string
   hourlyRate: number | null
   isActive: boolean
+}
+
+export interface HistoryEntry {
+  id: string
+  entryId: string
+  clockIn: string
+  clockOut: string
+  totalMinutes: number | null
+  segmentDate: string
+  segmentMinutes: number
+  totalEntryMinutes: number | null
+  isPartial: boolean
+  projectName: string | null
+  projectColor: string | null
+  projectId: string | null
+  entryDate: string
+  source: string
+}
+
+export interface HistoryData {
+  entries: HistoryEntry[]
+  totalMinutes: number
+  sessionCount: number
+  page: number
+  pageSize: number
+  hasMore: boolean
 }
 
 export interface PendingEntry {

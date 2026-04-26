@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { buildHistoryData } from '@/lib/history'
+import { buildHistoryBundle } from '@/lib/history'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { parseMonth, parsePage } from '@/lib/server/validation'
 
@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
   if (!month) {
     return NextResponse.json({ error: 'Mês inválido. Use YYYY-MM.' }, { status: 400 })
   }
+
   const page = parsePage(searchParams.get('page'), 1, 10000)
   const pageSize = parsePage(searchParams.get('pageSize'), 50, 200)
-  const { history } = await buildHistoryData(user.id, month, page, pageSize)
-
-  return NextResponse.json(history)
+  const bundle = await buildHistoryBundle(user.id, month, page, pageSize)
+  return NextResponse.json(bundle)
 }

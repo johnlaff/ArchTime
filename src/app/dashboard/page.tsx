@@ -1,8 +1,11 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
+import { buildDailySummary } from '@/lib/summary'
 import { DashboardClient } from './dashboard-client'
+import DashboardLoading from './loading'
 import type { ActiveSession, ProjectOption } from '@/types'
 
 async function getCachedProjects(userId: string) {
@@ -15,11 +18,11 @@ async function getCachedProjects(userId: string) {
   })
 }
 
-export default async function DashboardPage() {
+async function DashboardContent() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
-  const [activeEntry, projects] = await Promise.all([
+  const [activeEntry, projects, summary] = await Promise.all([
     prisma.clockEntry.findFirst({
       where: { userId: user.id, clockOut: null, deletedAt: null },
       include: {
@@ -30,6 +33,7 @@ export default async function DashboardPage() {
       },
     }),
     getCachedProjects(user.id),
+    buildDailySummary(user.id),
   ])
 
   const session: ActiveSession | null = activeEntry
@@ -55,6 +59,15 @@ export default async function DashboardPage() {
     <DashboardClient
       initialSession={session}
       projects={projectOptions}
+      initialSummary={summary}
     />
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
   )
 }

@@ -5,6 +5,7 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { getOAuthRedirectTo } from '@/lib/oauth-redirect'
 
 function LoginContent() {
   const searchParams = useSearchParams()
@@ -15,7 +16,7 @@ function LoginContent() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+        redirectTo: getOAuthRedirectTo(window.location.origin),
       },
     })
   }
