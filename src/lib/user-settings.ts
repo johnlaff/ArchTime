@@ -114,7 +114,8 @@ export async function getOrCreateUserSettings(userId: string): Promise<Serialize
 function parseDateOnly(value: unknown): string | null {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const parsed = new Date(`${value}T00:00:00.000Z`)
-  return Number.isFinite(parsed.getTime()) ? value : null
+  if (!Number.isFinite(parsed.getTime())) return null
+  return parsed.toISOString().slice(0, 10) === value ? value : null
 }
 
 export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatch | string {

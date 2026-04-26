@@ -64,6 +64,12 @@ describe('parseSettingsPatch', () => {
     )
   })
 
+  it('rejects impossible cumulative start dates', () => {
+    expect(parseSettingsPatch({ cumulativeStartDate: '2026-02-31' })).toBe(
+      'Data inicial do acumulado inválida'
+    )
+  })
+
   it('exposes all supported cumulative scopes to the UI', () => {
     expect(Object.keys(settingsOptions.cumulativeBalanceScopes)).toEqual([
       'since_start',
