@@ -9,6 +9,7 @@ import { OfflineIndicator } from '@/components/offline-indicator'
 import { OrphanSessionBanner } from '@/components/orphan-session-banner'
 import { InstallPrompt } from '@/components/install-prompt'
 import { useClock } from '@/hooks/use-clock'
+import { getLocalDateBRT } from '@/lib/dates'
 import type { ActiveSession, DailySummary, ProjectOption } from '@/types'
 
 interface DashboardClientProps {
@@ -34,6 +35,12 @@ export function DashboardClient({
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    const handleSync = () => refreshSummary()
+    window.addEventListener('archtime:sync-complete', handleSync)
+    return () => window.removeEventListener('archtime:sync-complete', handleSync)
+  }, [])
+
   async function refreshSummary() {
     try {
       const res = await fetch('/api/clock/summary')
@@ -43,6 +50,7 @@ export function DashboardClient({
 
   async function handleClockIn() {
     await clockIn(selectedProjectId)
+    await refreshSummary()
   }
 
   async function handleClockOut() {
@@ -51,7 +59,7 @@ export function DashboardClient({
   }
 
   const isOrphan =
-    session && new Date(session.clockIn).toDateString() !== new Date().toDateString()
+    session && getLocalDateBRT(new Date(session.clockIn)) !== getLocalDateBRT()
 
   return (
     <div className="space-y-4 animate-fade-in-up">

@@ -4,7 +4,10 @@ import {
   getLocalDate,
   getWorkingDays,
   calcDurationMinutes,
+  calculateExpectedMinutes,
   formatMinutes,
+  getBrazilNationalHolidays,
+  splitIntervalByLocalDay,
 } from '../dates'
 
 describe('formatBRT', () => {
@@ -37,6 +40,48 @@ describe('calcDurationMinutes', () => {
     const clockIn = new Date('2026-02-22T09:00:00Z')
     const clockOut = new Date('2026-02-22T17:30:00Z')
     expect(calcDurationMinutes(clockIn, clockOut)).toBe(510)
+  })
+})
+
+describe('splitIntervalByLocalDay', () => {
+  it('splits a 23:00-01:00 session by BRT day', () => {
+    const segments = splitIntervalByLocalDay(
+      new Date('2026-02-23T02:00:00Z'),
+      new Date('2026-02-23T04:00:00Z')
+    )
+    expect(segments.map((s) => [s.date, s.minutes])).toEqual([
+      ['2026-02-22', 60],
+      ['2026-02-23', 60],
+    ])
+  })
+
+  it('splits a session crossing month boundary', () => {
+    const segments = splitIntervalByLocalDay(
+      new Date('2026-03-01T02:00:00Z'),
+      new Date('2026-03-01T04:00:00Z')
+    )
+    expect(segments.map((s) => [s.date, s.minutes])).toEqual([
+      ['2026-02-28', 60],
+      ['2026-03-01', 60],
+    ])
+  })
+})
+
+describe('Brazilian national holidays', () => {
+  it('includes official national holidays and Good Friday', () => {
+    const holidays = getBrazilNationalHolidays(2026)
+    expect(holidays.has('2026-04-03')).toBe(true)
+    expect(holidays.has('2026-04-21')).toBe(true)
+    expect(holidays.has('2026-11-20')).toBe(true)
+  })
+
+  it('discounts national holidays from expected minutes', () => {
+    const expected = calculateExpectedMinutes({
+      startDate: '2026-04-20',
+      endDate: '2026-04-21',
+      defaultWorkHours: 8,
+    })
+    expect(expected).toBe(480)
   })
 })
 

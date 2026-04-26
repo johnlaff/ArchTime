@@ -24,6 +24,7 @@ interface ProjectForm {
 }
 
 const emptyForm: ProjectForm = { name: '', clientName: '', hourlyRate: '', color: '#6366f1' }
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
 
 export default function ProjetosPage() {
   const [projects, setProjects] = useState<ProjectOption[]>([])
@@ -39,10 +40,14 @@ export default function ProjetosPage() {
     setLoading(true)
     try {
       const res = await fetch('/api/projects')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Erro ao carregar projetos')
+      }
       const data = await res.json()
       setProjects(data)
-    } catch {
-      toast.error('Erro ao carregar projetos')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao carregar projetos')
     } finally {
       setLoading(false)
     }
@@ -72,13 +77,24 @@ export default function ProjetosPage() {
       toast.error('Nome é obrigatório')
       return
     }
+    if (form.hourlyRate) {
+      const rate = Number(form.hourlyRate)
+      if (!Number.isFinite(rate) || rate < 0) {
+        toast.error('Valor por hora inválido')
+        return
+      }
+    }
+    if (!HEX_RE.test(form.color)) {
+      toast.error('Cor inválida')
+      return
+    }
     setSaving(true)
     try {
       const payload = {
         ...(editingId ? { id: editingId } : {}),
-        name: form.name,
-        clientName: form.clientName || null,
-        hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : null,
+        name: form.name.trim(),
+        clientName: form.clientName.trim() || null,
+        hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
         color: form.color,
       }
       const res = await fetch('/api/projects', {
@@ -86,12 +102,15 @@ export default function ProjetosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Erro ao salvar projeto')
+      }
       toast.success(editingId ? 'Projeto atualizado' : 'Projeto criado')
       setOpen(false)
       loadProjects()
-    } catch {
-      toast.error('Erro ao salvar projeto')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar projeto')
     } finally {
       setSaving(false)
     }
@@ -99,15 +118,19 @@ export default function ProjetosPage() {
 
   async function handleArchive(project: ProjectOption) {
     try {
-      await fetch('/api/projects', {
+      const res = await fetch('/api/projects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: project.id, isActive: !project.isActive }),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Erro ao arquivar projeto')
+      }
       toast.success(project.isActive ? 'Projeto arquivado' : 'Projeto reativado')
       loadProjects()
-    } catch {
-      toast.error('Erro ao arquivar projeto')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao arquivar projeto')
     }
   }
 
@@ -117,11 +140,12 @@ export default function ProjetosPage() {
     try {
       const res = await fetch(`/api/projects/${deleteTarget.id}`, { method: 'DELETE' })
       if (!res.ok) {
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
         toast.error(data.error ?? 'Erro ao apagar projeto')
         return
       }
-      toast.success('Projeto apagado')
+      const data = res.status === 204 ? null : await res.json().catch(() => null)
+      toast.success(data?.archivedInsteadOfDeleted ? 'Projeto arquivado' : 'Projeto apagado')
       loadProjects()
     } catch {
       toast.error('Erro ao apagar projeto')
@@ -206,7 +230,8 @@ export default function ProjetosPage() {
           <DialogHeader>
             <DialogTitle>Apagar projeto?</DialogTitle>
             <DialogDescription>
-              O projeto <strong>{deleteTarget?.name}</strong> será apagado permanentemente. Esta ação não pode ser desfeita.
+              O projeto <strong>{deleteTarget?.name}</strong> será apagado se não tiver registros.
+              Se já tiver horas lançadas, ele será arquivado.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

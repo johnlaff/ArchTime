@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/server/auth'
 import { DashboardClient } from './dashboard-client'
 import type { ActiveSession, ProjectOption } from '@/types'
 
@@ -16,13 +16,12 @@ async function getCachedProjects(userId: string) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
   const [activeEntry, projects] = await Promise.all([
     prisma.clockEntry.findFirst({
-      where: { userId: user.id, clockOut: null },
+      where: { userId: user.id, clockOut: null, deletedAt: null },
       include: {
         allocations: {
           include: { project: { select: { name: true, color: true } } },

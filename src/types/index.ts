@@ -10,6 +10,9 @@ export interface DailySummary {
   totalMinutes: number
   sessionCount: number
   entries: RecentEntry[]
+  today: BalanceSummary
+  week: BalanceSummary
+  month: BalanceSummary & { cumulativeBalance: number }
 }
 
 export interface RecentEntry {
@@ -19,6 +22,12 @@ export interface RecentEntry {
   totalMinutes: number | null
   projectName: string | null
   projectColor: string | null
+}
+
+export interface BalanceSummary {
+  expectedMinutes: number
+  actualMinutes: number
+  balanceMinutes: number
 }
 
 export interface ProjectOption {
@@ -37,4 +46,10 @@ export interface PendingEntry {
   projectId?: string
   entryId?: string // for clock_out: references the offline clock_in id
   createdAt: string
+}
+
+export interface FailedPendingEntry extends PendingEntry {
+  failedAt: string
+  status: number
+  error: string
 }

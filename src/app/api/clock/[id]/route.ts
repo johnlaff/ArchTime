@@ -1,51 +1,114 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { isAllowedEmail } from '@/lib/auth'
-import { calcDurationMinutes } from '@/lib/dates'
+import {
+  calcDurationMinutes,
+  formatBRT,
+  getLocalDateBRT,
+  parseBRTDateTimeLocal,
+  toDateOnlyUTC,
+} from '@/lib/dates'
 import { generateEntryHash } from '@/lib/hash'
-import { fromZonedTime, formatInTimeZone } from 'date-fns-tz'
-import { TIMEZONE } from '@/lib/constants'
+import { getAuthenticatedUser } from '@/lib/server/auth'
+import { validateMutationOrigin } from '@/lib/server/security'
+import {
+  parseClockDateTime,
+  safeJsonObject,
+  validateClosedRange,
+} from '@/lib/server/validation'
+import { recalculateHourBankForInterval } from '@/lib/hour-bank'
 
-async function getAuthenticatedUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user || !isAllowedEmail(user.email)) return null
-  return user
+type EntryWithAllocations = Awaited<ReturnType<typeof getEntry>>
+
+async function readOptionalJson(req: NextRequest): Promise<Record<string, unknown>> {
+  const raw = await req.text()
+  if (!raw.trim()) return {}
+  return safeJsonObject(JSON.parse(raw))
+}
+
+async function getEntry(id: string, userId: string) {
+  return prisma.clockEntry.findFirst({
+    where: { id, userId, deletedAt: null },
+    include: {
+      allocations: {
+        include: { project: { select: { id: true, name: true, color: true } } },
+        take: 1,
+      },
+    },
+  })
+}
+
+function serializeOldData(entry: NonNullable<EntryWithAllocations>) {
+  return {
+    id: entry.id,
+    clockIn: entry.clockIn.toISOString(),
+    clockOut: entry.clockOut?.toISOString() ?? null,
+    entryDate: entry.entryDate.toISOString().slice(0, 10),
+    totalMinutes: entry.totalMinutes,
+    projectId: entry.allocations[0]?.projectId ?? null,
+    projectName: entry.allocations[0]?.project.name ?? null,
+    hash: entry.hash,
+    source: entry.source,
+  }
 }
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const originError = validateMutationOrigin(req)
+  if (originError) return originError
+
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
 
-  const entry = await prisma.clockEntry.findFirst({
-    where: { id, userId: user.id, clockOut: null },
-  })
+  const entry = await getEntry(id, user.id)
   if (!entry) {
-    return NextResponse.json(
-      { error: 'Entrada não encontrada ou já fechada' },
-      { status: 404 }
-    )
+    return NextResponse.json({ error: 'Entrada não encontrada' }, { status: 404 })
   }
 
-  const now = new Date()
-  const totalMinutes = calcDurationMinutes(entry.clockIn, now)
+  if (entry.clockOut) {
+    return NextResponse.json({
+      id: entry.id,
+      clockIn: entry.clockIn.toISOString(),
+      clockOut: entry.clockOut.toISOString(),
+      totalMinutes: entry.totalMinutes,
+      source: entry.source,
+      projectId: entry.allocations[0]?.projectId ?? null,
+      projectName: entry.allocations[0]?.project.name ?? null,
+      projectColor: entry.allocations[0]?.project.color ?? null,
+    })
+  }
+
+  let body: Record<string, unknown>
+  try {
+    body = await readOptionalJson(req)
+  } catch {
+    return NextResponse.json({ error: 'Payload inválido' }, { status: 400 })
+  }
+
+  const clockOut = body.clockOutAt ? parseClockDateTime(body.clockOutAt) : new Date()
+  if (!clockOut) {
+    return NextResponse.json({ error: 'Horário de saída inválido' }, { status: 400 })
+  }
+
+  const rangeError = validateClosedRange(entry.clockIn, clockOut)
+  if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 })
+
+  const totalMinutes = calcDurationMinutes(entry.clockIn, clockOut)
   const hash = await generateEntryHash({
     clockIn: entry.clockIn.toISOString(),
-    clockOut: now.toISOString(),
+    clockOut: clockOut.toISOString(),
     userId: user.id,
-    entryDate: entry.entryDate.toISOString(),
+    entryDate: entry.entryDate.toISOString().slice(0, 10),
   })
+  const oldData = serializeOldData(entry)
 
   const updated = await prisma.$transaction(async (tx) => {
     const updatedEntry = await tx.clockEntry.update({
       where: { id },
-      data: { clockOut: now, totalMinutes, hash },
+      data: { clockOut, totalMinutes, hash },
     })
 
     await tx.timeAllocation.updateMany({
@@ -58,13 +121,21 @@ export async function PUT(
         userId: user.id,
         action: 'clock_out',
         entityId: id,
-        newData: { clockOut: now.toISOString(), totalMinutes, hash },
+        oldData,
+        newData: {
+          ...oldData,
+          clockOut: clockOut.toISOString(),
+          totalMinutes,
+          hash,
+        },
         userAgent: req.headers.get('user-agent'),
       },
     })
 
     return updatedEntry
   })
+
+  await recalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
 
   return NextResponse.json(updated)
 }
@@ -73,14 +144,15 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const originError = validateMutationOrigin(req)
+  if (originError) return originError
+
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
 
-  const entry = await prisma.clockEntry.findFirst({
-    where: { id, userId: user.id },
-  })
+  const entry = await getEntry(id, user.id)
 
   if (!entry) {
     return NextResponse.json({ error: 'Entrada não encontrada' }, { status: 404 })
@@ -93,19 +165,27 @@ export async function DELETE(
     )
   }
 
+  const deletedAt = new Date()
+  const oldData = serializeOldData(entry)
+
   await prisma.$transaction(async (tx) => {
-    await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
-    await tx.clockEntry.delete({ where: { id } })
+    await tx.clockEntry.update({
+      where: { id },
+      data: { deletedAt, deletedBy: user.id },
+    })
     await tx.auditLog.create({
       data: {
         userId: user.id,
         action: 'delete_entry',
         entityId: id,
-        newData: { deletedAt: new Date().toISOString() },
+        oldData,
+        newData: { ...oldData, deletedAt: deletedAt.toISOString(), deletedBy: user.id },
         userAgent: req.headers.get('user-agent'),
       },
     })
   })
+
+  await recalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut)
 
   return new NextResponse(null, { status: 204 })
 }
@@ -114,30 +194,38 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const originError = validateMutationOrigin(req)
+  if (originError) return originError
+
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const body = await req.json()
-  const { clockInTime, clockOutTime, projectId } = body as {
-    clockInTime: string       // "HH:MM" em BRT
-    clockOutTime: string      // "HH:MM" em BRT
-    projectId: string | null
+  let body: Record<string, unknown>
+  try {
+    body = safeJsonObject(await req.json())
+  } catch {
+    return NextResponse.json({ error: 'Payload inválido' }, { status: 400 })
+  }
+  const {
+    clockInAt,
+    clockOutAt,
+    clockInTime,
+    clockOutTime,
+    projectId: rawProjectId,
+  } = body as {
+    clockInAt?: string
+    clockOutAt?: string
+    clockInTime?: string
+    clockOutTime?: string
+    projectId?: string | null
   }
 
-  if (!clockInTime || !clockOutTime) {
+  if ((!clockInAt || !clockOutAt) && (!clockInTime || !clockOutTime)) {
     return NextResponse.json({ error: 'Horários são obrigatórios' }, { status: 400 })
   }
 
-  const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
-  if (!TIME_RE.test(clockInTime) || !TIME_RE.test(clockOutTime)) {
-    return NextResponse.json({ error: 'Formato de horário inválido (HH:MM)' }, { status: 400 })
-  }
-
-  const entry = await prisma.clockEntry.findFirst({
-    where: { id, userId: user.id },
-    include: { allocations: { take: 1 } },
-  })
+  const entry = await getEntry(id, user.id)
 
   if (!entry) {
     return NextResponse.json({ error: 'Entrada não encontrada' }, { status: 404 })
@@ -150,47 +238,64 @@ export async function PATCH(
     )
   }
 
-  // Reconstruir datas UTC a partir do horário BRT + data do registro
-  const brtDate = formatInTimeZone(entry.clockIn, TIMEZONE, 'yyyy-MM-dd')
-  const newClockIn = fromZonedTime(`${brtDate}T${clockInTime}:00`, TIMEZONE)
-  const newClockOut = fromZonedTime(`${brtDate}T${clockOutTime}:00`, TIMEZONE)
+  const newClockIn = clockInAt
+    ? parseBRTDateTimeLocal(clockInAt)
+    : parseBRTDateTimeLocal(`${formatBRT(entry.clockIn, 'yyyy-MM-dd')}T${clockInTime}`)
+  const newClockOut = clockOutAt
+    ? parseBRTDateTimeLocal(clockOutAt)
+    : parseBRTDateTimeLocal(`${formatBRT(entry.clockOut, 'yyyy-MM-dd')}T${clockOutTime}`)
 
-  if (newClockOut <= newClockIn) {
-    return NextResponse.json(
-      { error: 'Horário de saída deve ser posterior ao de entrada' },
-      { status: 400 }
-    )
+  if (!newClockIn || !newClockOut) {
+    return NextResponse.json({ error: 'Formato de data/hora inválido' }, { status: 400 })
+  }
+
+  const rangeError = validateClosedRange(newClockIn, newClockOut)
+  if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 })
+
+  const projectId = typeof rawProjectId === 'string' && rawProjectId.length > 0
+    ? rawProjectId
+    : null
+
+  let project: { id: string; name: string; color: string } | null = null
+  if (projectId) {
+    project = await prisma.project.findFirst({
+      where: { id: projectId, userId: user.id },
+      select: { id: true, name: true, color: true },
+    })
+    if (!project) {
+      return NextResponse.json({ error: 'Projeto inválido' }, { status: 404 })
+    }
   }
 
   const totalMinutes = calcDurationMinutes(newClockIn, newClockOut)
+  const entryDate = toDateOnlyUTC(getLocalDateBRT(newClockIn))
   const hash = await generateEntryHash({
     clockIn: newClockIn.toISOString(),
     clockOut: newClockOut.toISOString(),
     userId: user.id,
-    entryDate: entry.entryDate.toISOString(),
+    entryDate: entryDate.toISOString().slice(0, 10),
   })
 
-  const oldData = {
-    clockIn: entry.clockIn.toISOString(),
-    clockOut: entry.clockOut.toISOString(),
-    totalMinutes: entry.totalMinutes,
-    projectId: entry.allocations[0]?.projectId ?? null,
-  }
+  const oldData = serializeOldData(entry)
 
   const updated = await prisma.$transaction(async (tx) => {
     const updatedEntry = await tx.clockEntry.update({
       where: { id },
-      data: { clockIn: newClockIn, clockOut: newClockOut, totalMinutes, hash, source: 'edited' },
+      data: {
+        clockIn: newClockIn,
+        clockOut: newClockOut,
+        entryDate,
+        totalMinutes,
+        hash,
+        source: 'edited',
+      },
     })
 
-    // Atualizar TimeAllocation
+    await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
     if (projectId) {
-      await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
       await tx.timeAllocation.create({
         data: { clockEntryId: id, projectId, minutes: totalMinutes },
       })
-    } else {
-      await tx.timeAllocation.deleteMany({ where: { clockEntryId: id } })
     }
 
     await tx.auditLog.create({
@@ -202,8 +307,12 @@ export async function PATCH(
         newData: {
           clockIn: newClockIn.toISOString(),
           clockOut: newClockOut.toISOString(),
+          entryDate: getLocalDateBRT(newClockIn),
           totalMinutes,
           projectId: projectId ?? null,
+          projectName: project?.name ?? null,
+          hash,
+          source: 'edited',
         },
         userAgent: req.headers.get('user-agent'),
       },
@@ -212,12 +321,20 @@ export async function PATCH(
     return updatedEntry
   })
 
+  await Promise.all([
+    recalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut),
+    recalculateHourBankForInterval(user.id, newClockIn, newClockOut),
+  ])
+
   return NextResponse.json({
     id: updated.id,
     clockIn: updated.clockIn.toISOString(),
     clockOut: updated.clockOut!.toISOString(),
     totalMinutes: updated.totalMinutes,
     source: updated.source,
+    entryDate: getLocalDateBRT(updated.clockIn),
     projectId: projectId ?? null,
+    projectName: project?.name ?? null,
+    projectColor: project?.color ?? null,
   })
 }

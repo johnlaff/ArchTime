@@ -1,17 +1,26 @@
+import { createHmac } from 'crypto'
+
+const HASH_PREFIX = 'hmac-v1:'
+
 export async function generateEntryHash(entry: {
   clockIn: string
   clockOut: string
   userId: string
   entryDate: string
 }): Promise<string> {
+  const secret =
+    process.env.ENTRY_HASH_SECRET ??
+    (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-entry-hash-secret')
+
+  if (!secret) {
+    throw new Error('ENTRY_HASH_SECRET is required to generate entry hashes')
+  }
+
   const data = JSON.stringify({
     clockIn: entry.clockIn,
     clockOut: entry.clockOut,
     userId: entry.userId,
     entryDate: entry.entryDate,
   })
-  const encoder = new TextEncoder()
-  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data))
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  return `${HASH_PREFIX}${createHmac('sha256', secret).update(data).digest('hex')}`
 }

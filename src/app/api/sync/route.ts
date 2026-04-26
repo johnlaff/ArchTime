@@ -1,72 +1,157 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { isAllowedEmail } from '@/lib/auth'
 import { generateEntryHash } from '@/lib/hash'
-import { calcDurationMinutes } from '@/lib/dates'
+import { calcDurationMinutes, getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
+import { recalculateHourBankForInterval } from '@/lib/hour-bank'
+import { getAuthenticatedUser } from '@/lib/server/auth'
+import { validateMutationOrigin } from '@/lib/server/security'
+import {
+  parseIsoTimestamp,
+  safeJsonObject,
+  validateClosedRange,
+} from '@/lib/server/validation'
 import type { PendingEntry } from '@/types'
 
-async function getAuthenticatedUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user || !isAllowedEmail(user.email)) return null
-  return user
+function permanentError(message: string, status: number) {
+  return NextResponse.json({ ok: false, permanent: true, error: message }, { status })
 }
 
 export async function POST(req: NextRequest) {
+  const originError = validateMutationOrigin(req)
+  if (originError) return originError
+
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const entry: PendingEntry = await req.json()
+  let entry: PendingEntry
+  try {
+    entry = safeJsonObject(await req.json()) as unknown as PendingEntry
+  } catch {
+    return permanentError('Payload inválido', 400)
+  }
+
+  if (entry.type !== 'clock_in' && entry.type !== 'clock_out') {
+    return permanentError('Tipo de entrada offline inválido', 400)
+  }
+
+  const timestamp = parseIsoTimestamp(entry.timestamp)
+  if (!timestamp) return permanentError('Timestamp inválido', 400)
+  if (timestamp.getTime() > Date.now() + 5 * 60 * 1000) {
+    return permanentError('Timestamp não pode estar no futuro', 400)
+  }
 
   if (entry.type === 'clock_in') {
-    const clockIn = new Date(entry.timestamp)
-    const entryDate = new Date(entry.timestamp)
+    const clockIn = timestamp
+    const entryDate = toDateOnlyUTC(getLocalDateBRT(clockIn))
     const clockEntryId = entry.entryId ?? entry.id
 
-    await prisma.clockEntry.create({
-      data: {
-        id: clockEntryId,
-        userId: user.id,
-        clockIn,
-        entryDate,
-        source: 'offline_sync',
-      },
+    const duplicate = await prisma.clockEntry.findFirst({
+      where: { id: clockEntryId, userId: user.id, deletedAt: null },
+      select: { id: true },
     })
+    if (duplicate) return NextResponse.json({ ok: true, idempotent: true })
 
     if (entry.projectId) {
-      await prisma.timeAllocation.create({
-        data: {
-          clockEntryId,
-          projectId: entry.projectId,
-          minutes: 0,
-        },
+      const project = await prisma.project.findFirst({
+        where: { id: entry.projectId, userId: user.id, isActive: true },
+        select: { id: true },
       })
+      if (!project) return permanentError('Projeto inválido', 404)
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const existingOpen = await tx.clockEntry.findFirst({
+          where: { userId: user.id, clockOut: null, deletedAt: null },
+          select: { id: true },
+        })
+        if (existingOpen) {
+          throw Object.assign(new Error('open-session'), { entryId: existingOpen.id })
+        }
+
+        await tx.clockEntry.create({
+          data: {
+            id: clockEntryId,
+            userId: user.id,
+            clockIn,
+            entryDate,
+            source: 'offline_sync',
+          },
+        })
+
+        if (entry.projectId) {
+          await tx.timeAllocation.create({
+            data: {
+              clockEntryId,
+              projectId: entry.projectId,
+              minutes: 0,
+            },
+          })
+        }
+
+        await tx.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'offline_clock_in',
+            entityId: clockEntryId,
+            newData: {
+              id: clockEntryId,
+              clockIn: clockIn.toISOString(),
+              entryDate: getLocalDateBRT(clockIn),
+              projectId: entry.projectId ?? null,
+              source: 'offline_sync',
+            },
+            userAgent: req.headers.get('user-agent'),
+          },
+        })
+      })
+    } catch (error) {
+      const maybeError = error as { message?: string; code?: string; entryId?: string }
+      if (maybeError.message === 'open-session' || maybeError.code === 'P2002') {
+        return permanentError('Já existe uma entrada em aberto', 409)
+      }
+      throw error
     }
   }
 
-  if (entry.type === 'clock_out' && entry.entryId) {
+  if (entry.type === 'clock_out') {
+    if (!entry.entryId) return permanentError('entryId é obrigatório para clock_out', 400)
+
     const clockEntry = await prisma.clockEntry.findFirst({
-      where: { id: entry.entryId, userId: user.id },
+      where: { id: entry.entryId, userId: user.id, deletedAt: null },
+      include: { allocations: { take: 1 } },
     })
 
     if (!clockEntry) {
-      return NextResponse.json({ error: 'Entry not found' }, { status: 404 })
+      return permanentError('Entrada não encontrada', 404)
     }
 
-    const clockOut = new Date(entry.timestamp)
+    const clockOut = timestamp
+
+    if (clockEntry.clockOut) {
+      return NextResponse.json({ ok: true, idempotent: true })
+    }
+
+    const rangeError = validateClosedRange(clockEntry.clockIn, clockOut)
+    if (rangeError) return permanentError(rangeError, 400)
+
     const totalMinutes = calcDurationMinutes(clockEntry.clockIn, clockOut)
     const hash = await generateEntryHash({
       clockIn: clockEntry.clockIn.toISOString(),
       clockOut: clockOut.toISOString(),
       userId: user.id,
-      entryDate: clockEntry.entryDate.toISOString(),
+      entryDate: clockEntry.entryDate.toISOString().slice(0, 10),
     })
 
     await prisma.$transaction([
       prisma.clockEntry.update({
         where: { id: entry.entryId },
-        data: { clockOut, totalMinutes, hash, source: 'offline_sync' },
+        data: {
+          clockOut,
+          totalMinutes,
+          hash,
+          source: 'offline_sync',
+        },
       }),
       prisma.timeAllocation.updateMany({
         where: { clockEntryId: entry.entryId },
@@ -77,10 +162,31 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           action: 'offline_sync',
           entityId: entry.entryId,
-          newData: { clockOut: clockOut.toISOString(), totalMinutes, source: 'offline_sync' },
+          oldData: {
+            id: clockEntry.id,
+            clockIn: clockEntry.clockIn.toISOString(),
+            clockOut: null,
+            entryDate: clockEntry.entryDate.toISOString().slice(0, 10),
+            totalMinutes: clockEntry.totalMinutes,
+            projectId: clockEntry.allocations[0]?.projectId ?? null,
+            source: clockEntry.source,
+          },
+          newData: {
+            id: clockEntry.id,
+            clockIn: clockEntry.clockIn.toISOString(),
+            clockOut: clockOut.toISOString(),
+            entryDate: clockEntry.entryDate.toISOString().slice(0, 10),
+            totalMinutes,
+            projectId: clockEntry.allocations[0]?.projectId ?? null,
+            hash,
+            source: 'offline_sync',
+          },
+          userAgent: req.headers.get('user-agent'),
         },
       }),
     ])
+
+    await recalculateHourBankForInterval(user.id, clockEntry.clockIn, clockOut)
   }
 
   return NextResponse.json({ ok: true })
