@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
+import { buildDailySummary } from '@/lib/summary'
 import { DashboardClient } from './dashboard-client'
 import type { ActiveSession, ProjectOption } from '@/types'
 
@@ -19,7 +20,7 @@ export default async function DashboardPage() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
-  const [activeEntry, projects] = await Promise.all([
+  const [activeEntry, projects, summary] = await Promise.all([
     prisma.clockEntry.findFirst({
       where: { userId: user.id, clockOut: null, deletedAt: null },
       include: {
@@ -30,6 +31,7 @@ export default async function DashboardPage() {
       },
     }),
     getCachedProjects(user.id),
+    buildDailySummary(user.id),
   ])
 
   const session: ActiveSession | null = activeEntry
@@ -55,6 +57,7 @@ export default async function DashboardPage() {
     <DashboardClient
       initialSession={session}
       projects={projectOptions}
+      initialSummary={summary}
     />
   )
 }

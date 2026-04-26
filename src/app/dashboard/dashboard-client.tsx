@@ -15,25 +15,20 @@ import type { ActiveSession, DailySummary, ProjectOption } from '@/types'
 interface DashboardClientProps {
   initialSession: ActiveSession | null
   projects: ProjectOption[]
+  initialSummary: DailySummary
 }
 
 export function DashboardClient({
   initialSession,
   projects,
+  initialSummary,
 }: DashboardClientProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     initialSession?.projectId ?? null
   )
-  const [summary, setSummary] = useState<DailySummary | null>(null)
+  const [summary, setSummary] = useState<DailySummary | null>(initialSummary)
 
   const { session, setSession, clockIn, clockOut, loading } = useClock(initialSession)
-
-  useEffect(() => {
-    fetch('/api/clock/summary')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setSummary(data) })
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     const handleSync = () => refreshSummary()

@@ -19,8 +19,27 @@ model User {
   clockEntries    ClockEntry[]
   projects        Project[]
   hourBankEntries HourBank[]
+  settings        UserSettings?
 
   @@map("users")
+}
+
+model UserSettings {
+  id                    String   @id @default(uuid())
+  userId                String   @unique @map("user_id")
+  workMinutesByWeekday  Json     @map("work_minutes_by_weekday")
+  workScheduleTemplate  String   @default("standard_40h") @map("work_schedule_template")
+  showCumulativeBalance Boolean  @default(false) @map("show_cumulative_balance")
+  cumulativeBalanceScope String  @default("since_start") @map("cumulative_balance_scope")
+  cumulativeStartDate   DateTime @map("cumulative_start_date") @db.Date
+  accentPreset          String   @default("indigo") @map("accent_preset")
+  themeMode             String   @default("system") @map("theme_mode")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 model Project {

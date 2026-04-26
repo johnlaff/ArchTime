@@ -7,6 +7,7 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { TIMEZONE, DEFAULT_WORK_DAYS } from './constants'
+import type { WorkMinutesByWeekday } from './preferences'
 
 export interface DaySegment {
   date: string
@@ -20,6 +21,7 @@ export interface ExpectedMinutesPeriod {
   endDate: string
   defaultWorkHours?: number
   workDays?: number[]
+  workMinutesByWeekday?: WorkMinutesByWeekday
 }
 
 export function formatBRT(date: Date | string, fmt = 'HH:mm'): string {
@@ -113,6 +115,7 @@ export function calculateExpectedMinutes({
   endDate,
   defaultWorkHours = 8,
   workDays = DEFAULT_WORK_DAYS,
+  workMinutesByWeekday,
 }: ExpectedMinutesPeriod): number {
   let date = startDate
   let total = 0
@@ -123,8 +126,13 @@ export function calculateExpectedMinutes({
     if (!holidaysByYear.has(year)) {
       holidaysByYear.set(year, getBrazilNationalHolidays(year))
     }
-    if (workDays.includes(getDayOfWeek(date)) && !holidaysByYear.get(year)!.has(date)) {
-      total += Math.round(defaultWorkHours * 60)
+    const dayOfWeek = getDayOfWeek(date)
+    if (!holidaysByYear.get(year)!.has(date)) {
+      if (workMinutesByWeekday) {
+        total += workMinutesByWeekday[String(dayOfWeek) as keyof WorkMinutesByWeekday]
+      } else if (workDays.includes(dayOfWeek)) {
+        total += Math.round(defaultWorkHours * 60)
+      }
     }
     date = addDaysToDateString(date, 1)
   }

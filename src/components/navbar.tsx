@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Moon, Sun, Clock, FolderOpen, History, LogOut, Palette } from 'lucide-react'
+import { Moon, Sun, Clock, FolderOpen, History, LogOut, Palette, Settings } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,33 +12,16 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase/client'
-import { useAccentColor, ACCENTS, type AccentKey } from '@/components/accent-color-provider'
+import { useAccentColor, ACCENTS } from '@/components/accent-color-provider'
+import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
 
-const ACCENT_LABELS: Record<AccentKey, string> = {
-  indigo:   'Índigo',
-  violet:   'Violeta',
-  lavender: 'Lavanda',
-  fuchsia:  'Fúcsia',
-  rose:     'Rosa',
-  ruby:     'Rubi',
-  coral:    'Coral',
-  amber:    'Âmbar',
-  emerald:  'Esmeralda',
-  teal:     'Verde-água',
-  cyan:     'Ciano',
-  blue:     'Azul',
-}
-
-const ACCENT_ORDER: AccentKey[] = [
-  'indigo', 'violet', 'lavender', 'fuchsia',
-  'rose',   'ruby',   'coral',    'amber',
-  'emerald','teal',   'cyan',     'blue',
-]
+const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
 
 const navItems = [
   { href: '/dashboard', label: 'Ponto',     icon: Clock },
   { href: '/historico', label: 'Histórico', icon: History },
   { href: '/projetos',  label: 'Projetos',  icon: FolderOpen },
+  { href: '/configuracoes', label: 'Config.', icon: Settings },
 ]
 
 export function Navbar() {
@@ -89,7 +72,7 @@ export function Navbar() {
                   <button
                     key={key}
                     onClick={() => setAccent(key)}
-                    title={ACCENT_LABELS[key]}
+                    title={ACCENT_PRESETS[key].label}
                     className="w-7 h-7 rounded-full transition-all duration-150 hover:scale-110"
                     style={{
                       backgroundColor: ACCENTS[key],

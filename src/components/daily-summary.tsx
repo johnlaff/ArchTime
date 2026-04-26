@@ -41,7 +41,9 @@ export function DailySummaryCard({ summary }: DailySummaryProps) {
         <BalanceCard
           title="Mês"
           balance={summary.month}
-          cumulativeBalance={summary.month.cumulativeBalance}
+          cumulativeBalance={summary.month.showCumulativeBalance
+            ? summary.month.cumulativeBalance ?? undefined
+            : undefined}
         />
       </div>
 

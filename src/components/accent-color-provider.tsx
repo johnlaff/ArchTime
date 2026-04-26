@@ -1,27 +1,15 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect } from 'react'
+import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
 
-export const ACCENTS = {
-  indigo:   '#6366f1',
-  violet:   '#a855f7',
-  lavender: '#8b5cf6',
-  fuchsia:  '#d946ef',
-  rose:     '#f43f5e',
-  ruby:     '#e11d48',
-  coral:    '#f97316',
-  amber:    '#f59e0b',
-  emerald:  '#10b981',
-  teal:     '#14b8a6',
-  cyan:     '#06b6d4',
-  blue:     '#3b82f6',
-} as const
-
-export type AccentKey = keyof typeof ACCENTS
+export const ACCENTS = Object.fromEntries(
+  Object.entries(ACCENT_PRESETS).map(([key, preset]) => [key, preset.color])
+) as Record<AccentPreset, string>
 
 interface AccentColorContextValue {
-  accent: AccentKey
-  setAccent: (a: AccentKey) => void
+  accent: AccentPreset
+  setAccent: (a: AccentPreset) => void
 }
 
 const AccentColorContext = createContext<AccentColorContextValue>({
@@ -30,16 +18,16 @@ const AccentColorContext = createContext<AccentColorContextValue>({
 })
 
 export function AccentColorProvider({ children }: { children: React.ReactNode }) {
-  const [accent, setAccentState] = useState<AccentKey>('indigo')
+  const [accent, setAccentState] = useState<AccentPreset>('indigo')
 
   useEffect(() => {
-    const saved = localStorage.getItem('archtime-accent') as AccentKey | null
+    const saved = localStorage.getItem('archtime-accent') as AccentPreset | null
     if (saved && saved in ACCENTS) {
       setAccentState(saved)
     }
   }, [])
 
-  function setAccent(newAccent: AccentKey) {
+  function setAccent(newAccent: AccentPreset) {
     setAccentState(newAccent)
     document.documentElement.setAttribute('data-accent', newAccent)
     localStorage.setItem('archtime-accent', newAccent)

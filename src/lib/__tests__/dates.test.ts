@@ -83,6 +83,42 @@ describe('Brazilian national holidays', () => {
     })
     expect(expected).toBe(480)
   })
+
+  it('uses configured weekday minutes instead of a fixed 8h workday', () => {
+    const expected = calculateExpectedMinutes({
+      startDate: '2026-02-01',
+      endDate: '2026-02-28',
+      workMinutesByWeekday: {
+        '0': 0,
+        '1': 360,
+        '2': 360,
+        '3': 360,
+        '4': 360,
+        '5': 360,
+        '6': 0,
+      },
+    })
+
+    expect(expected).toBe(7200)
+  })
+
+  it('keeps national holidays discounted when weekday minutes are customized', () => {
+    const expected = calculateExpectedMinutes({
+      startDate: '2026-04-20',
+      endDate: '2026-04-21',
+      workMinutesByWeekday: {
+        '0': 0,
+        '1': 300,
+        '2': 300,
+        '3': 300,
+        '4': 300,
+        '5': 300,
+        '6': 0,
+      },
+    })
+
+    expect(expected).toBe(300)
+  })
 })
 
 describe('formatMinutes', () => {
