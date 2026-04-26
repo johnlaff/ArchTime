@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react'
 import { format, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { HistoryAuthError, parseHistoryBundleResponse } from '@/lib/history-client'
 import type { HistoryBundle } from '@/lib/history'
 import type { HistoryData, HistoryEntry, ProjectOption } from '@/types'
 
@@ -76,6 +78,7 @@ export function HistoricoClient({
   const [editSaving, setEditSaving] = useState(false)
   const [projects, setProjects] = useState<ProjectOption[]>(initialBundle?.projects ?? [])
   const didMount = useRef(false)
+  const router = useRouter()
 
   const load = useCallback(async (date: Date, page = 1, append = false) => {
     if (append) setLoadingMore(true)
@@ -83,8 +86,7 @@ export function HistoricoClient({
     try {
       const month = toYYYYMM(date)
       const res = await fetch(`/api/history?month=${month}&page=${page}&pageSize=50`)
-      if (!res.ok) throw new Error()
-      const bundle = await res.json() as HistoryBundle
+      const bundle = await parseHistoryBundleResponse(res)
       const history = bundle.history
       setData((current) => append && current
         ? { ...history, entries: [...current.entries, ...history.entries] }
@@ -92,13 +94,17 @@ export function HistoricoClient({
       )
       setProjects(bundle.projects)
       setHourBank(bundle.hourBank)
-    } catch {
+    } catch (error) {
+      if (error instanceof HistoryAuthError) {
+        router.replace('/login')
+        return
+      }
       toast.error('Erro ao carregar histórico')
     } finally {
       if (append) setLoadingMore(false)
       else setLoading(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     if (!didMount.current) {

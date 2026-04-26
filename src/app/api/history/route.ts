@@ -4,7 +4,6 @@ import { getAuthenticatedUser } from '@/lib/server/auth'
 import { parseMonth, parsePage } from '@/lib/server/validation'
 
 export async function GET(req: NextRequest) {
-  const startedAt = Date.now()
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -17,6 +16,5 @@ export async function GET(req: NextRequest) {
   const page = parsePage(searchParams.get('page'), 1, 10000)
   const pageSize = parsePage(searchParams.get('pageSize'), 50, 200)
   const bundle = await buildHistoryBundle(user.id, month, page, pageSize)
-  console.info('api.history.duration', { ms: Date.now() - startedAt })
   return NextResponse.json(bundle)
 }

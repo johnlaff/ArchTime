@@ -10,7 +10,6 @@ async function ProjetosContent() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
-  const startedAt = Date.now()
   const projects = await prisma.project.findMany({
     where: { userId: user.id },
     orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
@@ -25,7 +24,6 @@ async function ProjetosContent() {
     isActive: project.isActive,
   }))
 
-  console.info('page.projects.duration', { ms: Date.now() - startedAt })
   return <ProjetosClient initialProjects={initialProjects} />
 }
 
