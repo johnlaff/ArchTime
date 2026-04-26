@@ -1,4 +1,4 @@
-import type { UserSettings } from '@prisma/client'
+import { Prisma, type UserSettings } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
 import {
@@ -87,20 +87,28 @@ export async function getOrCreateUserSettings(userId: string): Promise<Serialize
   const existing = await prisma.userSettings.findUnique({ where: { userId } })
   if (existing) return serialize(existing)
 
-  const created = await prisma.userSettings.create({
-    data: {
-      userId,
-      workMinutesByWeekday: DEFAULT_WORK_MINUTES_BY_WEEKDAY,
-      workScheduleTemplate: 'standard_40h',
-      showCumulativeBalance: false,
-      cumulativeBalanceScope: 'since_start',
-      cumulativeStartDate: await getDefaultCumulativeStartDate(userId),
-      accentPreset: 'indigo',
-      themeMode: 'system',
-    },
-  })
+  try {
+    const created = await prisma.userSettings.create({
+      data: {
+        userId,
+        workMinutesByWeekday: DEFAULT_WORK_MINUTES_BY_WEEKDAY,
+        workScheduleTemplate: 'standard_40h',
+        showCumulativeBalance: false,
+        cumulativeBalanceScope: 'since_start',
+        cumulativeStartDate: await getDefaultCumulativeStartDate(userId),
+        accentPreset: 'indigo',
+        themeMode: 'system',
+      },
+    })
 
-  return serialize(created)
+    return serialize(created)
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const racedSettings = await prisma.userSettings.findUnique({ where: { userId } })
+      if (racedSettings) return serialize(racedSettings)
+    }
+    throw error
+  }
 }
 
 function parseDateOnly(value: unknown): string | null {

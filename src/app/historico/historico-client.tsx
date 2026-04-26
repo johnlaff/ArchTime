@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { formatBRT, formatMinutes } from '@/lib/dates'
+import { formatBRT, formatMinutes, getLocalDateBRT } from '@/lib/dates'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -58,23 +58,23 @@ function monthToDate(month: string): Date {
 }
 
 export function HistoricoClient({
-  initialMonth,
+  initialMonth = getLocalDateBRT().slice(0, 7),
   initialBundle,
 }: {
-  initialMonth: string
-  initialBundle: HistoryBundle
+  initialMonth?: string
+  initialBundle?: HistoryBundle
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => monthToDate(initialMonth))
-  const [data, setData] = useState<HistoryData | null>(initialBundle.history)
-  const [hourBank, setHourBank] = useState<HourBankData | null>(initialBundle.hourBank)
-  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<HistoryData | null>(initialBundle?.history ?? null)
+  const [hourBank, setHourBank] = useState<HourBankData | null>(initialBundle?.hourBank ?? null)
+  const [loading, setLoading] = useState(!initialBundle)
   const [loadingMore, setLoadingMore] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editTarget, setEditTarget] = useState<HistoryEntry | null>(null)
   const [editForm, setEditForm] = useState<EditForm>({ clockInAt: '', clockOutAt: '', projectId: '' })
   const [editSaving, setEditSaving] = useState(false)
-  const [projects, setProjects] = useState<ProjectOption[]>(initialBundle.projects)
+  const [projects, setProjects] = useState<ProjectOption[]>(initialBundle?.projects ?? [])
   const didMount = useRef(false)
 
   const load = useCallback(async (date: Date, page = 1, append = false) => {
@@ -103,10 +103,11 @@ export function HistoricoClient({
   useEffect(() => {
     if (!didMount.current) {
       didMount.current = true
+      if (!initialBundle) load(currentMonth)
       return
     }
     load(currentMonth)
-  }, [currentMonth, load])
+  }, [currentMonth, initialBundle, load])
 
   function prevMonth() {
     setCurrentMonth((m) => subMonths(m, 1))
@@ -186,7 +187,9 @@ export function HistoricoClient({
   const dayKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
 
   const monthLabel = format(currentMonth, 'MMMM yyyy', { locale: ptBR })
-  const isCurrentMonth = toYYYYMM(currentMonth) === toYYYYMM(new Date())
+  const isCurrentMonth = toYYYYMM(currentMonth) === getLocalDateBRT().slice(0, 7)
+  const showCumulative =
+    hourBank?.showCumulativeBalance && hourBank.cumulativeBalance != null
 
   return (
     <div className="space-y-4 animate-fade-in-up">
@@ -206,7 +209,7 @@ export function HistoricoClient({
       {hourBank && (
         <Card>
           <CardContent className="py-4 space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className={`${showCumulative ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'} grid gap-3 text-center text-sm`}>
               <div>
                 <p className="text-xs text-muted-foreground">Previsto</p>
                 <p className="font-medium tabular-nums">{formatMinutes(hourBank.expectedMinutes)}</p>
@@ -219,10 +222,10 @@ export function HistoricoClient({
                 <p className="text-xs text-muted-foreground">Saldo</p>
                 <p className="font-medium tabular-nums">{formatMinutes(hourBank.balanceMinutes)}</p>
               </div>
-              {hourBank.showCumulativeBalance && hourBank.cumulativeBalance != null && (
+              {showCumulative && (
                 <div>
                   <p className="text-xs text-muted-foreground">Acumulado</p>
-                  <p className="font-medium tabular-nums">{formatMinutes(hourBank.cumulativeBalance)}</p>
+                  <p className="font-medium tabular-nums">{formatMinutes(hourBank.cumulativeBalance!)}</p>
                 </div>
               )}
             </div>

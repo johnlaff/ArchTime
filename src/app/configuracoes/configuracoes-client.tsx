@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
@@ -16,6 +16,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAccentColor } from '@/components/accent-color-provider'
+import {
+  getLocalAppearancePatch,
+  markLocalPreferenceChange,
+  persistAppearanceSettings,
+} from '@/lib/appearance'
 import {
   WEEKDAY_KEYS,
   WORK_SCHEDULE_TEMPLATES,
@@ -60,6 +65,12 @@ export function ConfiguracoesClient({
   const { setTheme } = useTheme()
   const { setAccent } = useAccentColor()
 
+  useEffect(() => {
+    const localAppearance = getLocalAppearancePatch()
+    if (!localAppearance.accentPreset && !localAppearance.themeMode) return
+    setSettings((current) => ({ ...current, ...localAppearance }))
+  }, [])
+
   const expectedThisMonth = useMemo(() => {
     const month = getLocalDateBRT().slice(0, 7)
     const range = getMonthRangeBRT(month)
@@ -93,11 +104,18 @@ export function ConfiguracoesClient({
   function setAccentPreset(accentPreset: AccentPreset) {
     setSettings((current) => ({ ...current, accentPreset }))
     setAccent(accentPreset)
+    persistAppearanceSettings({ accentPreset }).catch((error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
+    })
   }
 
   function setThemeMode(themeMode: ThemeMode) {
     setSettings((current) => ({ ...current, themeMode }))
+    markLocalPreferenceChange()
     setTheme(themeMode)
+    persistAppearanceSettings({ themeMode }).catch((error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
+    })
   }
 
   async function handleSave() {

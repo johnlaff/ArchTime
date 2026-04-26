@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect } from 'react'
+import { markLocalPreferenceChange } from '@/lib/appearance'
 import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
 
 export const ACCENTS = Object.fromEntries(
@@ -28,6 +29,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
   }, [])
 
   function setAccent(newAccent: AccentPreset) {
+    markLocalPreferenceChange()
     setAccentState(newAccent)
     document.documentElement.setAttribute('data-accent', newAccent)
     localStorage.setItem('archtime-accent', newAccent)
