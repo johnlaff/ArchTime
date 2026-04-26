@@ -1,9 +1,11 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { buildDailySummary } from '@/lib/summary'
 import { DashboardClient } from './dashboard-client'
+import DashboardLoading from './loading'
 import type { ActiveSession, ProjectOption } from '@/types'
 
 async function getCachedProjects(userId: string) {
@@ -16,7 +18,7 @@ async function getCachedProjects(userId: string) {
   })
 }
 
-export default async function DashboardPage() {
+async function DashboardContent() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
@@ -59,5 +61,13 @@ export default async function DashboardPage() {
       projects={projectOptions}
       initialSummary={summary}
     />
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
   )
 }

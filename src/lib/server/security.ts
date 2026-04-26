@@ -19,6 +19,21 @@ function isLocalOrigin(origin: string): boolean {
   }
 }
 
+function isSameNetlifySitePreview(origin: string, appOrigin: string | null): boolean {
+  if (!appOrigin) return false
+  try {
+    const originHost = new URL(origin).hostname
+    const appHost = new URL(appOrigin).hostname
+    return (
+      appHost.endsWith('.netlify.app') &&
+      originHost.endsWith(`--${appHost}`) &&
+      originHost.startsWith('deploy-preview-')
+    )
+  } catch {
+    return false
+  }
+}
+
 export function validateMutationOrigin(req: NextRequest): NextResponse | null {
   const originHeader = req.headers.get('origin')
   const origin = normalizeOrigin(originHeader)
@@ -32,6 +47,7 @@ export function validateMutationOrigin(req: NextRequest): NextResponse | null {
   allowed.add(req.nextUrl.origin)
 
   if (requestOrigin && allowed.has(requestOrigin)) return null
+  if (requestOrigin && isSameNetlifySitePreview(requestOrigin, appOrigin)) return null
   if (requestOrigin && process.env.NODE_ENV !== 'production' && isLocalOrigin(requestOrigin)) {
     return null
   }

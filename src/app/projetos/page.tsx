@@ -1,10 +1,12 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { ProjetosClient } from './projetos-client'
+import ProjetosLoading from './loading'
 import type { ProjectOption } from '@/types'
 
-export default async function ProjetosPage() {
+async function ProjetosContent() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
@@ -25,4 +27,12 @@ export default async function ProjetosPage() {
 
   console.info('page.projects.duration', { ms: Date.now() - startedAt })
   return <ProjetosClient initialProjects={initialProjects} />
+}
+
+export default function ProjetosPage() {
+  return (
+    <Suspense fallback={<ProjetosLoading />}>
+      <ProjetosContent />
+    </Suspense>
+  )
 }

@@ -26,32 +26,40 @@ interface ProjectForm {
 const emptyForm: ProjectForm = { name: '', clientName: '', hourlyRate: '', color: '#6366f1' }
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 
+function normalizeProject(project: ProjectOption & { hourlyRate?: unknown }): ProjectOption {
+  return {
+    id: project.id,
+    name: project.name,
+    clientName: project.clientName ?? null,
+    color: project.color,
+    hourlyRate: project.hourlyRate == null ? null : Number(project.hourlyRate),
+    isActive: project.isActive,
+  }
+}
+
+function sortProjects(projects: ProjectOption[]): ProjectOption[] {
+  return [...projects].sort((a, b) => {
+    if (a.isActive !== b.isActive) return a.isActive ? -1 : 1
+    return a.name.localeCompare(b.name, 'pt-BR')
+  })
+}
+
+function upsertProject(projects: ProjectOption[], project: ProjectOption): ProjectOption[] {
+  const exists = projects.some((current) => current.id === project.id)
+  const next = exists
+    ? projects.map((current) => current.id === project.id ? project : current)
+    : [...projects, project]
+  return sortProjects(next)
+}
+
 export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOption[] }) {
   const [projects, setProjects] = useState<ProjectOption[]>(initialProjects)
-  const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ProjectForm>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ProjectOption | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  async function loadProjects() {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/projects')
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Erro ao carregar projetos')
-      }
-      const data = await res.json()
-      setProjects(data)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao carregar projetos')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   function openCreate() {
     setEditingId(null)
@@ -104,9 +112,10 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error ?? 'Erro ao salvar projeto')
       }
+      const saved = normalizeProject(await res.json())
+      setProjects((current) => upsertProject(current, saved))
       toast.success(editingId ? 'Projeto atualizado' : 'Projeto criado')
       setOpen(false)
-      await loadProjects()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar projeto')
     } finally {
@@ -125,8 +134,9 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error ?? 'Erro ao arquivar projeto')
       }
+      const updated = normalizeProject(await res.json())
+      setProjects((current) => upsertProject(current, updated))
       toast.success(project.isActive ? 'Projeto arquivado' : 'Projeto reativado')
-      await loadProjects()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao arquivar projeto')
     }
@@ -144,7 +154,12 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
       }
       const data = res.status === 204 ? null : await res.json().catch(() => null)
       toast.success(data?.archivedInsteadOfDeleted ? 'Projeto arquivado' : 'Projeto apagado')
-      await loadProjects()
+      setProjects((current) => {
+        if (data?.archivedInsteadOfDeleted) {
+          return upsertProject(current, normalizeProject(data))
+        }
+        return current.filter((project) => project.id !== deleteTarget.id)
+      })
     } catch {
       toast.error('Erro ao apagar projeto')
     } finally {
@@ -162,9 +177,7 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
         </Button>
       </div>
 
-      {loading ? (
-        <p className="text-muted-foreground text-sm">Atualizando...</p>
-      ) : projects.length === 0 ? (
+      {projects.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             Nenhum projeto cadastrado ainda.

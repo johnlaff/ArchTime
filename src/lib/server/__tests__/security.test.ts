@@ -55,6 +55,16 @@ describe('validateMutationOrigin', () => {
     expect(response).toBeNull()
   })
 
+  it('accepts Netlify deploy preview origins for the configured production site', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://archtime-live.netlify.app')
+
+    const req = request({ origin: 'https://deploy-preview-3--archtime-live.netlify.app' })
+    const response = validateMutationOrigin(req)
+
+    expect(response).toBeNull()
+  })
+
   it('allows local requests without Origin outside production', () => {
     vi.stubEnv('NODE_ENV', 'test')
 
