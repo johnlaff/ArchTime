@@ -1,64 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { isAllowedEmail } from '@/lib/auth'
-import { getLocalDate } from '@/lib/dates'
-
-async function getAuthenticatedUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user || !isAllowedEmail(user.email)) return null
-  return user
-}
+import { getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
+import { getAuthenticatedUser } from '@/lib/server/auth'
+import { validateMutationOrigin } from '@/lib/server/security'
+import { safeJsonObject } from '@/lib/server/validation'
 
 export async function POST(req: NextRequest) {
+  const originError = validateMutationOrigin(req)
+  if (originError) return originError
+
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Garante que não existe sessão aberta
-  const existing = await prisma.clockEntry.findFirst({
-    where: { userId: user.id, clockOut: null },
-  })
-  if (existing) {
-    return NextResponse.json(
-      { error: 'Já existe uma entrada em aberto', entryId: existing.id },
-      { status: 409 }
-    )
+  let body: Record<string, unknown>
+  try {
+    body = safeJsonObject(await req.json())
+  } catch {
+    body = {}
   }
 
-  const body = await req.json()
-  const { projectId } = body
-  const now = new Date()
-  const entryDate = new Date(getLocalDate(now) + 'T00:00:00.000Z')
+  const projectId = typeof body.projectId === 'string' && body.projectId.length > 0
+    ? body.projectId
+    : null
 
-  const entry = await prisma.$transaction(async (tx) => {
-    const clockEntry = await tx.clockEntry.create({
-      data: {
-        userId: user.id,
-        clockIn: now,
-        entryDate,
-        source: 'web',
-      },
+  if (projectId) {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId: user.id, isActive: true },
+      select: { id: true },
     })
-
-    if (projectId) {
-      await tx.timeAllocation.create({
-        data: { clockEntryId: clockEntry.id, projectId, minutes: 0 },
-      })
+    if (!project) {
+      return NextResponse.json({ error: 'Projeto inválido' }, { status: 404 })
     }
+  }
 
-    await tx.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'clock_in',
-        entityId: clockEntry.id,
-        newData: { clockIn: now.toISOString(), projectId: projectId ?? null },
-        userAgent: req.headers.get('user-agent'),
-      },
+  const now = new Date()
+  const entryDate = toDateOnlyUTC(getLocalDateBRT(now))
+
+  try {
+    const entry = await prisma.$transaction(async (tx) => {
+      const existing = await tx.clockEntry.findFirst({
+        where: { userId: user.id, clockOut: null, deletedAt: null },
+        select: { id: true },
+      })
+      if (existing) {
+        throw Object.assign(new Error('open-session'), { entryId: existing.id })
+      }
+
+      const clockEntry = await tx.clockEntry.create({
+        data: {
+          userId: user.id,
+          clockIn: now,
+          entryDate,
+          source: 'web',
+        },
+      })
+
+      if (projectId) {
+        await tx.timeAllocation.create({
+          data: { clockEntryId: clockEntry.id, projectId, minutes: 0 },
+        })
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'clock_in',
+          entityId: clockEntry.id,
+          newData: {
+            id: clockEntry.id,
+            clockIn: now.toISOString(),
+            entryDate: getLocalDateBRT(now),
+            projectId,
+            source: 'web',
+          },
+          userAgent: req.headers.get('user-agent'),
+        },
+      })
+
+      return clockEntry
     })
 
-    return clockEntry
-  })
-
-  return NextResponse.json(entry, { status: 201 })
+    return NextResponse.json(entry, { status: 201 })
+  } catch (error) {
+    const maybeError = error as { message?: string; entryId?: string; code?: string }
+    if (maybeError.message === 'open-session') {
+      return NextResponse.json(
+        { error: 'Já existe uma entrada em aberto', entryId: maybeError.entryId },
+        { status: 409 }
+      )
+    }
+    if (maybeError.code === 'P2002') {
+      const existing = await prisma.clockEntry.findFirst({
+        where: { userId: user.id, clockOut: null, deletedAt: null },
+        select: { id: true },
+      })
+      return NextResponse.json(
+        { error: 'Já existe uma entrada em aberto', entryId: existing?.id },
+        { status: 409 }
+      )
+    }
+    throw error
+  }
 }

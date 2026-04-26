@@ -37,6 +37,8 @@ model Project {
   user        User             @relation(fields: [userId], references: [id])
   allocations TimeAllocation[]
 
+  @@index([userId])
+  @@index([userId, isActive, name])
   @@map("projects")
 }
 
@@ -50,6 +52,8 @@ model ClockEntry {
   notes        String?
   hash         String?
   source       String           @default("web")
+  deletedAt    DateTime?        @map("deleted_at") @db.Timestamptz
+  deletedBy    String?          @map("deleted_by")
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
 
@@ -71,6 +75,8 @@ model TimeAllocation {
   clockEntry ClockEntry @relation(fields: [clockEntryId], references: [id], onDelete: Cascade)
   project    Project    @relation(fields: [projectId], references: [id])
 
+  @@index([clockEntryId])
+  @@index([projectId])
   @@map("time_allocations")
 }
 

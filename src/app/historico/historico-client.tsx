@@ -28,9 +28,14 @@ import {
 
 interface HistoryEntry {
   id: string
+  entryId: string
   clockIn: string
   clockOut: string
   totalMinutes: number | null
+  segmentDate: string
+  segmentMinutes: number
+  totalEntryMinutes: number | null
+  isPartial: boolean
   projectName: string | null
   projectColor: string | null
   projectId: string | null
@@ -42,12 +47,29 @@ interface HistoryData {
   entries: HistoryEntry[]
   totalMinutes: number
   sessionCount: number
+  page: number
+  pageSize: number
+  hasMore: boolean
 }
 
 interface EditForm {
-  clockInTime: string   // "HH:MM" BRT
-  clockOutTime: string  // "HH:MM" BRT
+  clockInAt: string
+  clockOutAt: string
   projectId: string     // "" = sem projeto
+}
+
+interface HourBankData {
+  expectedMinutes: number
+  actualMinutes: number
+  balanceMinutes: number
+  cumulativeBalance: number
+  weeks: Array<{
+    startDate: string
+    endDate: string
+    expectedMinutes: number
+    actualMinutes: number
+    balanceMinutes: number
+  }>
 }
 
 function toYYYYMM(date: Date): string {
@@ -57,28 +79,39 @@ function toYYYYMM(date: Date): string {
 export function HistoricoClient() {
   const [currentMonth, setCurrentMonth] = useState(() => new Date())
   const [data, setData] = useState<HistoryData | null>(null)
+  const [hourBank, setHourBank] = useState<HourBankData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editTarget, setEditTarget] = useState<HistoryEntry | null>(null)
-  const [editForm, setEditForm] = useState<EditForm>({ clockInTime: '', clockOutTime: '', projectId: '' })
+  const [editForm, setEditForm] = useState<EditForm>({ clockInAt: '', clockOutAt: '', projectId: '' })
   const [editSaving, setEditSaving] = useState(false)
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([])
+  const [projects, setProjects] = useState<{ id: string; name: string; color: string }[]>([])
 
-  const load = useCallback(async (date: Date) => {
-    setLoading(true)
+  const load = useCallback(async (date: Date, page = 1, append = false) => {
+    if (append) setLoadingMore(true)
+    else setLoading(true)
     try {
-      const [histRes, projRes] = await Promise.all([
-        fetch(`/api/clock/history?month=${toYYYYMM(date)}`),
+      const month = toYYYYMM(date)
+      const [histRes, projRes, bankRes] = await Promise.all([
+        fetch(`/api/clock/history?month=${month}&page=${page}&pageSize=50`),
         fetch('/api/projects'),
+        fetch(`/api/hour-bank?month=${month}`),
       ])
       if (!histRes.ok) throw new Error()
-      setData(await histRes.json())
+      const history = await histRes.json()
+      setData((current) => append && current
+        ? { ...history, entries: [...current.entries, ...history.entries] }
+        : history
+      )
       if (projRes.ok) setProjects(await projRes.json())
+      if (bankRes.ok) setHourBank(await bankRes.json())
     } catch {
       toast.error('Erro ao carregar histórico')
     } finally {
-      setLoading(false)
+      if (append) setLoadingMore(false)
+      else setLoading(false)
     }
   }, [])
 
@@ -99,19 +132,14 @@ export function HistoricoClient() {
     setDeleting(true)
     try {
       const res = await fetch(`/api/clock/${deleteTarget}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error()
-      toast.success('Registro apagado')
-      setData((d) => {
-        if (!d) return null
-        const entries = d.entries.filter((e) => e.id !== deleteTarget)
-        return {
-          entries,
-          totalMinutes: entries.reduce((s, e) => s + (e.totalMinutes ?? 0), 0),
-          sessionCount: entries.length,
-        }
-      })
-    } catch {
-      toast.error('Erro ao apagar registro')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Erro ao apagar registro')
+      }
+      toast.success('Registro removido do histórico')
+      await load(currentMonth)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao apagar registro')
     } finally {
       setDeleting(false)
       setDeleteTarget(null)
@@ -120,8 +148,8 @@ export function HistoricoClient() {
 
   function openEdit(entry: HistoryEntry) {
     setEditForm({
-      clockInTime: formatBRT(entry.clockIn),
-      clockOutTime: formatBRT(entry.clockOut),
+      clockInAt: formatBRT(entry.clockIn, "yyyy-MM-dd'T'HH:mm"),
+      clockOutAt: formatBRT(entry.clockOut, "yyyy-MM-dd'T'HH:mm"),
       projectId: entry.projectId ?? '',
     })
     setEditTarget(entry)
@@ -131,12 +159,12 @@ export function HistoricoClient() {
     if (!editTarget) return
     setEditSaving(true)
     try {
-      const res = await fetch(`/api/clock/${editTarget.id}`, {
+      const res = await fetch(`/api/clock/${editTarget.entryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clockInTime: editForm.clockInTime,
-          clockOutTime: editForm.clockOutTime,
+          clockInAt: editForm.clockInAt,
+          clockOutAt: editForm.clockOutAt,
           projectId: editForm.projectId || null,
         }),
       })
@@ -145,27 +173,8 @@ export function HistoricoClient() {
         toast.error(d.error ?? 'Erro ao salvar')
         return
       }
-      const updated = await res.json()
-      const proj = projects.find(p => p.id === editForm.projectId)
-      setData((d) => {
-        if (!d) return null
-        return {
-          ...d,
-          entries: d.entries.map((e) =>
-            e.id === editTarget.id
-              ? {
-                  ...e,
-                  clockIn: updated.clockIn,
-                  clockOut: updated.clockOut,
-                  totalMinutes: updated.totalMinutes,
-                  source: updated.source,
-                  projectName: proj?.name ?? null,
-                  projectColor: e.projectColor,
-                }
-              : e
-          ),
-        }
-      })
+      await res.json()
+      await load(currentMonth)
       toast.success('Registro atualizado')
       setEditTarget(null)
     } catch {
@@ -178,7 +187,7 @@ export function HistoricoClient() {
   // Group entries by date (YYYY-MM-DD), sorted day descending
   const grouped = (data?.entries ?? []).reduce<Record<string, HistoryEntry[]>>(
     (acc, e) => {
-      const key = e.entryDate.slice(0, 10)
+      const key = e.segmentDate
       if (!acc[key]) acc[key] = []
       acc[key].push(e)
       return acc
@@ -204,6 +213,46 @@ export function HistoricoClient() {
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
+
+      {hourBank && (
+        <Card>
+          <CardContent className="py-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Previsto</p>
+                <p className="font-medium tabular-nums">{formatMinutes(hourBank.expectedMinutes)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Realizado</p>
+                <p className="font-medium tabular-nums">{formatMinutes(hourBank.actualMinutes)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Saldo</p>
+                <p className="font-medium tabular-nums">{formatMinutes(hourBank.balanceMinutes)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Acumulado</p>
+                <p className="font-medium tabular-nums">{formatMinutes(hourBank.cumulativeBalance)}</p>
+              </div>
+            </div>
+            <div className="space-y-1">
+              {hourBank.weeks.map((week, index) => (
+                <div
+                  key={`${week.startDate}-${week.endDate}`}
+                  className="flex items-center justify-between text-xs text-muted-foreground"
+                >
+                  <span>Semana {index + 1}</span>
+                  <span className="tabular-nums">
+                    {formatMinutes(week.actualMinutes)} / {formatMinutes(week.expectedMinutes)}
+                    {' · '}
+                    {formatMinutes(week.balanceMinutes)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="space-y-2">
@@ -238,7 +287,7 @@ export function HistoricoClient() {
                         />
                       )}
                       <div>
-                        {(entry.projectName || entry.source === 'edited') && (
+                        {(entry.projectName || entry.source === 'edited' || entry.isPartial) && (
                           <div className="flex items-center gap-1.5 mb-0.5">
                             {entry.projectName && (
                               <p className="text-xs text-muted-foreground leading-none">
@@ -248,6 +297,11 @@ export function HistoricoClient() {
                             {entry.source === 'edited' && (
                               <span className="text-xs text-muted-foreground/60 leading-none">
                                 (editado)
+                              </span>
+                            )}
+                            {entry.isPartial && (
+                              <span className="text-xs text-muted-foreground/60 leading-none">
+                                (parcial)
                               </span>
                             )}
                           </div>
@@ -275,7 +329,7 @@ export function HistoricoClient() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeleteTarget(entry.id)}
+                        onClick={() => setDeleteTarget(entry.entryId)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -295,6 +349,17 @@ export function HistoricoClient() {
               {data?.sessionCount === 1 ? 'sessão' : 'sessões'}
             </span>
           </div>
+
+          {data?.hasMore && (
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={loadingMore}
+              onClick={() => load(currentMonth, (data.page ?? 1) + 1, true)}
+            >
+              {loadingMore ? 'Carregando...' : 'Carregar mais'}
+            </Button>
+          )}
         </div>
       )}
 
@@ -314,18 +379,18 @@ export function HistoricoClient() {
                 <Label htmlFor="edit-in">Entrada</Label>
                 <Input
                   id="edit-in"
-                  type="time"
-                  value={editForm.clockInTime}
-                  onChange={(e) => setEditForm((f) => ({ ...f, clockInTime: e.target.value }))}
+                  type="datetime-local"
+                  value={editForm.clockInAt}
+                  onChange={(e) => setEditForm((f) => ({ ...f, clockInAt: e.target.value }))}
                 />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="edit-out">Saída</Label>
                 <Input
                   id="edit-out"
-                  type="time"
-                  value={editForm.clockOutTime}
-                  onChange={(e) => setEditForm((f) => ({ ...f, clockOutTime: e.target.value }))}
+                  type="datetime-local"
+                  value={editForm.clockOutAt}
+                  onChange={(e) => setEditForm((f) => ({ ...f, clockOutAt: e.target.value }))}
                 />
               </div>
             </div>

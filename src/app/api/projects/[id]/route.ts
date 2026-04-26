@@ -1,20 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { isAllowedEmail } from '@/lib/auth'
+import { getAuthenticatedUser } from '@/lib/server/auth'
+import { validateMutationOrigin } from '@/lib/server/security'
 
-async function getAuthenticatedUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user || !isAllowedEmail(user.email)) return null
-  return user
+function serializeProject(project: {
+  id: string
+  userId: string
+  name: string
+  clientName: string | null
+  hourlyRate: unknown
+  color: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}) {
+  return {
+    id: project.id,
+    userId: project.userId,
+    name: project.name,
+    clientName: project.clientName,
+    hourlyRate: project.hourlyRate == null ? null : Number(project.hourlyRate),
+    color: project.color,
+    isActive: project.isActive,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+  }
 }
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const originError = validateMutationOrigin(req)
+  if (originError) return originError
+
   const user = await getAuthenticatedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -28,30 +48,45 @@ export async function DELETE(
     return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 })
   }
 
-  const isAdmin = user.email === process.env.ADMIN_EMAIL
-
   const allocationCount = await prisma.timeAllocation.count({
     where: { projectId: id },
   })
 
-  if (allocationCount > 0 && !isAdmin) {
-    return NextResponse.json(
-      { error: 'Este projeto possui registros de horas e não pode ser apagado. Use Arquivar para ocultá-lo.' },
-      { status: 409 }
-    )
+  if (allocationCount > 0) {
+    const archived = await prisma.$transaction(async (tx) => {
+      const updated = await tx.project.update({
+        where: { id },
+        data: { isActive: false },
+      })
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'archive_project_with_entries',
+          entityId: id,
+          oldData: { ...serializeProject(project), allocationCount },
+          newData: { ...serializeProject(updated), allocationCount },
+          userAgent: req.headers.get('user-agent'),
+        },
+      })
+      return updated
+    })
+
+    revalidateTag(`projects-${user.id}`, { expire: 0 })
+    return NextResponse.json({
+      ...archived,
+      archivedInsteadOfDeleted: true,
+      message: 'Projeto arquivado porque possui registros de horas.',
+    })
   }
 
   await prisma.$transaction(async (tx) => {
-    // Admin pode apagar projetos com registros — remove alocações antes do projeto
-    if (allocationCount > 0) {
-      await tx.timeAllocation.deleteMany({ where: { projectId: id } })
-    }
     await tx.project.delete({ where: { id } })
     await tx.auditLog.create({
       data: {
         userId: user.id,
         action: 'delete_project',
         entityId: id,
+        oldData: serializeProject(project),
         newData: { deletedAt: new Date().toISOString(), projectName: project.name },
         userAgent: req.headers.get('user-agent'),
       },
