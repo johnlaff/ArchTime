@@ -4,23 +4,23 @@ export type WorkMinutesByWeekday = Record<WeekdayKey, number>
 
 export const WORK_SCHEDULE_TEMPLATES = {
   standard_40h: {
-    label: 'Padrão atual 40h',
+    label: 'Carga integral 40h/semana',
     minutes: { '0': 0, '1': 480, '2': 480, '3': 480, '4': 480, '5': 480, '6': 0 },
   },
   pj_30h: {
-    label: 'PJ flex 30h',
+    label: 'Carga flexível 30h/semana',
     minutes: { '0': 0, '1': 360, '2': 360, '3': 360, '4': 360, '5': 360, '6': 0 },
   },
   part_time_20h: {
-    label: 'Meio período 20h',
+    label: 'Carga reduzida 20h/semana',
     minutes: { '0': 0, '1': 240, '2': 240, '3': 240, '4': 240, '5': 240, '6': 0 },
   },
   no_expected: {
-    label: 'Sem previsão',
+    label: 'Sem jornada prevista',
     minutes: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 },
   },
   custom: {
-    label: 'Personalizado',
+    label: 'Jornada personalizada',
     minutes: { '0': 0, '1': 480, '2': 480, '3': 480, '4': 480, '5': 480, '6': 0 },
   },
 } satisfies Record<string, { label: string; minutes: WorkMinutesByWeekday }>
