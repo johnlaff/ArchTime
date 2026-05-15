@@ -9,8 +9,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const size = Math.min(Math.max(Number(searchParams.get('size') ?? '192'), 64), 512)
 
-  const sw = 8.5
-
   return new ImageResponse(
     (
       <div
@@ -21,30 +19,36 @@ export async function GET(req: NextRequest) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          borderRadius: Math.round(size * 0.22),
         }}
       >
         <svg
           width={size * 0.62}
           height={size * 0.62}
           viewBox="0 0 100 100"
+          fill="none"
         >
-          {/* Hour hand — 10 o'clock position (305° clockwise from 12) */}
+          <circle cx="50" cy="13" r="6.5" fill="white" />
           <line
-            x1="50" y1="58" x2="20" y2="37"
-            stroke="white" strokeWidth={sw} strokeLinecap="round"
+            x1="50" y1="13" x2="13" y2="87"
+            stroke="white" strokeWidth="9.5" strokeLinecap="round"
           />
-          {/* Minute hand — 2 o'clock position (60° clockwise from 12) */}
           <line
-            x1="50" y1="58" x2="88" y2="36"
-            stroke="white" strokeWidth={sw} strokeLinecap="round"
+            x1="50" y1="13" x2="87" y2="87"
+            stroke="white" strokeWidth="9.5" strokeLinecap="round"
           />
-          {/* Crossbar — horizontal bar of the letter A */}
           <line
-            x1="37" y1="49" x2="67" y2="49"
-            stroke="white" strokeWidth={sw} strokeLinecap="round"
+            x1="27" y1="60" x2="73" y2="60"
+            stroke="white" strokeWidth="6.5" strokeLinecap="round"
           />
-          {/* Center pivot dot */}
-          <circle cx="50" cy="58" r="5" fill="white" />
+          <path
+            d="M 13 87 A 82 82 0 0 1 87 87"
+            stroke="white"
+            strokeWidth="3.5"
+            strokeDasharray="5 4"
+            strokeLinecap="round"
+            opacity="0.55"
+          />
         </svg>
       </div>
     ),
