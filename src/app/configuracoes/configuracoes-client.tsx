@@ -24,7 +24,11 @@ import {
 import {
   WEEKDAY_KEYS,
   WORK_SCHEDULE_TEMPLATES,
+  ARCHITECTURAL_PRESETS,
+  DENSITY_PRESETS,
   type AccentPreset,
+  type ArchitecturalPreset,
+  type DensityPreset,
   type CumulativeBalanceScope,
   type ThemeMode,
   type WorkMinutesByWeekday,
@@ -63,13 +67,33 @@ export function ConfiguracoesClient({
   const [settings, setSettings] = useState(initialSettings)
   const [saving, setSaving] = useState(false)
   const { setTheme } = useTheme()
-  const { setAccent } = useAccentColor()
+  const { setAccent, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
   useEffect(() => {
     const localAppearance = getLocalAppearancePatch()
     if (!localAppearance.accentPreset && !localAppearance.themeMode) return
     setSettings((current) => ({ ...current, ...localAppearance }))
   }, [])
+
+  const [blueprint, setBlueprint] = useState<boolean>(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('archtime-blueprint')
+    const enabled = saved === 'true'
+    setBlueprint(enabled)
+    if (enabled) document.documentElement.setAttribute('data-blueprint', 'true')
+  }, [])
+
+  function toggleBlueprint(enabled: boolean) {
+    setBlueprint(enabled)
+    if (enabled) {
+      document.documentElement.setAttribute('data-blueprint', 'true')
+      localStorage.setItem('archtime-blueprint', 'true')
+    } else {
+      document.documentElement.removeAttribute('data-blueprint')
+      localStorage.removeItem('archtime-blueprint')
+    }
+  }
 
   const expectedThisMonth = useMemo(() => {
     const month = getLocalDateBRT().slice(0, 7)
@@ -262,6 +286,71 @@ export function ConfiguracoesClient({
           <CardTitle className="text-base">Aparência</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Preset arquitetônico */}
+          <div className="space-y-2">
+            <Label>Preset arquitetônico</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setArchitecturalPreset(null)}
+                className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors text-left ${
+                  activePreset === null ? 'border-primary bg-accent' : 'hover:bg-accent'
+                }`}
+              >
+                <span className="h-4 w-4 rounded-full border flex-shrink-0" />
+                Nenhum
+              </button>
+              {Object.entries(ARCHITECTURAL_PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setArchitecturalPreset(key as ArchitecturalPreset)}
+                  className={`flex flex-col rounded-md border px-3 py-2 text-sm text-left transition-colors ${
+                    activePreset === key ? 'border-primary bg-accent' : 'hover:bg-accent'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 rounded-sm flex-shrink-0" style={{ backgroundColor: preset.color }} />
+                    <span className="font-medium">{preset.label}</span>
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-0.5 pl-6">{preset.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Densidade */}
+          <div className="space-y-2">
+            <Label>Densidade</Label>
+            <div className="flex gap-1 p-1 bg-muted rounded-md">
+              {(Object.entries(DENSITY_PRESETS) as [DensityPreset, { label: string }][]).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setDensity(key)}
+                  className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
+                    density === key
+                      ? 'bg-background text-foreground shadow-sm font-medium'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Blueprint */}
+          <label className="flex items-center gap-3 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={blueprint}
+              onChange={(e) => toggleBlueprint(e.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
+            Grid de prancha (fundo técnico)
+          </label>
+
           <div className="space-y-2">
             <Label>Preset visual</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
