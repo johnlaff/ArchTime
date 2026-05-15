@@ -74,9 +74,9 @@ export function Navbar() {
             >
               <svg width="17" height="17" viewBox="0 0 100 100" fill="none" aria-hidden="true">
                 <circle cx="50" cy="11" r="9" fill="currentColor" />
-                <line x1="50" y1="11" x2="13" y2="87" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-                <line x1="50" y1="11" x2="87" y2="87" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-                <line x1="27" y1="60" x2="73" y2="60" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
+                <line x1="50" y1="11" x2="13" y2="87" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
+                <line x1="50" y1="11" x2="87" y2="87" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
+                <line x1="27" y1="60" x2="73" y2="60" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
               </svg>
             </span>
             <span className="hidden sm:block font-semibold text-sm tracking-tight">ArchTime</span>

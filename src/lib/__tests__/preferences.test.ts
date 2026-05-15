@@ -32,11 +32,13 @@ describe('ACCENT_PRESETS', () => {
     }
   })
 
-  it('isAccentPreset rejects non-accent keys', () => {
+  it('isAccentPreset rejects non-accent keys including prototype properties', () => {
     for (const k of all13) expect(isAccentPreset(k)).toBe(true)
     expect(isAccentPreset('concreto')).toBe(false)
     expect(isAccentPreset('')).toBe(false)
     expect(isAccentPreset(null)).toBe(false)
+    expect(isAccentPreset('toString')).toBe(false)
+    expect(isAccentPreset('constructor')).toBe(false)
   })
 })
 
@@ -56,10 +58,12 @@ describe('ARCHITECTURAL_PRESETS', () => {
     }
   })
 
-  it('isArchitecturalPreset guards correctly', () => {
+  it('isArchitecturalPreset guards correctly including prototype properties', () => {
     for (const k of all5) expect(isArchitecturalPreset(k)).toBe(true)
     expect(isArchitecturalPreset('indigo')).toBe(false)
     expect(isArchitecturalPreset(null)).toBe(false)
+    expect(isArchitecturalPreset('toString')).toBe(false)
+    expect(isArchitecturalPreset('constructor')).toBe(false)
   })
 })
 
@@ -70,11 +74,13 @@ describe('DENSITY_PRESETS', () => {
     )
   })
 
-  it('isDensityPreset guards correctly', () => {
+  it('isDensityPreset guards correctly including prototype properties', () => {
     expect(isDensityPreset('compact')).toBe(true)
     expect(isDensityPreset('cozy')).toBe(true)
     expect(isDensityPreset('spacious')).toBe(true)
     expect(isDensityPreset('large')).toBe(false)
     expect(isDensityPreset(null)).toBe(false)
+    expect(isDensityPreset('toString')).toBe(false)
+    expect(isDensityPreset('constructor')).toBe(false)
   })
 })

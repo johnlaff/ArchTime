@@ -44,7 +44,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const savedAccent = localStorage.getItem('archtime-accent') as AccentPreset | null
-    if (savedAccent && savedAccent in ACCENT_PRESETS) setAccentState(savedAccent)
+    if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) setAccentState(savedAccent)
 
     const savedPreset = localStorage.getItem(PRESET_KEY)
     if (savedPreset && isArchitecturalPreset(savedPreset)) {
@@ -60,8 +60,11 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     setAccentState(newAccent)
     document.documentElement.setAttribute('data-accent', newAccent)
     localStorage.setItem('archtime-accent', newAccent)
-    const color = ACCENTS[newAccent]
-    document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
+    // Only update PWA icon cookie when no architectural preset is overriding
+    if (!architecturalPreset) {
+      const color = ACCENTS[newAccent]
+      document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
+    }
   }
 
   function setArchitecturalPreset(preset: ArchitecturalPreset | null) {
@@ -81,6 +84,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
   }
 
   function setDensity(newDensity: DensityPreset) {
+    markLocalPreferenceChange()
     setDensityState(newDensity)
     document.documentElement.setAttribute('data-density', newDensity)
     localStorage.setItem(DENSITY_KEY, newDensity)

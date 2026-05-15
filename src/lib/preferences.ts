@@ -213,7 +213,7 @@ export function isCumulativeBalanceScope(value: unknown): value is CumulativeBal
 }
 
 export function isAccentPreset(value: unknown): value is AccentPreset {
-  return typeof value === 'string' && value in ACCENT_PRESETS
+  return typeof value === 'string' && Object.hasOwn(ACCENT_PRESETS, value)
 }
 
 export function isThemeMode(value: unknown): value is ThemeMode {
@@ -269,7 +269,7 @@ export const ARCHITECTURAL_PRESETS = {
   },
   aurora: {
     label: 'Aurora',
-    description: 'Esquisso à mão — papel quente, tipografia expressiva',
+    description: 'Esboço à mão — papel quente, tipografia expressiva',
     color: '#b07d3c',
   },
 } as const
@@ -277,7 +277,7 @@ export const ARCHITECTURAL_PRESETS = {
 export type ArchitecturalPreset = keyof typeof ARCHITECTURAL_PRESETS
 
 export function isArchitecturalPreset(value: unknown): value is ArchitecturalPreset {
-  return typeof value === 'string' && value in ARCHITECTURAL_PRESETS
+  return typeof value === 'string' && Object.hasOwn(ARCHITECTURAL_PRESETS, value)
 }
 
 export const DENSITY_PRESETS = {
@@ -289,5 +289,5 @@ export const DENSITY_PRESETS = {
 export type DensityPreset = keyof typeof DENSITY_PRESETS
 
 export function isDensityPreset(value: unknown): value is DensityPreset {
-  return typeof value === 'string' && value in DENSITY_PRESETS
+  return typeof value === 'string' && Object.hasOwn(DENSITY_PRESETS, value)
 }

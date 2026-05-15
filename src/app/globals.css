@@ -482,14 +482,8 @@
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
-@keyframes ping {
-  0%        { transform: scale(1);   opacity: 1; }
-  75%, 100% { transform: scale(2.5); opacity: 0; }
-}
-
 /* ─── Additional animation utilities ─── */
 .animate-flip-digit { animation: flipDigit 220ms var(--ease-out-expo) both; }
-.animate-ping       { animation: ping 1600ms cubic-bezier(0, 0, 0.2, 1) infinite; }
 .animate-shimmer {
   background: linear-gradient(90deg, var(--muted) 0%, var(--background) 50%, var(--muted) 100%);
   background-size: 200% 100%;
