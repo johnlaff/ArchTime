@@ -57,6 +57,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               if(p) document.documentElement.setAttribute('data-preset',p);
               var d=localStorage.getItem('archtime-density')||'cozy';
               document.documentElement.setAttribute('data-density',d);
+              if(localStorage.getItem('archtime-blueprint')==='true')
+                document.documentElement.setAttribute('data-blueprint','true');
             })()`,
           }}
         />

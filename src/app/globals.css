@@ -729,11 +729,6 @@
   --border-2:           oklch(0.75 0 0);
   --background:         oklch(1 0 0);
   --card:               oklch(1 0 0);
-  background-image:
-    linear-gradient(oklch(0 0 0 / 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(0 0 0 / 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
-  background-attachment: fixed;
 }
 .dark[data-preset="linha-tecnica"],
 [data-preset="linha-tecnica"].dark {
@@ -747,10 +742,6 @@
   --border-2:           oklch(1 0 0 / 22%);
   --background:         oklch(0.13 0 0);
   --card:               oklch(0.17 0 0);
-  background-image:
-    linear-gradient(oklch(1 0 0 / 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(1 0 0 / 0.04) 1px, transparent 1px);
-  background-size: 20px 20px;
 }
 
 [data-preset="vegetacao"] {
@@ -797,21 +788,18 @@
   --card:               oklch(0.19 0.008 70);
 }
 
-/* ── Blueprint surface ── */
-[data-blueprint="true"] {
+/* ── Blueprint surface — applied to body so it renders above body's background-color ── */
+html[data-blueprint="true"] body {
   background-image:
     linear-gradient(var(--bp-color) 1px, transparent 1px),
     linear-gradient(90deg, var(--bp-color) 1px, transparent 1px);
   background-size: var(--bp-size) var(--bp-size);
-  background-attachment: fixed;
 }
-.dark[data-blueprint="true"],
-[data-blueprint="true"].dark {
+html.dark[data-blueprint="true"] body {
   background-image:
     linear-gradient(var(--bp-color-dark) 1px, transparent 1px),
     linear-gradient(90deg, var(--bp-color-dark) 1px, transparent 1px);
   background-size: var(--bp-size) var(--bp-size);
-  background-attachment: fixed;
 }
 
 /* ── Print tokens ── */

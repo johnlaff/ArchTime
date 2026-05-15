@@ -70,13 +70,13 @@ export function Navbar() {
           <Link href="/dashboard" className="flex items-center gap-2 mr-2" aria-label="ArchTime">
             <span
               className="flex h-7 w-7 items-center justify-center rounded-[6px] flex-shrink-0"
-              style={{ background: 'var(--primary)' }}
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               <svg width="17" height="17" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-                <circle cx="50" cy="11" r="9" fill="white" />
-                <line x1="50" y1="11" x2="13" y2="87" stroke="white" strokeWidth="10" strokeLinecap="round" />
-                <line x1="50" y1="11" x2="87" y2="87" stroke="white" strokeWidth="10" strokeLinecap="round" />
-                <line x1="27" y1="60" x2="73" y2="60" stroke="white" strokeWidth="7" strokeLinecap="round" />
+                <circle cx="50" cy="11" r="9" fill="currentColor" />
+                <line x1="50" y1="11" x2="13" y2="87" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+                <line x1="50" y1="11" x2="87" y2="87" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+                <line x1="27" y1="60" x2="73" y2="60" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
               </svg>
             </span>
             <span className="hidden sm:block font-semibold text-sm tracking-tight">ArchTime</span>
