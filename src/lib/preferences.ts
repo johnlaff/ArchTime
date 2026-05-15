@@ -113,6 +113,90 @@ export const ACCENT_PRESETS = {
       mutedDark: 'oklch(0.22 0.012 255)',
     },
   },
+  violet: {
+    label: 'Violeta',
+    color: '#7c3aed',
+    css: {
+      primary:     'oklch(0.55 0.22 300)',
+      primaryDark: 'oklch(0.68 0.20 300)',
+      accent:      'oklch(0.95 0.025 300)',
+      accentDark:  'oklch(0.26 0.055 300)',
+      muted:       'oklch(0.97 0.008 300)',
+      mutedDark:   'oklch(0.23 0.025 300)',
+    },
+  },
+  lavender: {
+    label: 'Lavanda',
+    color: '#a78bfa',
+    css: {
+      primary:     'oklch(0.55 0.18 285)',
+      primaryDark: 'oklch(0.70 0.16 285)',
+      accent:      'oklch(0.95 0.02 285)',
+      accentDark:  'oklch(0.26 0.045 285)',
+      muted:       'oklch(0.97 0.007 285)',
+      mutedDark:   'oklch(0.23 0.02 285)',
+    },
+  },
+  fuchsia: {
+    label: 'Fúcsia',
+    color: '#d946ef',
+    css: {
+      primary:     'oklch(0.55 0.24 330)',
+      primaryDark: 'oklch(0.68 0.22 330)',
+      accent:      'oklch(0.95 0.03 330)',
+      accentDark:  'oklch(0.26 0.06 330)',
+      muted:       'oklch(0.97 0.01 330)',
+      mutedDark:   'oklch(0.23 0.028 330)',
+    },
+  },
+  ruby: {
+    label: 'Rubi',
+    color: '#e11d48',
+    css: {
+      primary:     'oklch(0.55 0.24 15)',
+      primaryDark: 'oklch(0.68 0.22 15)',
+      accent:      'oklch(0.95 0.03 15)',
+      accentDark:  'oklch(0.26 0.06 15)',
+      muted:       'oklch(0.97 0.01 15)',
+      mutedDark:   'oklch(0.23 0.028 15)',
+    },
+  },
+  coral: {
+    label: 'Coral',
+    color: '#fb923c',
+    css: {
+      primary:     'oklch(0.60 0.20 25)',
+      primaryDark: 'oklch(0.72 0.18 25)',
+      accent:      'oklch(0.95 0.025 25)',
+      accentDark:  'oklch(0.26 0.055 25)',
+      muted:       'oklch(0.97 0.009 25)',
+      mutedDark:   'oklch(0.23 0.025 25)',
+    },
+  },
+  teal: {
+    label: 'Verde-água',
+    color: '#0d9488',
+    css: {
+      primary:     'oklch(0.60 0.15 183)',
+      primaryDark: 'oklch(0.72 0.14 183)',
+      accent:      'oklch(0.95 0.02 183)',
+      accentDark:  'oklch(0.25 0.05 183)',
+      muted:       'oklch(0.97 0.007 183)',
+      mutedDark:   'oklch(0.22 0.025 183)',
+    },
+  },
+  cyan: {
+    label: 'Ciano',
+    color: '#06b6d4',
+    css: {
+      primary:     'oklch(0.60 0.15 200)',
+      primaryDark: 'oklch(0.72 0.14 200)',
+      accent:      'oklch(0.95 0.02 200)',
+      accentDark:  'oklch(0.25 0.05 200)',
+      muted:       'oklch(0.97 0.007 200)',
+      mutedDark:   'oklch(0.22 0.025 200)',
+    },
+  },
 } as const
 
 export type AccentPreset = keyof typeof ACCENT_PRESETS
@@ -160,4 +244,50 @@ export function detectWorkScheduleTemplate(
     if (WEEKDAY_KEYS.every((day) => template[day] === minutes[day])) return key
   }
   return 'custom'
+}
+
+export const ARCHITECTURAL_PRESETS = {
+  concreto: {
+    label: 'Concreto',
+    description: 'Brutalismo paulista — grafite frio, cantos retos',
+    color: '#64748b',
+  },
+  terracota: {
+    label: 'Terracota',
+    description: 'Burle Marx — bege quente, raio largo',
+    color: '#c2723b',
+  },
+  'linha-tecnica': {
+    label: 'Linha Técnica',
+    description: 'CAD — alto contraste P&B, raio zero',
+    color: '#111111',
+  },
+  vegetacao: {
+    label: 'Vegetação',
+    description: 'Paisagismo — verdes orgânicos',
+    color: '#2d7a4f',
+  },
+  aurora: {
+    label: 'Aurora',
+    description: 'Esquisso à mão — papel quente, tipografia expressiva',
+    color: '#b07d3c',
+  },
+} as const
+
+export type ArchitecturalPreset = keyof typeof ARCHITECTURAL_PRESETS
+
+export function isArchitecturalPreset(value: unknown): value is ArchitecturalPreset {
+  return typeof value === 'string' && value in ARCHITECTURAL_PRESETS
+}
+
+export const DENSITY_PRESETS = {
+  compact:  { label: 'Compacta' },
+  cozy:     { label: 'Confortável' },
+  spacious: { label: 'Espaçosa' },
+} as const
+
+export type DensityPreset = keyof typeof DENSITY_PRESETS
+
+export function isDensityPreset(value: unknown): value is DensityPreset {
+  return typeof value === 'string' && value in DENSITY_PRESETS
 }
