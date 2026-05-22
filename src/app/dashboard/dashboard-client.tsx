@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { ClockButton } from '@/components/clock-button'
 import { CurrentSession } from '@/components/current-session'
 import { DailySummaryCard } from '@/components/daily-summary'
@@ -73,7 +74,19 @@ export function DashboardClient({
         />
       )}
 
-      {session && !isOrphan && <CurrentSession session={session} />}
+      <AnimatePresence initial={false}>
+        {session && !isOrphan && (
+          <motion.div
+            key="current-session"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <CurrentSession session={session} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!session && (
         <ProjectSelector
