@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Fraunces } from 'next/font/google'
 import './globals.css'
+import { Suspense } from 'react'
 import { Providers } from '@/components/providers'
 import { Navbar } from '@/components/navbar'
 import { AccentColorProvider } from '@/components/accent-color-provider'
@@ -70,11 +71,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Navbar />
             </div>
             <div className="lg:flex lg:min-h-screen">
-              <AppSidebar />
+              <Suspense fallback={null}>
+                <AppSidebar />
+              </Suspense>
               <main className="flex-1 min-w-0">
                 {children}
               </main>
-              <ColRight />
+              <Suspense fallback={null}>
+                <ColRight />
+              </Suspense>
             </div>
           </Providers>
         </AccentColorProvider>

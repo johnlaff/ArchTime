@@ -139,16 +139,17 @@ LIMIT 4
 **`fetchWeekComparison(userId: string)`**  
 Retorna `{ thisWeekMinutes, lastWeekMinutes, deltaMinutes, deltaPercent }` — uma query com dois CTEs (esta semana / semana passada). "Semana" = segunda a domingo no timezone `America/Sao_Paulo`, consistente com o restante da app.
 
-**Cache:**
+**Cache:** padrão `'use cache'` do Next.js 16, consistente com `dashboard/page.tsx`:
 ```ts
-export const fetchActiveProjects = unstable_cache(
-  async (userId) => { /* query */ },
-  ['sidebar-active-projects'],
-  { tags: [`sidebar-${userId}`], revalidate: 60 }
-)
+export async function fetchActiveProjects(userId: string) {
+  'use cache'
+  cacheLife({ stale: 60, revalidate: 60, expire: 3600 })
+  cacheTag(`sidebar-${userId}`)
+  // query
+}
 ```
 
-**Invalidação:** `src/app/api/clock/route.ts` (clock-in e clock-out) adiciona `revalidateTag(`sidebar-${userId}`)` após writes.
+**Invalidação:** `revalidateTag(`sidebar-${userId}`, { expire: 0 })` nas rotas de clock-in, clock-out, edição manual e deleção.
 
 ---
 
@@ -161,19 +162,9 @@ export const fetchActiveProjects = unstable_cache(
 @@index([userId, deletedAt, entryDate])   // history sem deletados
 ```
 
-### Migration SQL (partial index — não gerenciado pelo Prisma)
+### Partial index para sessão aberta
 
-Arquivo: `prisma/migrations/20260522_phase2_indexes/migration.sql`
-
-```sql
--- Garante no nível do DB que só existe 1 sessão aberta por usuário
--- Previne race conditions sem depender apenas da lógica da aplicação
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_clock_open_session
-  ON clock_entries(user_id)
-  WHERE clock_out IS NULL AND deleted_at IS NULL;
-```
-
-`CONCURRENTLY` — não bloqueia writes durante criação do índice em produção.
+O índice parcial `clock_entries_one_open_per_user_idx` já existe na migration `0001_security_integrity` — **não foi necessário criar um novo**. A tentativa de criar um redundante foi removida durante o code review da implementação.
 
 ---
 

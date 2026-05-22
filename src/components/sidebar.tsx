@@ -69,7 +69,7 @@ export async function AppSidebar() {
   if (!user) return null
 
   const email = user.email ?? ''
-  const initials = email.split('@')[0]?.slice(0, 2).toUpperCase() ?? '??'
+  const initials = email.split('@')[0]?.slice(0, 2).toUpperCase() || '??'
 
   return (
     <aside

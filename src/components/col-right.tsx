@@ -23,8 +23,9 @@ function Widget({ title, children }: { title: string; children: React.ReactNode 
 async function TrendWidget({ userId }: { userId: string }) {
   const cmp = await fetchWeekComparison(userId)
   const isUp = cmp.deltaMinutes >= 0
-  const absH = Math.abs(Math.floor(cmp.deltaMinutes / 60))
-  const absM = Math.abs(cmp.deltaMinutes % 60)
+  const absMinutes = Math.abs(cmp.deltaMinutes)
+  const absH = Math.floor(absMinutes / 60)
+  const absM = absMinutes % 60
   const label = absH > 0 ? `${absH}h ${absM}min` : `${absM}min`
 
   return (

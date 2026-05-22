@@ -49,3 +49,4 @@ next-env.d.ts
 # Git worktrees
 .worktrees/
 .superpowers/
+public/sw.js

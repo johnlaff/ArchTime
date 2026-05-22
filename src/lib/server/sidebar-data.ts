@@ -37,8 +37,10 @@ export async function fetchActiveProjects(userId: string): Promise<ActiveProject
     LEFT JOIN time_allocations ta ON ta.project_id = p.id
     LEFT JOIN clock_entries ce
       ON ce.id = ta.clock_entry_id
+      AND ce.user_id = ${userId}
       AND ce.deleted_at IS NULL
       AND ce.entry_date >= date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo')
+      AND ce.entry_date <  date_trunc('month', (now() AT TIME ZONE 'America/Sao_Paulo') + INTERVAL '1 month')
     WHERE p.user_id = ${userId} AND p.is_active = true
     GROUP BY p.id, p.name, p.color
     ORDER BY month_minutes DESC, p.name
