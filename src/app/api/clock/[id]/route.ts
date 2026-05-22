@@ -189,6 +189,7 @@ export async function DELETE(
 
   await recalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut)
 
+  revalidateTag(`sidebar-${user.id}`)
   return new NextResponse(null, { status: 204 })
 }
 
