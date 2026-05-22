@@ -24,7 +24,7 @@ test.describe('Navegação entre abas', () => {
       const start = await page.evaluate(() => performance.now())
 
       await page.click(`a[href="${to}"]:not([aria-disabled="true"])`)
-
+      await page.waitForURL(`**${to}`, { timeout: 10_000 })
       await page.waitForSelector('[data-page-ready]', { timeout: 10_000 })
 
       const elapsed = await page.evaluate(

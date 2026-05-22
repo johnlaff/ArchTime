@@ -1,15 +1,20 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 
 export function useIsMac(): boolean {
-  return useMemo(() => {
-    if (typeof navigator === 'undefined') return false
+  const [isMac, setIsMac] = useState(false)
+
+  useEffect(() => {
     if ('userAgentData' in navigator) {
-      return (
-        navigator as Navigator & { userAgentData: { platform: string } }
-      ).userAgentData.platform === 'macOS'
+      setIsMac(
+        (navigator as Navigator & { userAgentData: { platform: string } })
+          .userAgentData.platform === 'macOS'
+      )
+    } else {
+      setIsMac(/Mac|iPhone|iPod|iPad/.test(navigator.platform))
     }
-    return /Mac|iPhone|iPod|iPad/.test(navigator.platform)
   }, [])
+
+  return isMac
 }
