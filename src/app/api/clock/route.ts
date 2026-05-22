@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
 import { getAuthenticatedUser } from '@/lib/server/auth'
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
       return clockEntry
     })
 
+    revalidateTag(`sidebar-${user.id}`)
     return NextResponse.json(entry, { status: 201 })
   } catch (error) {
     const maybeError = error as { message?: string; entryId?: string; code?: string }

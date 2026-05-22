@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import {
   calcDurationMinutes,
@@ -137,6 +138,7 @@ export async function PUT(
 
   await recalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
 
+  revalidateTag(`sidebar-${user.id}`)
   return NextResponse.json(updated)
 }
 
@@ -326,6 +328,7 @@ export async function PATCH(
     recalculateHourBankForInterval(user.id, newClockIn, newClockOut),
   ])
 
+  revalidateTag(`sidebar-${user.id}`)
   return NextResponse.json({
     id: updated.id,
     clockIn: updated.clockIn.toISOString(),
