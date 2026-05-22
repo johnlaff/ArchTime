@@ -67,6 +67,20 @@ export function Navbar() {
     <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-screen-md mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-1">
+          <Link href="/dashboard" className="flex items-center gap-2 mr-2" aria-label="ArchTime">
+            <span
+              className="flex h-7 w-7 items-center justify-center rounded-[6px] flex-shrink-0"
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              <svg width="17" height="17" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+                <circle cx="50" cy="11" r="9" fill="currentColor" />
+                <line x1="50" y1="11" x2="13" y2="87" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
+                <line x1="50" y1="11" x2="87" y2="87" stroke="currentColor" strokeWidth="11" strokeLinecap="round" />
+                <line x1="27" y1="60" x2="73" y2="60" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className="hidden sm:block font-semibold text-sm tracking-tight">ArchTime</span>
+          </Link>
           {navItems.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
