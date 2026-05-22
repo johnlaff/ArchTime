@@ -1,3 +1,6 @@
+'use client'
+
+import { motion } from 'motion/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatBRT, formatMinutes } from '@/lib/dates'
 import type { BalanceSummary, DailySummary } from '@/types'
@@ -34,17 +37,28 @@ function BalanceCard({
 
 export function DailySummaryCard({ summary }: DailySummaryProps) {
   return (
-    <div className="space-y-3 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+    <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <BalanceCard title="Hoje" balance={summary.today} />
-        <BalanceCard title="Semana" balance={summary.week} />
-        <BalanceCard
-          title="Mês"
-          balance={summary.month}
-          cumulativeBalance={summary.month.showCumulativeBalance
-            ? summary.month.cumulativeBalance ?? undefined
-            : undefined}
-        />
+        {[
+          { title: 'Hoje',   balance: summary.today, cumulative: undefined as number | undefined },
+          { title: 'Semana', balance: summary.week,  cumulative: undefined as number | undefined },
+          {
+            title: 'Mês',
+            balance: summary.month,
+            cumulative: summary.month.showCumulativeBalance
+              ? summary.month.cumulativeBalance ?? undefined
+              : undefined as number | undefined,
+          },
+        ].map(({ title, balance, cumulative }, i) => (
+          <motion.div
+            key={title}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <BalanceCard title={title} balance={balance} cumulativeBalance={cumulative} />
+          </motion.div>
+        ))}
       </div>
 
       {summary.entries.length > 0 && (
