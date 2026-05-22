@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Clock, History, FolderOpen, Settings, BarChart2, CreditCard } from 'lucide-react'
 
 interface NavItem {
@@ -37,6 +36,7 @@ export function SidebarNav() {
             aria-disabled={disabled}
             tabIndex={disabled ? -1 : undefined}
             onMouseEnter={() => !disabled && router.prefetch(href)}
+            onFocus={() => !disabled && router.prefetch(href)}
             onClick={(e) => { if (disabled) e.preventDefault() }}
             className={[
               'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors select-none',
