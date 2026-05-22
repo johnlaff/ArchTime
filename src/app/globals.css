@@ -822,3 +822,24 @@ html.dark[data-blueprint="true"] body {
   .print-body  { font-size: var(--print-font-body); line-height: var(--print-line-height); }
   .print-small { font-size: var(--print-font-small); color: var(--print-color-muted); }
 }
+
+/* ── View Transitions — transição de rota apenas no <main> ── */
+main {
+  view-transition-name: main-content;
+}
+
+@keyframes vt-slide-out {
+  to { opacity: 0; transform: translateX(-8px); }
+}
+
+@keyframes vt-slide-in {
+  from { opacity: 0; transform: translateX(8px); }
+}
+
+::view-transition-old(main-content) {
+  animation: 180ms var(--ease-out-expo) vt-slide-out;
+}
+
+::view-transition-new(main-content) {
+  animation: 220ms var(--ease-out-expo) vt-slide-in;
+}
