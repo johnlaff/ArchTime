@@ -5,6 +5,7 @@ import { ThemeProvider, useTheme } from 'next-themes'
 import { SyncProvider } from './sync-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { useAccentColor } from '@/components/accent-color-provider'
+import { usePerfMonitor } from '@/hooks/use-perf-monitor'
 import {
   getLastLocalPreferenceChange,
   shouldApplyRemotePreferences,
@@ -13,6 +14,7 @@ import {
 function PreferencesHydrator() {
   const { setTheme } = useTheme()
   const { setAccent } = useAccentColor()
+  usePerfMonitor()
 
   useEffect(() => {
     let cancelled = false
