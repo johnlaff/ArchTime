@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { getOrCreateUserSettings, settingsOptions } from '@/lib/user-settings'
 import { ConfiguracoesClient } from './configuracoes-client'
+import { PageShell } from '@/components/page-shell'
 
 async function ConfiguracoesContent() {
   const user = await getAuthenticatedUser()
@@ -25,8 +26,10 @@ function ConfiguracoesFallback() {
 
 export default function ConfiguracoesPage() {
   return (
-    <Suspense fallback={<ConfiguracoesFallback />}>
-      <ConfiguracoesContent />
-    </Suspense>
+    <PageShell>
+      <Suspense fallback={<ConfiguracoesFallback />}>
+        <ConfiguracoesContent />
+      </Suspense>
+    </PageShell>
   )
 }

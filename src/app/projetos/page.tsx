@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { ProjetosClient } from './projetos-client'
 import ProjetosLoading from './loading'
+import { PageShell } from '@/components/page-shell'
 import type { ProjectOption } from '@/types'
 
 async function ProjetosContent() {
@@ -29,8 +30,10 @@ async function ProjetosContent() {
 
 export default function ProjetosPage() {
   return (
-    <Suspense fallback={<ProjetosLoading />}>
-      <ProjetosContent />
-    </Suspense>
+    <PageShell>
+      <Suspense fallback={<ProjetosLoading />}>
+        <ProjetosContent />
+      </Suspense>
+    </PageShell>
   )
 }
