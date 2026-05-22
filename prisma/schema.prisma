@@ -81,6 +81,8 @@ model ClockEntry {
 
   @@index([userId, entryDate])
   @@index([userId, clockIn])
+  @@index([userId, clockOut, deletedAt])
+  @@index([userId, deletedAt, entryDate])
   @@map("clock_entries")
 }
 
