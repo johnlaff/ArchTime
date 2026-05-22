@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion } from 'motion/react'
 import { Clock, History, FolderOpen, Settings, BarChart2, CreditCard } from 'lucide-react'
 
@@ -24,7 +24,6 @@ const NAV_ITEMS: NavItem[] = [
 
 export function SidebarNav() {
   const pathname = usePathname()
-  const router = useRouter()
 
   return (
     <nav className="flex flex-col gap-0.5">
@@ -34,10 +33,9 @@ export function SidebarNav() {
           <Link
             key={href}
             href={disabled ? '#' : href}
+            prefetch={disabled ? false : true}
             aria-disabled={disabled}
             tabIndex={disabled ? -1 : undefined}
-            onMouseEnter={() => !disabled && router.prefetch(href)}
-            onFocus={() => !disabled && router.prefetch(href)}
             onClick={(e) => { if (disabled) e.preventDefault() }}
             className={[
               'relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors select-none',

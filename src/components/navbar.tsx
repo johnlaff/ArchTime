@@ -67,10 +67,6 @@ export function Navbar() {
     }
   }
 
-  function prefetchRoute(href: string) {
-    router.prefetch(href)
-  }
-
   return (
     <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-screen-md mx-auto px-4 h-14 flex items-center justify-between">
@@ -93,9 +89,7 @@ export function Navbar() {
             <Link
               key={href}
               href={href}
-              prefetch={false}
-              onMouseEnter={() => prefetchRoute(href)}
-              onFocus={() => prefetchRoute(href)}
+              prefetch={true}
             >
               <Button
                 variant={pathname === href ? 'secondary' : 'ghost'}
