@@ -26,7 +26,7 @@ const navItems = [
   { href: '/dashboard', label: 'Ponto',     icon: Clock },
   { href: '/historico', label: 'Histórico', icon: History },
   { href: '/projetos',  label: 'Projetos',  icon: FolderOpen },
-  { href: '/configuracoes', label: 'Config', icon: Settings },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
 export function Navbar() {

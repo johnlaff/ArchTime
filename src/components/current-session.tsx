@@ -35,7 +35,7 @@ export function CurrentSession({ session }: CurrentSessionProps) {
             )}
           </div>
         </div>
-        <span className="font-mono text-2xl font-bold tabular-nums tracking-tight">
+        <span className="text-2xl font-bold tabular-nums tracking-tight">
           {elapsed}
         </span>
       </CardContent>

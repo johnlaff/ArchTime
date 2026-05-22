@@ -135,11 +135,6 @@ export async function ColRight() {
           <ShortcutsWidget />
         </Widget>
 
-        <Widget title="Próximo Faturamento">
-          <p className="text-xs text-muted-foreground/60">
-            Disponível após configurar valor/hora nos projetos (Fase 8).
-          </p>
-        </Widget>
       </div>
     </aside>
   )
