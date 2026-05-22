@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { motion } from 'motion/react'
 import { Clock, History, FolderOpen, Settings, BarChart2, CreditCard } from 'lucide-react'
 
 interface NavItem {
@@ -39,17 +40,24 @@ export function SidebarNav() {
             onFocus={() => !disabled && router.prefetch(href)}
             onClick={(e) => { if (disabled) e.preventDefault() }}
             className={[
-              'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors select-none',
+              'relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors select-none',
               disabled
                 ? 'pointer-events-none opacity-40 text-muted-foreground cursor-not-allowed'
                 : isActive
-                ? 'bg-accent text-primary font-medium'
+                ? 'text-primary font-medium'
                 : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
             ].join(' ')}
           >
-            <Icon className="h-4 w-4 flex-shrink-0" />
-            <span className="flex-1">{label}</span>
-            <kbd className="font-mono text-[10px] text-muted-foreground/50 border border-border/50 rounded px-1 py-px">
+            {isActive && !disabled && (
+              <motion.span
+                layoutId="nav-indicator"
+                className="absolute inset-0 rounded-lg bg-accent pointer-events-none"
+                transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              />
+            )}
+            <Icon className="relative h-4 w-4 flex-shrink-0" />
+            <span className="relative flex-1">{label}</span>
+            <kbd className="relative font-mono text-[10px] text-muted-foreground/50 border border-border/50 rounded px-1 py-px">
               {kbd}
             </kbd>
           </Link>
