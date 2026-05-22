@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { getCachedUser, fetchActiveProjects, fetchWeekComparison } from '@/lib/server/sidebar-data'
+import { ShortcutsWidget } from './shortcuts-widget'
 
 function WidgetSkeleton({ rows = 3 }: { rows?: number }) {
   return (
@@ -88,26 +89,6 @@ async function DistributionWidget({ userId }: { userId: string }) {
   )
 }
 
-function ShortcutsWidget() {
-  const items = [
-    { desc: 'Ponto',           key: 'P' },
-    { desc: 'Histórico',       key: 'H' },
-    { desc: 'Projetos',        key: 'J' },
-    { desc: 'Buscar / Cmds',   key: '⌘K' },
-    { desc: 'Modo Foco',       key: 'F' },
-    { desc: 'Alternar Tema',   key: '⌘⇧D' },
-  ]
-  return (
-    <div className="flex flex-col gap-1.5">
-      {items.map(({ desc, key }) => (
-        <div key={desc} className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">{desc}</span>
-          <kbd className="font-mono bg-muted border border-border rounded px-1.5 py-px text-[10px]">{key}</kbd>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export async function ColRight() {
   const user = await getCachedUser()
