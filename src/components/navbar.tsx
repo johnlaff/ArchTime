@@ -55,8 +55,16 @@ export function Navbar() {
   function handleThemeToggle() {
     const nextTheme = getNextThemeMode(resolvedTheme)
     markLocalPreferenceChange()
-    setTheme(nextTheme)
-    persistAppearance({ themeMode: nextTheme })
+    const apply = () => {
+      setTheme(nextTheme)
+      persistAppearance({ themeMode: nextTheme })
+    }
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as Document & { startViewTransition: (cb: () => void) => void })
+        .startViewTransition(apply)
+    } else {
+      apply()
+    }
   }
 
   function prefetchRoute(href: string) {

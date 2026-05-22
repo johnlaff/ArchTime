@@ -44,8 +44,16 @@ export function SidebarFooterControls({ email, initials }: SidebarFooterProps) {
   function handleThemeToggle() {
     const next = getNextThemeMode(resolvedTheme)
     markLocalPreferenceChange()
-    setTheme(next)
-    persistAppearance({ themeMode: next })
+    const apply = () => {
+      setTheme(next)
+      persistAppearance({ themeMode: next })
+    }
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as Document & { startViewTransition: (cb: () => void) => void })
+        .startViewTransition(apply)
+    } else {
+      apply()
+    }
   }
 
   return (
