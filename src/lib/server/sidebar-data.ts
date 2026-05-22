@@ -32,7 +32,7 @@ export async function fetchActiveProjects(userId: string): Promise<ActiveProject
       p.id,
       p.name,
       p.color,
-      COALESCE(SUM(ta.minutes), 0)::int AS month_minutes
+      COALESCE(SUM(CASE WHEN ce.id IS NOT NULL THEN ta.minutes ELSE 0 END), 0)::int AS month_minutes
     FROM projects p
     LEFT JOIN time_allocations ta ON ta.project_id = p.id
     LEFT JOIN clock_entries ce
