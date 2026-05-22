@@ -17,9 +17,11 @@ const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
 export interface SidebarFooterProps {
   email: string
   initials: string
+  name?: string
+  avatarUrl?: string
 }
 
-export function SidebarFooterControls({ email, initials }: SidebarFooterProps) {
+export function SidebarFooterControls({ email, initials, name, avatarUrl }: SidebarFooterProps) {
   const { resolvedTheme, setTheme } = useTheme()
   const { accent, setAccent } = useAccentColor()
   const router = useRouter()
@@ -60,14 +62,30 @@ export function SidebarFooterControls({ email, initials }: SidebarFooterProps) {
     <div className="mt-auto border-t border-border pt-3 flex flex-col gap-2">
       {/* User info */}
       <div className="flex items-center gap-2 px-1">
-        <div
-          className="h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-          aria-hidden="true"
-        >
-          {initials}
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={name ?? email}
+            referrerPolicy="no-referrer"
+            className="h-7 w-7 rounded-full flex-shrink-0 object-cover"
+          />
+        ) : (
+          <div
+            className="h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            aria-hidden="true"
+          >
+            {initials}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          {name && (
+            <p className="text-xs font-medium text-foreground truncate leading-tight">{name}</p>
+          )}
+          <p className={`text-xs text-muted-foreground truncate ${name ? 'leading-tight' : ''}`}>
+            {email}
+          </p>
         </div>
-        <span className="flex-1 text-xs text-muted-foreground truncate">{email}</span>
       </div>
 
       {/* Controls */}

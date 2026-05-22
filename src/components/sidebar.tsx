@@ -69,7 +69,9 @@ export async function AppSidebar() {
   if (!user) return null
 
   const email = user.email ?? ''
-  const initials = email.split('@')[0]?.slice(0, 2).toUpperCase() || '??'
+  const name = user.user_metadata?.full_name as string | undefined
+  const avatarUrl = user.user_metadata?.avatar_url as string | undefined
+  const initials = ((name ?? email.split('@')[0] ?? '')).slice(0, 2).toUpperCase() || '??'
 
   return (
     <aside
@@ -90,7 +92,7 @@ export async function AppSidebar() {
           </Suspense>
         </div>
 
-        <SidebarFooterControls email={email} initials={initials} />
+        <SidebarFooterControls email={email} initials={initials} name={name} avatarUrl={avatarUrl} />
       </div>
     </aside>
   )
