@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from '@/lib/server/auth'
 import { buildDailySummary } from '@/lib/summary'
 import { DashboardClient } from './dashboard-client'
 import DashboardLoading from './loading'
+import { PageShell } from '@/components/page-shell'
 import type { ActiveSession, ProjectOption } from '@/types'
 
 async function getCachedProjects(userId: string) {
@@ -66,8 +67,10 @@ async function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<DashboardLoading />}>
-      <DashboardContent />
-    </Suspense>
+    <PageShell>
+      <Suspense fallback={<DashboardLoading />}>
+        <DashboardContent />
+      </Suspense>
+    </PageShell>
   )
 }

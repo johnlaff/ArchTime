@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import {
   calcDurationMinutes,
@@ -137,6 +138,7 @@ export async function PUT(
 
   await recalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
 
+  revalidateTag(`sidebar-${user.id}`, { expire: 0 })
   return NextResponse.json(updated)
 }
 
@@ -187,6 +189,7 @@ export async function DELETE(
 
   await recalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut)
 
+  revalidateTag(`sidebar-${user.id}`, { expire: 0 })
   return new NextResponse(null, { status: 204 })
 }
 
@@ -326,6 +329,7 @@ export async function PATCH(
     recalculateHourBankForInterval(user.id, newClockIn, newClockOut),
   ])
 
+  revalidateTag(`sidebar-${user.id}`, { expire: 0 })
   return NextResponse.json({
     id: updated.id,
     clockIn: updated.clockIn.toISOString(),

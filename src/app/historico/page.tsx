@@ -1,5 +1,10 @@
 import { HistoricoClient } from './historico-client'
+import { PageShell } from '@/components/page-shell'
 
 export default function HistoricoPage() {
-  return <HistoricoClient />
+  return (
+    <PageShell>
+      <HistoricoClient />
+    </PageShell>
+  )
 }

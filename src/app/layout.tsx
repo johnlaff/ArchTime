@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Fraunces } from 'next/font/google'
 import './globals.css'
+import { Suspense } from 'react'
 import { Providers } from '@/components/providers'
 import { Navbar } from '@/components/navbar'
 import { AccentColorProvider } from '@/components/accent-color-provider'
+import { AppSidebar } from '@/components/sidebar'
+import { ColRight } from '@/components/col-right'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
@@ -64,10 +67,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <AccentColorProvider>
           <Providers>
-            <Navbar />
-            <main className="max-w-screen-md mx-auto px-4 py-6">
-              {children}
-            </main>
+            <div className="block lg:hidden">
+              <Navbar />
+            </div>
+            <div className="lg:flex lg:min-h-screen">
+              <Suspense fallback={null}>
+                <AppSidebar />
+              </Suspense>
+              <main className="flex-1 min-w-0">
+                {children}
+              </main>
+              <Suspense fallback={null}>
+                <ColRight />
+              </Suspense>
+            </div>
           </Providers>
         </AccentColorProvider>
       </body>

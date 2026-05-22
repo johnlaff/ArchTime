@@ -26,7 +26,7 @@ const navItems = [
   { href: '/dashboard', label: 'Ponto',     icon: Clock },
   { href: '/historico', label: 'Histórico', icon: History },
   { href: '/projetos',  label: 'Projetos',  icon: FolderOpen },
-  { href: '/configuracoes', label: 'Config', icon: Settings },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
 export function Navbar() {
@@ -55,12 +55,16 @@ export function Navbar() {
   function handleThemeToggle() {
     const nextTheme = getNextThemeMode(resolvedTheme)
     markLocalPreferenceChange()
-    setTheme(nextTheme)
-    persistAppearance({ themeMode: nextTheme })
-  }
-
-  function prefetchRoute(href: string) {
-    router.prefetch(href)
+    const apply = () => {
+      setTheme(nextTheme)
+      persistAppearance({ themeMode: nextTheme })
+    }
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as Document & { startViewTransition: (cb: () => void) => void })
+        .startViewTransition(apply)
+    } else {
+      apply()
+    }
   }
 
   return (
@@ -85,9 +89,7 @@ export function Navbar() {
             <Link
               key={href}
               href={href}
-              prefetch={false}
-              onMouseEnter={() => prefetchRoute(href)}
-              onFocus={() => prefetchRoute(href)}
+              prefetch={true}
             >
               <Button
                 variant={pathname === href ? 'secondary' : 'ghost'}
