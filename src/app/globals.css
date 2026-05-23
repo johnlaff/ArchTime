@@ -696,6 +696,7 @@ html {
   --accent: color-mix(in oklch, var(--custom-accent-hex) 20%, black);
   --accent-foreground: oklch(0.96 0 0);
   --muted: color-mix(in oklch, var(--custom-accent-hex) 10%, black);
+  --muted-foreground: oklch(0.708 0 0);
 }
 
 /* ═══════════════════════════════════════════════════════════════

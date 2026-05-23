@@ -67,7 +67,7 @@ export function ConfiguracoesClient({
   const [settings, setSettings] = useState(initialSettings)
   const [saving, setSaving] = useState(false)
   const { setTheme } = useTheme()
-  const { setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
+  const { accent, setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
   useEffect(() => {
     const localAppearance = getLocalAppearancePatch()
@@ -153,7 +153,7 @@ export function ConfiguracoesClient({
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? 'Erro ao salvar configurações')
       setSettings(body.settings)
-      setAccent(body.settings.accentPreset)
+      if (accent !== 'custom') setAccent(body.settings.accentPreset)
       setTheme(body.settings.themeMode)
       toast.success('Configurações salvas')
     } catch (error) {
