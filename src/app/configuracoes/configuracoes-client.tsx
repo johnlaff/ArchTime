@@ -288,7 +288,7 @@ export function ConfiguracoesClient({
         <CardContent className="space-y-4">
           {/* Preset arquitetônico */}
           <div className="space-y-2">
-            <Label>Preset arquitetônico</Label>
+            <Label>Preset</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
@@ -352,7 +352,7 @@ export function ConfiguracoesClient({
           </label>
 
           <div className="space-y-2">
-            <Label>Preset visual</Label>
+            <Label>Cor de destaque</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {Object.entries(options.accentPresets).map(([key, preset]) => (
                 <button
@@ -379,7 +379,7 @@ export function ConfiguracoesClient({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper">
                 <SelectItem value="system">Sistema</SelectItem>
                 <SelectItem value="light">Claro</SelectItem>
                 <SelectItem value="dark">Escuro</SelectItem>

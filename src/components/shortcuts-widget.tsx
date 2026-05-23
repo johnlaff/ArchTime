@@ -8,7 +8,8 @@ export function ShortcutsWidget() {
     { desc: 'Ponto',         key: 'P' },
     { desc: 'Histórico',     key: 'H' },
     { desc: 'Projetos',      key: 'J' },
-    { desc: 'Alternar Tema', key: isMac ? '⌘⇧D' : 'Ctrl+Shift+D' },
+    { desc: 'Configurações', key: 'C' },
+    { desc: 'Alternar Tema', key: isMac ? '⌘⇧T' : 'T' },
   ]
   return (
     <div className="flex flex-col gap-1.5">

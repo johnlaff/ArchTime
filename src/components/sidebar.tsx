@@ -18,7 +18,6 @@ function SidebarBrand() {
         </svg>
       </span>
       <span className="font-semibold text-sm tracking-tight">ArchTime</span>
-      <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">v2</span>
     </div>
   )
 }

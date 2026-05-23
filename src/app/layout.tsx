@@ -24,7 +24,10 @@ export const metadata: Metadata = {
   description: 'Time tracking para freelancers e profissionais independentes',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'ArchTime' },
-  icons: { apple: '/api/icon?size=192' },
+  icons: {
+    icon: [{ url: '/api/icon?size=32', sizes: '32x32', type: 'image/png' }],
+    apple: '/api/icon?size=192',
+  },
   openGraph: {
     title: 'ArchTime',
     description: 'Time tracking para freelancers e profissionais independentes',
