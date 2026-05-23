@@ -41,6 +41,13 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!login|auth/callback|_next/static|_next/image|icons|api/icon|manifest\\.json|sw\\.js|favicon\\.ico).*)',
+    {
+      source:
+        '/((?!login|auth/callback|_next/static|_next/image|icons|api/icon|manifest\\.json|sw\\.js|favicon\\.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
   ],
 }

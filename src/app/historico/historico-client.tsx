@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react'
 import { format, addMonths, subMonths } from 'date-fns'
@@ -70,6 +70,7 @@ export function HistoricoClient({
   const [data, setData] = useState<HistoryData | null>(initialBundle?.history ?? null)
   const [hourBank, setHourBank] = useState<HourBankData | null>(initialBundle?.hourBank ?? null)
   const [loading, setLoading] = useState(!initialBundle)
+  const [monthLoading, setMonthLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -78,11 +79,16 @@ export function HistoricoClient({
   const [editSaving, setEditSaving] = useState(false)
   const [projects, setProjects] = useState<ProjectOption[]>(initialBundle?.projects ?? [])
   const didMount = useRef(false)
+  const monthChangedByUser = useRef(false)
+  const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
   const load = useCallback(async (date: Date, page = 1, append = false) => {
+    const silent = monthChangedByUser.current
+    monthChangedByUser.current = false
     if (append) setLoadingMore(true)
-    else setLoading(true)
+    else if (silent) setMonthLoading(true)
+    else if (!silent) setLoading(true)
     try {
       const month = toYYYYMM(date)
       const res = await fetch(`/api/history?month=${month}&page=${page}&pageSize=50`)
@@ -102,6 +108,7 @@ export function HistoricoClient({
       toast.error('Erro ao carregar histórico')
     } finally {
       if (append) setLoadingMore(false)
+      else if (silent) setMonthLoading(false)
       else setLoading(false)
     }
   }, [router])
@@ -116,11 +123,17 @@ export function HistoricoClient({
   }, [currentMonth, initialBundle, load])
 
   function prevMonth() {
-    setCurrentMonth((m) => subMonths(m, 1))
+    startTransition(() => {
+      monthChangedByUser.current = true
+      setCurrentMonth((m) => subMonths(m, 1))
+    })
   }
 
   function nextMonth() {
-    setCurrentMonth((m) => addMonths(m, 1))
+    startTransition(() => {
+      monthChangedByUser.current = true
+      setCurrentMonth((m) => addMonths(m, 1))
+    })
   }
 
   async function handleDelete() {
@@ -254,114 +267,116 @@ export function HistoricoClient({
         </Card>
       )}
 
-      {loading ? (
-        <div className="space-y-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-12 bg-muted animate-pulse rounded-xl" />
-          ))}
-        </div>
-      ) : dayKeys.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground text-sm">
-            Nenhum registro neste mês.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {dayKeys.map((day) => (
-            <div key={day} className="space-y-1 animate-fade-in-up">
-              <p className="text-xs text-muted-foreground px-1 capitalize">
-                {format(new Date(day + 'T12:00:00'), 'd MMM, EEEE', { locale: ptBR })}
-              </p>
-              {grouped[day].map((entry) => (
-                <Card
-                  key={entry.id}
-                  className="py-2 px-3 hover:bg-muted/40 cursor-default"
-                >
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      {entry.projectColor && (
-                        <div
-                          className="w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: entry.projectColor }}
-                        />
-                      )}
-                      <div>
-                        {(entry.projectName || entry.source === 'edited' || entry.isPartial) && (
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            {entry.projectName && (
-                              <p className="text-xs text-muted-foreground leading-none">
-                                {entry.projectName}
-                              </p>
-                            )}
-                            {entry.source === 'edited' && (
-                              <span className="text-xs text-muted-foreground/60 leading-none">
-                                (editado)
-                              </span>
-                            )}
-                            {entry.isPartial && (
-                              <span className="text-xs text-muted-foreground/60 leading-none">
-                                (parcial)
-                              </span>
-                            )}
-                          </div>
+      <div className={isPending || monthLoading ? 'opacity-60 pointer-events-none transition-opacity' : ''}>
+        {loading ? (
+          <div className="space-y-2">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-12 bg-muted animate-pulse rounded-xl" />
+            ))}
+          </div>
+        ) : dayKeys.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              Nenhum registro neste mês.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {dayKeys.map((day) => (
+              <div key={day} className="space-y-1 animate-fade-in-up">
+                <p className="text-xs text-muted-foreground px-1 capitalize">
+                  {format(new Date(day + 'T12:00:00'), 'd MMM, EEEE', { locale: ptBR })}
+                </p>
+                {grouped[day].map((entry) => (
+                  <Card
+                    key={entry.id}
+                    className="py-2 px-3 hover:bg-muted/40 cursor-default"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        {entry.projectColor && (
+                          <div
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: entry.projectColor }}
+                          />
                         )}
-                        <span className="tabular-nums">
-                          {formatBRT(entry.clockIn)} — {formatBRT(entry.clockOut)}
-                        </span>
+                        <div>
+                          {(entry.projectName || entry.source === 'edited' || entry.isPartial) && (
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              {entry.projectName && (
+                                <p className="text-xs text-muted-foreground leading-none">
+                                  {entry.projectName}
+                                </p>
+                              )}
+                              {entry.source === 'edited' && (
+                                <span className="text-xs text-muted-foreground/60 leading-none">
+                                  (editado)
+                                </span>
+                              )}
+                              {entry.isPartial && (
+                                <span className="text-xs text-muted-foreground/60 leading-none">
+                                  (parcial)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <span className="tabular-nums">
+                            {formatBRT(entry.clockIn)} — {formatBRT(entry.clockOut)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {entry.totalMinutes != null && (
+                          <span className="text-muted-foreground tabular-nums">
+                            {formatMinutes(entry.totalMinutes)}
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEdit(entry)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeleteTarget(entry.entryId)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {entry.totalMinutes != null && (
-                        <span className="text-muted-foreground tabular-nums">
-                          {formatMinutes(entry.totalMinutes)}
-                        </span>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        onClick={() => openEdit(entry)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeleteTarget(entry.entryId)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
+            ))}
+
+            {/* Month totals */}
+            <div className="border-t pt-3 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Total do mês</span>
+              <span className="tabular-nums font-medium">
+                {formatMinutes(data?.totalMinutes ?? 0)}&nbsp;·&nbsp;
+                {data?.sessionCount ?? 0}{' '}
+                {data?.sessionCount === 1 ? 'sessão' : 'sessões'}
+              </span>
             </div>
-          ))}
 
-          {/* Month totals */}
-          <div className="border-t pt-3 flex items-center justify-between text-sm text-muted-foreground">
-            <span>Total do mês</span>
-            <span className="tabular-nums font-medium">
-              {formatMinutes(data?.totalMinutes ?? 0)}&nbsp;·&nbsp;
-              {data?.sessionCount ?? 0}{' '}
-              {data?.sessionCount === 1 ? 'sessão' : 'sessões'}
-            </span>
+            {data?.hasMore && (
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={loadingMore}
+                onClick={() => load(currentMonth, (data.page ?? 1) + 1, true)}
+              >
+                {loadingMore ? 'Carregando...' : 'Carregar mais'}
+              </Button>
+            )}
           </div>
-
-          {data?.hasMore && (
-            <Button
-              variant="outline"
-              className="w-full"
-              disabled={loadingMore}
-              onClick={() => load(currentMonth, (data.page ?? 1) + 1, true)}
-            >
-              {loadingMore ? 'Carregando...' : 'Carregar mais'}
-            </Button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Edit dialog */}
       <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
