@@ -192,6 +192,25 @@
   transition-duration: 150ms;
 }
 
+/* ─── Scrollbar gutter — elimina layout shift durante troca de tema ─── */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* ─── Theme toggle: Circular Reveal via WAAPI ─── */
+/* Desabilita animações CSS padrão das View Transitions — WAAPI controla */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Suprime transições de elementos individuais durante View Transition */
+/* Previne o flicker causado pela dupla-animação (CSS 150ms + WAAPI circular) */
+:root:has(::view-transition-new(root)) * {
+  transition: none !important;
+}
+
 /* ─── Keyframes ─── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(14px); }

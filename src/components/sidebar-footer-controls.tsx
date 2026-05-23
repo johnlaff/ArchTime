@@ -3,14 +3,14 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Moon, Sun, Palette, Settings, LogOut } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase/client'
 import { useAccentColor, ACCENTS } from '@/components/accent-color-provider'
 import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
-import { getNextThemeMode, markLocalPreferenceChange, persistAppearanceSettings } from '@/lib/appearance'
+import { persistAppearanceSettings } from '@/lib/appearance'
+import { useThemeToggle } from '@/hooks/use-theme-toggle'
 
 const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
 
@@ -22,9 +22,9 @@ export interface SidebarFooterProps {
 }
 
 export function SidebarFooterControls({ email, initials, name, avatarUrl }: SidebarFooterProps) {
-  const { resolvedTheme, setTheme } = useTheme()
   const { accent, setAccent } = useAccentColor()
   const router = useRouter()
+  const toggleTheme = useThemeToggle()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -41,21 +41,6 @@ export function SidebarFooterControls({ email, initials, name, avatarUrl }: Side
   function handleAccentChange(next: AccentPreset) {
     setAccent(next)
     persistAppearance({ accentPreset: next })
-  }
-
-  function handleThemeToggle() {
-    const next = getNextThemeMode(resolvedTheme)
-    markLocalPreferenceChange()
-    const apply = () => {
-      setTheme(next)
-      persistAppearance({ themeMode: next })
-    }
-    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-      (document as Document & { startViewTransition: (cb: () => void) => void })
-        .startViewTransition(apply)
-    } else {
-      apply()
-    }
   }
 
   return (
@@ -116,9 +101,15 @@ export function SidebarFooterControls({ email, initials, name, avatarUrl }: Side
           </PopoverContent>
         </Popover>
 
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleThemeToggle} aria-label="Alternar tema">
-          <Sun className="h-3.5 w-3.5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-3.5 w-3.5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={toggleTheme}
+          aria-label="Alternar tema"
+        >
+          <Sun className="h-3.5 w-3.5 rotate-0 scale-100 transition-[transform,opacity] dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-3.5 w-3.5 rotate-90 scale-0 transition-[transform,opacity] dark:rotate-0 dark:scale-100" />
         </Button>
 
         <Button variant="ghost" size="icon" className="h-7 w-7" asChild aria-label="Configurações">

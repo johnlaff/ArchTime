@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Moon, Sun, Clock, FolderOpen, History, LogOut, Palette, Settings } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,12 +12,9 @@ import {
 } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase/client'
 import { useAccentColor, ACCENTS } from '@/components/accent-color-provider'
-import {
-  getNextThemeMode,
-  markLocalPreferenceChange,
-  persistAppearanceSettings,
-} from '@/lib/appearance'
+import { persistAppearanceSettings } from '@/lib/appearance'
 import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
+import { useThemeToggle } from '@/hooks/use-theme-toggle'
 
 const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
 
@@ -31,9 +27,9 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname()
-  const { resolvedTheme, setTheme } = useTheme()
-  const router = useRouter()
   const { accent, setAccent } = useAccentColor()
+  const router = useRouter()
+  const toggleTheme = useThemeToggle()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -50,21 +46,6 @@ export function Navbar() {
   function handleAccentChange(nextAccent: AccentPreset) {
     setAccent(nextAccent)
     persistAppearance({ accentPreset: nextAccent })
-  }
-
-  function handleThemeToggle() {
-    const nextTheme = getNextThemeMode(resolvedTheme)
-    markLocalPreferenceChange()
-    const apply = () => {
-      setTheme(nextTheme)
-      persistAppearance({ themeMode: nextTheme })
-    }
-    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-      (document as Document & { startViewTransition: (cb: () => void) => void })
-        .startViewTransition(apply)
-    } else {
-      apply()
-    }
   }
 
   return (
@@ -136,11 +117,11 @@ export function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleThemeToggle}
+            onClick={toggleTheme}
             aria-label="Alternar tema"
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-[transform,opacity] dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-[transform,opacity] dark:rotate-0 dark:scale-100" />
           </Button>
           <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Sair">
             <LogOut className="h-4 w-4" />

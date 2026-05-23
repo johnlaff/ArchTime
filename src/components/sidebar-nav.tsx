@@ -9,17 +9,16 @@ interface NavItem {
   href: string
   label: string
   icon: React.ElementType
-  kbd: string
   disabled?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard',     label: 'Ponto',         icon: Clock,       kbd: 'P' },
-  { href: '/historico',     label: 'Histórico',     icon: History,     kbd: 'H' },
-  { href: '/projetos',      label: 'Projetos',      icon: FolderOpen,  kbd: 'J' },
-  { href: '/configuracoes', label: 'Configurações', icon: Settings,    kbd: 'S' },
-  { href: '/relatorios',    label: 'Relatórios',    icon: BarChart2,   kbd: 'R', disabled: true },
-  { href: '/faturamento',   label: 'Faturamento',   icon: CreditCard,  kbd: 'F', disabled: true },
+  { href: '/dashboard',     label: 'Ponto',         icon: Clock       },
+  { href: '/historico',     label: 'Histórico',     icon: History     },
+  { href: '/projetos',      label: 'Projetos',      icon: FolderOpen  },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings    },
+  { href: '/relatorios',    label: 'Relatórios',    icon: BarChart2,   disabled: true },
+  { href: '/faturamento',   label: 'Faturamento',   icon: CreditCard,  disabled: true },
 ]
 
 export function SidebarNav() {
@@ -27,7 +26,7 @@ export function SidebarNav() {
 
   return (
     <nav className="flex flex-col gap-0.5">
-      {NAV_ITEMS.map(({ href, label, icon: Icon, kbd, disabled }) => {
+      {NAV_ITEMS.map(({ href, label, icon: Icon, disabled }) => {
         const isActive = pathname === href || pathname.startsWith(`${href}/`)
         return (
           <Link
@@ -55,9 +54,6 @@ export function SidebarNav() {
             )}
             <Icon className="relative h-4 w-4 flex-shrink-0" />
             <span className="relative flex-1">{label}</span>
-            <kbd className="relative font-mono text-[10px] text-muted-foreground/50 border border-border/50 rounded px-1 py-px">
-              {kbd}
-            </kbd>
           </Link>
         )
       })}
