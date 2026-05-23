@@ -67,7 +67,7 @@ export function ConfiguracoesClient({
   const [settings, setSettings] = useState(initialSettings)
   const [saving, setSaving] = useState(false)
   const { setTheme } = useTheme()
-  const { setAccent, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
+  const { setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
   useEffect(() => {
     const localAppearance = getLocalAppearancePatch()
@@ -370,6 +370,21 @@ export function ConfiguracoesClient({
                   {preset.label}
                 </button>
               ))}
+            </div>
+            <div className="border-t border-border pt-3 mt-1">
+              <p className="text-sm font-medium mb-2">Cor personalizada</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={customColor ?? '#6366f1'}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  className="h-9 w-16 cursor-pointer rounded border border-border"
+                  title="Cor personalizada"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Escolha qualquer cor como destaque personalizado
+                </p>
+              </div>
             </div>
           </div>
 

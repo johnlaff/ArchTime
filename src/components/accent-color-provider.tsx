@@ -18,10 +18,13 @@ export const ACCENTS = Object.fromEntries(
 
 const PRESET_KEY = 'archtime-preset'
 const DENSITY_KEY = 'archtime-density'
+const CUSTOM_COLOR_KEY = 'archtime-accent-custom'
 
 interface AccentColorContextValue {
-  accent: AccentPreset
+  accent: AccentPreset | 'custom'
   setAccent: (a: AccentPreset) => void
+  customColor: string | null
+  setCustomColor: (hex: string) => void
   architecturalPreset: ArchitecturalPreset | null
   setArchitecturalPreset: (p: ArchitecturalPreset | null) => void
   density: DensityPreset
@@ -31,6 +34,8 @@ interface AccentColorContextValue {
 const AccentColorContext = createContext<AccentColorContextValue>({
   accent: 'indigo',
   setAccent: () => {},
+  customColor: null,
+  setCustomColor: () => {},
   architecturalPreset: null,
   setArchitecturalPreset: () => {},
   density: 'cozy',
@@ -38,13 +43,23 @@ const AccentColorContext = createContext<AccentColorContextValue>({
 })
 
 export function AccentColorProvider({ children }: { children: React.ReactNode }) {
-  const [accent, setAccentState] = useState<AccentPreset>('indigo')
+  const [accent, setAccentState] = useState<AccentPreset | 'custom'>('indigo')
+  const [customColor, setCustomColorState] = useState<string | null>(null)
   const [architecturalPreset, setArchitecturalPresetState] = useState<ArchitecturalPreset | null>(null)
   const [density, setDensityState] = useState<DensityPreset>('cozy')
 
   useEffect(() => {
-    const savedAccent = localStorage.getItem('archtime-accent') as AccentPreset | null
-    if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) setAccentState(savedAccent)
+    const savedAccent = localStorage.getItem('archtime-accent')
+    if (savedAccent === 'custom') {
+      setAccentState('custom')
+      const savedCustom = localStorage.getItem(CUSTOM_COLOR_KEY)
+      if (savedCustom) {
+        setCustomColorState(savedCustom)
+        document.documentElement.style.setProperty('--custom-accent-hex', savedCustom)
+      }
+    } else if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) {
+      setAccentState(savedAccent as AccentPreset)
+    }
 
     const savedPreset = localStorage.getItem(PRESET_KEY)
     if (savedPreset && isArchitecturalPreset(savedPreset)) {
@@ -58,13 +73,26 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
   function setAccent(newAccent: AccentPreset) {
     markLocalPreferenceChange()
     setAccentState(newAccent)
+    setCustomColorState(null)
     document.documentElement.setAttribute('data-accent', newAccent)
+    document.documentElement.style.removeProperty('--custom-accent-hex')
     localStorage.setItem('archtime-accent', newAccent)
-    // Only update PWA icon cookie when no architectural preset is overriding
+    localStorage.removeItem(CUSTOM_COLOR_KEY)
     if (!architecturalPreset) {
       const color = ACCENTS[newAccent]
       document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
     }
+  }
+
+  function setCustomColor(hex: string) {
+    markLocalPreferenceChange()
+    setAccentState('custom')
+    setCustomColorState(hex)
+    document.documentElement.setAttribute('data-accent', 'custom')
+    document.documentElement.style.setProperty('--custom-accent-hex', hex)
+    localStorage.setItem('archtime-accent', 'custom')
+    localStorage.setItem(CUSTOM_COLOR_KEY, hex)
+    document.cookie = `archtime-accent-color=${hex};path=/;max-age=31536000;SameSite=Lax`
   }
 
   function setArchitecturalPreset(preset: ArchitecturalPreset | null) {
@@ -78,7 +106,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     } else {
       document.documentElement.removeAttribute('data-preset')
       localStorage.removeItem(PRESET_KEY)
-      const color = ACCENTS[accent]
+      const color = accent === 'custom' && customColor ? customColor : (accent !== 'custom' ? ACCENTS[accent] : '#6366f1')
       document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
     }
   }
@@ -92,7 +120,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
 
   return (
     <AccentColorContext.Provider
-      value={{ accent, setAccent, architecturalPreset, setArchitecturalPreset, density, setDensity }}
+      value={{ accent, setAccent, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity }}
     >
       {children}
     </AccentColorContext.Provider>

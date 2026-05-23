@@ -59,6 +59,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){
               var a=localStorage.getItem('archtime-accent')||'indigo';
               document.documentElement.setAttribute('data-accent',a);
+              if(a==='custom'){
+                var c=localStorage.getItem('archtime-accent-custom');
+                if(c) document.documentElement.style.setProperty('--custom-accent-hex',c);
+              }
               var p=localStorage.getItem('archtime-preset');
               if(p) document.documentElement.setAttribute('data-preset',p);
               var d=localStorage.getItem('archtime-density')||'cozy';

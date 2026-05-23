@@ -679,6 +679,25 @@ html {
   --ring:               oklch(0.72 0.14 200);
 }
 
+/* ─── Custom accent color (color picker) ─── */
+[data-accent="custom"] {
+  --primary: var(--custom-accent-hex);
+  --primary-foreground: oklch(0.98 0 0);
+  --ring: var(--custom-accent-hex);
+  --accent: color-mix(in oklch, var(--custom-accent-hex) 12%, white);
+  --accent-foreground: oklch(0.20 0 0);
+  --muted: color-mix(in oklch, var(--custom-accent-hex) 6%, white);
+  --muted-foreground: oklch(0.556 0 0);
+}
+[data-accent="custom"].dark {
+  --primary: var(--custom-accent-hex);
+  --primary-foreground: oklch(0.15 0 0);
+  --ring: var(--custom-accent-hex);
+  --accent: color-mix(in oklch, var(--custom-accent-hex) 20%, black);
+  --accent-foreground: oklch(0.96 0 0);
+  --muted: color-mix(in oklch, var(--custom-accent-hex) 10%, black);
+}
+
 /* ═══════════════════════════════════════════════════════════════
    ARCHITECTURAL PRESETS
    ═══════════════════════════════════════════════════════════════ */

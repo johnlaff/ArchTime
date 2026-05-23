@@ -22,7 +22,7 @@ export interface SidebarFooterProps {
 }
 
 export function SidebarFooterControls({ email, initials, name, avatarUrl }: SidebarFooterProps) {
-  const { accent, setAccent } = useAccentColor()
+  const { accent, setAccent, customColor, setCustomColor } = useAccentColor()
   const router = useRouter()
   const toggleTheme = useThemeToggle()
 
@@ -97,6 +97,16 @@ export function SidebarFooterControls({ email, initials, name, avatarUrl }: Side
                   {ACCENT_PRESETS[key].label}
                 </button>
               ))}
+            </div>
+            <div className="border-t border-border pt-2 mt-1">
+              <p className="text-xs text-muted-foreground mb-1.5">Cor personalizada</p>
+              <input
+                type="color"
+                value={customColor ?? '#6366f1'}
+                onChange={(e) => setCustomColor(e.target.value)}
+                className="h-7 w-full cursor-pointer rounded border border-border"
+                title="Cor personalizada"
+              />
             </div>
           </PopoverContent>
         </Popover>
