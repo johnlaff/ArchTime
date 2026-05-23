@@ -11,12 +11,14 @@ function isInteractiveElement(): boolean {
   const el = document.activeElement
   if (!el) return false
   const tag = el.tagName.toLowerCase()
-  return (
+  if (
     tag === 'input' ||
     tag === 'textarea' ||
     tag === 'select' ||
     el.hasAttribute('contenteditable')
-  )
+  ) return true
+  if (el.closest('[role="dialog"], [data-radix-popper-content-wrapper], [data-state="open"]')) return true
+  return false
 }
 
 export function useKeyboardShortcuts({ onThemeToggle }: KeyboardShortcutsOptions) {
