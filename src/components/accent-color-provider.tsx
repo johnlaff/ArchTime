@@ -80,23 +80,16 @@ function clearCustomAccentProperties() {
 }
 
 function updateBrowserAccentLinks(color: string) {
-  const primaryIcon = document.head.querySelector('link[rel="icon"]') as HTMLLinkElement | null
-  const icons = primaryIcon
-    ? Array.from(document.head.querySelectorAll('link[rel="icon"]')) as HTMLLinkElement[]
-    : []
-
-  if (icons.length === 0) {
-    const icon = document.createElement('link')
-    icons.push(icon)
-    icon.rel = 'icon'
-    document.head.appendChild(icon)
+  for (const icon of Array.from(document.head.querySelectorAll('link[rel="icon"]'))) {
+    icon.remove()
   }
 
-  for (const icon of icons) {
-    icon.type = 'image/png'
-    icon.sizes = '32x32'
-    icon.href = getBrowserAccentIconUrl(color, 32)
-  }
+  const icon = document.createElement('link')
+  icon.rel = 'icon'
+  icon.type = 'image/png'
+  icon.sizes = '32x32'
+  icon.href = getBrowserAccentIconUrl(color, 32)
+  document.head.appendChild(icon)
 
   let apple = document.head.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null
   if (!apple) {

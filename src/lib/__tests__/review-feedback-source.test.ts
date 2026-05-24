@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -56,11 +56,24 @@ describe('review feedback regressions', () => {
 
   it('syncs browser chrome icon links when the active accent changes', () => {
     const source = readSource('src/components/accent-color-provider.tsx')
+    const iconRoute = readSource('src/app/api/icon/route.tsx')
+    const layout = readSource('src/app/layout.tsx')
 
     expect(source).toContain('syncBrowserAccentColor')
-    expect(source).toContain("querySelector('link[rel=\"icon\"]')")
     expect(source).toContain("querySelectorAll('link[rel=\"icon\"]')")
+    expect(source).toContain('icon.remove()')
+    expect(source).toContain('document.head.appendChild(icon)')
     expect(source).toContain('window.setTimeout(updateBrowserAccentLinks')
     expect(source).toContain("querySelector('meta[name=\"theme-color\"]')")
+    expect(iconRoute).toContain("'Cache-Control': 'no-store, max-age=0'")
+    expect(layout).not.toContain('/favicon.ico')
+    expect(existsSync(join(process.cwd(), 'src/app/favicon.ico'))).toBe(false)
+  })
+
+  it('keeps the circular reveal final frame filled until the browser removes the snapshot', () => {
+    const source = readSource('src/hooks/use-theme-toggle.ts')
+
+    expect(source).toContain("fill: 'both'")
+    expect(source).toContain('revealAnimation.finished')
   })
 })

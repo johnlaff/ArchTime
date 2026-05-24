@@ -59,9 +59,10 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
       if (!transition) {
         themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
       } else {
+        let revealAnimation: Animation | null = null
         transition.ready
           .then(() => {
-            root.animate(
+            revealAnimation = root.animate(
               {
                 clipPath: [
                   `circle(0px at ${origin.x}px ${origin.y}px)`,
@@ -71,6 +72,7 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
               {
                 duration: THEME_REVEAL_DURATION_MS,
                 easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                fill: 'both',
                 pseudoElement: '::view-transition-new(root)',
               }
             )
@@ -79,7 +81,8 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
 
         transition.finished
           .catch(() => {})
-          .finally(() => {
+          .finally(async () => {
+            if (revealAnimation) await revealAnimation.finished.catch(() => {})
             themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
           })
       }

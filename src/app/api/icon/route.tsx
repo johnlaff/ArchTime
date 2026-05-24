@@ -63,6 +63,12 @@ export async function GET(req: NextRequest) {
         </svg>
       </div>
     ),
-    { width: size, height: size }
+    {
+      width: size,
+      height: size,
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    }
   )
 }
