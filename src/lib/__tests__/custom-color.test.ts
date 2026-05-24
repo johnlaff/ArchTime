@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { getColorInputValue, normalizeHexColor } from '../custom-color'
+import {
+  CUSTOM_FOREGROUND_DARK,
+  CUSTOM_FOREGROUND_LIGHT,
+  getColorInputValue,
+  getReadableCustomForeground,
+  normalizeHexColor,
+} from '../custom-color'
 
 describe('custom accent color helpers', () => {
   it('normalizes 3 and 6 digit hex colors for storage and CSS', () => {
@@ -20,5 +26,12 @@ describe('custom accent color helpers', () => {
     expect(getColorInputValue('#F43F5E')).toBe('#f43f5e')
     expect(getColorInputValue(null)).toBe('#6366f1')
     expect(getColorInputValue('nope')).toBe('#6366f1')
+  })
+
+  it('chooses readable logo foreground colors for very light and very dark custom colors', () => {
+    expect(getReadableCustomForeground('#ffffff')).toBe(CUSTOM_FOREGROUND_DARK)
+    expect(getReadableCustomForeground('#f8fafc')).toBe(CUSTOM_FOREGROUND_DARK)
+    expect(getReadableCustomForeground('#000000')).toBe(CUSTOM_FOREGROUND_LIGHT)
+    expect(getReadableCustomForeground('#111827')).toBe(CUSTOM_FOREGROUND_LIGHT)
   })
 })

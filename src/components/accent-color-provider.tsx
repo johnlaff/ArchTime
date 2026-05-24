@@ -11,7 +11,11 @@ import {
   type ArchitecturalPreset,
   type DensityPreset,
 } from '@/lib/preferences'
-import { getColorInputValue, normalizeHexColor } from '@/lib/custom-color'
+import {
+  getColorInputValue,
+  getReadableCustomForeground,
+  normalizeHexColor,
+} from '@/lib/custom-color'
 
 export const ACCENTS = Object.fromEntries(
   Object.entries(ACCENT_PRESETS).map(([key, preset]) => [key, preset.color])
@@ -56,6 +60,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
       const savedCustom = getColorInputValue(localStorage.getItem(CUSTOM_COLOR_KEY))
       setCustomColorState(savedCustom)
       document.documentElement.style.setProperty('--custom-accent-hex', savedCustom)
+      document.documentElement.style.setProperty('--custom-accent-foreground', getReadableCustomForeground(savedCustom))
     } else if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) {
       setAccentState(savedAccent as AccentPreset)
     }
@@ -75,6 +80,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     setCustomColorState(null)
     document.documentElement.setAttribute('data-accent', newAccent)
     document.documentElement.style.removeProperty('--custom-accent-hex')
+    document.documentElement.style.removeProperty('--custom-accent-foreground')
     localStorage.setItem('archtime-accent', newAccent)
     localStorage.removeItem(CUSTOM_COLOR_KEY)
     if (!architecturalPreset) {
@@ -91,6 +97,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     setCustomColorState(normalized)
     document.documentElement.setAttribute('data-accent', 'custom')
     document.documentElement.style.setProperty('--custom-accent-hex', normalized)
+    document.documentElement.style.setProperty('--custom-accent-foreground', getReadableCustomForeground(normalized))
     localStorage.setItem('archtime-accent', 'custom')
     localStorage.setItem(CUSTOM_COLOR_KEY, normalized)
     document.cookie = `archtime-accent-color=${normalized};path=/;max-age=31536000;SameSite=Lax`

@@ -10,13 +10,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { AccentColorPicker } from '@/components/accent-color-picker'
 import { createClient } from '@/lib/supabase/client'
-import { useAccentColor, ACCENTS } from '@/components/accent-color-provider'
+import { useAccentColor } from '@/components/accent-color-provider'
 import { persistAppearanceSettings } from '@/lib/appearance'
-import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
+import type { AccentPreset } from '@/lib/preferences'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
-
-const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
 
 const navItems = [
   { href: '/dashboard', label: 'Ponto',     icon: Clock },
@@ -27,7 +26,7 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname()
-  const { accent, setAccent } = useAccentColor()
+  const { accent, setAccent, customColor, setCustomColor } = useAccentColor()
   const router = useRouter()
   const toggleTheme = useThemeToggle()
 
@@ -91,26 +90,14 @@ export function Navbar() {
                 <Palette className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-3 animate-fade-in" align="end">
+            <PopoverContent className="w-[260px] p-3 animate-fade-in" align="end">
               <p className="text-xs text-muted-foreground mb-2 font-medium">Cor de destaque</p>
-              <div className="grid grid-cols-2 gap-2">
-                {ACCENT_ORDER.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleAccentChange(key)}
-                    title={ACCENT_PRESETS[key].label}
-                    className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors ${
-                      accent === key ? 'border-primary bg-accent' : 'hover:bg-accent'
-                    }`}
-                  >
-                    <span
-                      className="h-3.5 w-3.5 rounded-full"
-                      style={{ backgroundColor: ACCENTS[key] }}
-                    />
-                    {ACCENT_PRESETS[key].label}
-                  </button>
-                ))}
-              </div>
+              <AccentColorPicker
+                accent={accent}
+                customColor={customColor}
+                onPresetChange={handleAccentChange}
+                onCustomColorChange={setCustomColor}
+              />
             </PopoverContent>
           </Popover>
 

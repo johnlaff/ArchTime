@@ -1,13 +1,18 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Check, Pipette } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ACCENTS } from '@/components/accent-color-provider'
 import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
 import { cn } from '@/lib/utils'
-import { getColorInputValue, normalizeHexColor } from '@/lib/custom-color'
+import {
+  getColorInputValue,
+  getReadableCustomForeground,
+  hexToHsl,
+  hslToHex,
+  normalizeHexColor,
+} from '@/lib/custom-color'
 
 const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
 
@@ -26,14 +31,16 @@ export function AccentColorPicker({
   onCustomColorChange,
   className,
 }: AccentColorPickerProps) {
-  const nativeInputRef = useRef<HTMLInputElement>(null)
-  const nativeColor = getColorInputValue(customColor)
-  const [draftHex, setDraftHex] = useState(nativeColor)
+  const colorAreaRef = useRef<HTMLDivElement>(null)
+  const currentColor = getColorInputValue(customColor)
+  const currentHsl = hexToHsl(currentColor)
+  const [draftHex, setDraftHex] = useState(currentColor)
   const normalizedDraft = normalizeHexColor(draftHex)
+  const hueColor = hslToHex({ h: currentHsl.h, s: 100, l: 50 })
 
   useEffect(() => {
-    setDraftHex(nativeColor)
-  }, [nativeColor])
+    setDraftHex(currentColor)
+  }, [currentColor])
 
   function commitCustomColor(value: string) {
     const normalized = normalizeHexColor(value)
@@ -41,6 +48,31 @@ export function AccentColorPicker({
     if (!normalized) return
     setDraftHex(normalized)
     onCustomColorChange(normalized)
+  }
+
+  function commitHsl(next: Partial<typeof currentHsl>) {
+    commitCustomColor(hslToHex({ ...currentHsl, ...next }))
+  }
+
+  function updateAreaFromPointer(clientX: number, clientY: number) {
+    const rect = colorAreaRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const x = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    const y = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height))
+    commitHsl({
+      s: Math.round(x * 100),
+      l: Math.round((1 - y) * 100),
+    })
+  }
+
+  function handleAreaPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId)
+    updateAreaFromPointer(event.clientX, event.clientY)
+  }
+
+  function handleAreaPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
+    updateAreaFromPointer(event.clientX, event.clientY)
   }
 
   return (
@@ -75,37 +107,61 @@ export function AccentColorPicker({
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs font-medium text-foreground">Personalizada</p>
           <span className="font-mono text-[11px] uppercase text-muted-foreground">
-            {nativeColor}
+            {currentColor}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            ref={nativeInputRef}
-            type="color"
-            value={nativeColor}
-            onChange={(event) => commitCustomColor(event.target.value)}
-            className="sr-only"
-            tabIndex={-1}
-            aria-hidden="true"
+        <div
+          ref={colorAreaRef}
+          role="slider"
+          aria-label="Saturação e luminosidade"
+          aria-valuetext={`${currentHsl.s}% saturação, ${currentHsl.l}% luminosidade`}
+          tabIndex={0}
+          onPointerDown={handleAreaPointerDown}
+          onPointerMove={handleAreaPointerMove}
+          className="relative mb-2 h-24 cursor-crosshair overflow-hidden rounded-md border border-border shadow-inner outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          style={{
+            background: `
+              linear-gradient(to top, black, transparent),
+              linear-gradient(to right, white, ${hueColor})
+            `,
+          }}
+        >
+          <span
+            className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgb(0_0_0_/_0.45)]"
+            style={{
+              left: `${currentHsl.s}%`,
+              top: `${100 - currentHsl.l}%`,
+            }}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
+        </div>
+
+        <div className="mb-2 flex items-center gap-2">
+          <div
             className={cn(
-              'relative overflow-hidden border-border shadow-xs',
+              'flex h-8 w-8 items-center justify-center rounded-md border border-border shadow-xs',
               accent === 'custom' && 'ring-2 ring-primary/25'
             )}
-            style={{ backgroundColor: nativeColor }}
-            onClick={() => nativeInputRef.current?.click()}
-            aria-label="Selecionar cor personalizada"
-            title="Selecionar cor personalizada"
+            style={{
+              backgroundColor: currentColor,
+              color: getReadableCustomForeground(currentColor),
+            }}
+            aria-hidden="true"
           >
-            <span className="absolute inset-0 bg-black/0 dark:bg-white/0" />
-            <Pipette className="relative h-3.5 w-3.5 text-white drop-shadow-[0_1px_1px_rgb(0_0_0_/_0.65)]" />
-          </Button>
+            A
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={359}
+            value={currentHsl.h}
+            aria-label="Matiz"
+            onChange={(event) => commitHsl({ h: Number(event.target.value) })}
+            className="h-2 flex-1 cursor-pointer appearance-none rounded-full border border-border bg-[linear-gradient(to_right,red,yellow,lime,cyan,blue,magenta,red)]"
+          />
+        </div>
 
+        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
               #
@@ -113,7 +169,7 @@ export function AccentColorPicker({
             <Input
               value={draftHex.replace(/^#/, '')}
               onChange={(event) => commitCustomColor(event.target.value)}
-              onBlur={() => setDraftHex(nativeColor)}
+              onBlur={() => setDraftHex(currentColor)}
               aria-invalid={draftHex.length > 0 && !normalizedDraft}
               spellCheck={false}
               maxLength={7}

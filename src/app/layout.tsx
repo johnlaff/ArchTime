@@ -64,12 +64,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
                 return '#'+h;
               }
+              function fg(hex){
+                var h=norm(hex)||'#6366f1';
+                function c(i){
+                  var v=parseInt(h.slice(i,i+2),16)/255;
+                  return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);
+                }
+                var l=c(1)*0.2126+c(3)*0.7152+c(5)*0.0722;
+                return l>0.45?'#111827':'#ffffff';
+              }
               var a=localStorage.getItem('archtime-accent')||'indigo';
               document.documentElement.setAttribute('data-accent',a);
               if(a==='custom'){
                 var c=norm(localStorage.getItem('archtime-accent-custom'));
                 if(!c) c='#6366f1';
                 if(c) document.documentElement.style.setProperty('--custom-accent-hex',c);
+                document.documentElement.style.setProperty('--custom-accent-foreground',fg(c));
               }
               var p=localStorage.getItem('archtime-preset');
               if(p) document.documentElement.setAttribute('data-preset',p);

@@ -11,7 +11,10 @@ import {
 import {
   beginThemeSwitch,
   endThemeSwitch,
+  getThemeRevealOrigin,
+  getThemeRevealRadius,
   setResolvedThemeClass,
+  THEME_REVEAL_DURATION_MS,
   THEME_SWITCH_SUPPRESSION_MS,
 } from '@/lib/theme-transition'
 
@@ -21,7 +24,7 @@ export function useThemeToggle(): (e?: React.MouseEvent) => void {
   const { resolvedTheme, setTheme } = useTheme()
 
   return useCallback(
-    () => {
+    (e?: React.MouseEvent) => {
       const next = getNextThemeMode(resolvedTheme)
       markLocalPreferenceChange()
 
@@ -31,14 +34,58 @@ export function useThemeToggle(): (e?: React.MouseEvent) => void {
 
       const root = document.documentElement
       beginThemeSwitch(root)
-      setResolvedThemeClass(root, next)
-      setTheme(next)
 
       if (themeSwitchTimer) window.clearTimeout(themeSwitchTimer)
-      themeSwitchTimer = window.setTimeout(() => {
+      const clearSuppression = () => {
         endThemeSwitch(root)
         themeSwitchTimer = null
-      }, THEME_SWITCH_SUPPRESSION_MS)
+      }
+
+      const apply = () => {
+        setResolvedThemeClass(root, next)
+        setTheme(next)
+      }
+
+      if (!('startViewTransition' in document)) {
+        apply()
+        themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
+      } else {
+        const viewport = { width: window.innerWidth, height: window.innerHeight }
+        const origin = getThemeRevealOrigin(e, viewport)
+        const radius = getThemeRevealRadius(origin, viewport)
+        const transition = (
+          document as Document & {
+            startViewTransition: (callback: () => void) => {
+              ready: Promise<void>
+              finished: Promise<void>
+            }
+          }
+        ).startViewTransition(apply)
+
+        transition.ready
+          .then(() => {
+            root.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${origin.x}px ${origin.y}px)`,
+                  `circle(${radius}px at ${origin.x}px ${origin.y}px)`,
+                ],
+              },
+              {
+                duration: THEME_REVEAL_DURATION_MS,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                pseudoElement: '::view-transition-new(root)',
+              }
+            )
+          })
+          .catch(() => {})
+
+        transition.finished
+          .catch(() => {})
+          .finally(() => {
+            themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
+          })
+      }
 
       persistAppearanceSettings({ themeMode: next }).catch((err) => {
         toast.error(err instanceof Error ? err.message : 'Erro ao salvar tema')

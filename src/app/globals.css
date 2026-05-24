@@ -190,6 +190,13 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* ─── Theme circular reveal — WAAPI controla o pseudo-elemento do snapshot ─── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 /* ─── Stable theme switch — bloqueia transições concorrentes durante troca de tema ─── */
 html.theme-switching,
 html.theme-switching *,
@@ -197,6 +204,10 @@ html.theme-switching *::before,
 html.theme-switching *::after {
   transition: none !important;
   animation: none !important;
+}
+
+html.theme-switching main {
+  view-transition-name: none;
 }
 
 /* ─── Keyframes ─── */
@@ -670,7 +681,7 @@ html.theme-switching *::after {
 /* ─── Custom accent color (color picker) ─── */
 [data-accent="custom"] {
   --primary: var(--custom-accent-hex);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary-foreground: var(--custom-accent-foreground);
   --ring: var(--custom-accent-hex);
   --accent: color-mix(in oklch, var(--custom-accent-hex) 12%, white);
   --accent-foreground: oklch(0.20 0 0);
@@ -679,7 +690,7 @@ html.theme-switching *::after {
 }
 [data-accent="custom"].dark {
   --primary: var(--custom-accent-hex);
-  --primary-foreground: oklch(0.15 0 0);
+  --primary-foreground: var(--custom-accent-foreground);
   --ring: var(--custom-accent-hex);
   --accent: color-mix(in oklch, var(--custom-accent-hex) 20%, black);
   --accent-foreground: oklch(0.96 0 0);
