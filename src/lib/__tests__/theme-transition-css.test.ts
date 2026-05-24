@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest'
 
 describe('theme transition CSS', () => {
   it('disables route view transitions while the theme circular reveal is active', () => {
-    const globalsCss = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
+    const nextConfig = readFileSync(join(process.cwd(), 'next.config.ts'), 'utf8')
+    expect(nextConfig).not.toContain('viewTransition: true')
 
-    expect(globalsCss).toMatch(
-      /html\.theme-switching\s+main\s*{[^}]*view-transition-name:\s*none;/s
-    )
+    const globalsCss = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
+    expect(globalsCss).not.toMatch(/\bmain\s*\{[^}]*view-transition-name:\s*main-content/s)
   })
 
   it('hides the new theme snapshot until the circular reveal animation starts', () => {

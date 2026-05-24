@@ -76,6 +76,6 @@ describe('review feedback regressions', () => {
     const source = readSource('src/hooks/use-theme-toggle.ts')
 
     expect(source).toContain("fill: 'both'")
-    expect(source).toContain('revealAnimation.finished')
+    expect(source).toContain('anim.finished')
   })
 })

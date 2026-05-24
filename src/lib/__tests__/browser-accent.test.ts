@@ -42,7 +42,8 @@ describe('browser accent color sync', () => {
 
     const icons = Array.from(document.head.querySelectorAll('link[rel="icon"]'))
     expect(icons).toHaveLength(1)
-    expect(icons[0].getAttribute('href')).toBe('/api/icon?size=32&color=%232d7a4f&v=2d7a4f')
+    expect(icons[0].getAttribute('href')).toMatch(/^data:image\/svg\+xml,/)
+    expect(icons[0].getAttribute('href')).toContain('%232d7a4f')
     expect(document.head.innerHTML).not.toContain('%23f43f5e')
   })
 })

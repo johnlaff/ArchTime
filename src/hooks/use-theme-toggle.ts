@@ -25,10 +25,16 @@ import {
 export function useThemeToggle(): (e?: MouseEvent) => void {
   const { resolvedTheme, setTheme } = useTheme()
   const timerRef = useRef<number | null>(null)
+  const toggleIdRef = useRef(0)
+  const revealAnimationRef = useRef<Animation | null>(null)
 
   return useCallback(
     (e?: MouseEvent) => {
       if (!resolvedTheme) return
+
+      const toggleId = ++toggleIdRef.current
+      revealAnimationRef.current?.cancel()
+      revealAnimationRef.current = null
 
       const next = getNextThemeMode(resolvedTheme)
       markLocalPreferenceChange()
@@ -46,6 +52,7 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
 
       if (timerRef.current) window.clearTimeout(timerRef.current)
       const clearSuppression = () => {
+        if (toggleId !== toggleIdRef.current) return
         endThemeSwitch(root)
         clearThemeRevealGeometry(root)
         timerRef.current = null
@@ -60,10 +67,9 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
       if (!transition) {
         timerRef.current = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
       } else {
-        let revealAnimation: Animation | null = null
         transition.ready
           .then(() => {
-            revealAnimation = root.animate(
+            const anim = root.animate(
               {
                 clipPath: [
                   `circle(0px at ${origin.x}px ${origin.y}px)`,
@@ -77,13 +83,15 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
                 pseudoElement: '::view-transition-new(root)',
               }
             )
+            revealAnimationRef.current = anim
           })
           .catch(() => {})
 
         transition.finished
           .catch(() => {})
           .finally(async () => {
-            if (revealAnimation) await revealAnimation.finished.catch(() => {})
+            const anim = revealAnimationRef.current
+            if (anim) await anim.finished.catch(() => {})
             timerRef.current = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
           })
       }
