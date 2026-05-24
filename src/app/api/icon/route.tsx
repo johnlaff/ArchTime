@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const bg = requestedColor ?? cookieColor ?? '#6366f1'
   const fg = getReadableCustomForeground(bg)
   const outline = getVisibleCustomOutline(bg)
-  const size = Math.min(Math.max(Number(searchParams.get('size') ?? '192'), 64), 512)
+  const size = Math.min(Math.max(Number(searchParams.get('size') ?? '192'), 32), 512)
   const outlineWidth = Math.max(1, Math.round(size * 0.035))
 
   return new ImageResponse(

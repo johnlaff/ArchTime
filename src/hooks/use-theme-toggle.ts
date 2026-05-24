@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import type { MouseEvent } from 'react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
@@ -22,13 +22,14 @@ import {
   THEME_SWITCH_SUPPRESSION_MS,
 } from '@/lib/theme-transition'
 
-let themeSwitchTimer: number | null = null
-
 export function useThemeToggle(): (e?: MouseEvent) => void {
   const { resolvedTheme, setTheme } = useTheme()
+  const timerRef = useRef<number | null>(null)
 
   return useCallback(
     (e?: MouseEvent) => {
+      if (!resolvedTheme) return
+
       const next = getNextThemeMode(resolvedTheme)
       markLocalPreferenceChange()
 
@@ -43,11 +44,11 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
       setThemeRevealGeometry(root, origin, radius)
       beginThemeSwitch(root)
 
-      if (themeSwitchTimer) window.clearTimeout(themeSwitchTimer)
+      if (timerRef.current) window.clearTimeout(timerRef.current)
       const clearSuppression = () => {
         endThemeSwitch(root)
         clearThemeRevealGeometry(root)
-        themeSwitchTimer = null
+        timerRef.current = null
       }
 
       const apply = () => {
@@ -57,7 +58,7 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
 
       const transition = startThemeViewTransition(document, apply)
       if (!transition) {
-        themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
+        timerRef.current = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
       } else {
         let revealAnimation: Animation | null = null
         transition.ready
@@ -83,7 +84,7 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
           .catch(() => {})
           .finally(async () => {
             if (revealAnimation) await revealAnimation.finished.catch(() => {})
-            themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
+            timerRef.current = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
           })
       }
 

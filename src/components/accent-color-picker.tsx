@@ -120,6 +120,8 @@ export function AccentColorPicker({
           aria-hidden="true"
           onPointerDown={handleAreaPointerDown}
           onPointerMove={handleAreaPointerMove}
+          onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
+          onPointerCancel={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
           onDragStart={(event) => event.preventDefault()}
           className="relative mb-2 h-24 cursor-crosshair select-none touch-none overflow-hidden rounded-md border border-border shadow-inner"
           style={{
@@ -174,7 +176,7 @@ export function AccentColorPicker({
               onBlur={() => setDraftHex(currentColor)}
               aria-invalid={draftHex.length > 0 && !normalizedDraft}
               spellCheck={false}
-              maxLength={7}
+              maxLength={6}
               className="h-8 pl-5 font-mono text-xs uppercase"
             />
           </div>

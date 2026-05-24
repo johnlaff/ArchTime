@@ -16,7 +16,7 @@ import {
 
 function PreferencesHydrator() {
   const { setTheme } = useTheme()
-  const { setAccent } = useAccentColor()
+  const { syncAccentFromRemote } = useAccentColor()
   usePerfMonitor()
 
   const toggleTheme = useThemeToggle()
@@ -31,12 +31,12 @@ function PreferencesHydrator() {
       .then((body) => {
         if (cancelled || !body?.settings) return
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
-        if (!hasLocalCustomAccentPreference()) setAccent(body.settings.accentPreset)
+        if (!hasLocalCustomAccentPreference()) syncAccentFromRemote(body.settings.accentPreset)
         setTheme(body.settings.themeMode)
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [setAccent, setTheme])
+  }, [syncAccentFromRemote, setTheme])
 
   return null
 }

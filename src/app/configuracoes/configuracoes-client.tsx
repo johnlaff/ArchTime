@@ -154,7 +154,6 @@ export function ConfiguracoesClient({
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? 'Erro ao salvar configurações')
       setSettings(body.settings)
-      if (accent !== 'custom') setAccent(body.settings.accentPreset)
       setTheme(body.settings.themeMode)
       toast.success('Configurações salvas')
     } catch (error) {

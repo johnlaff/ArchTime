@@ -267,7 +267,7 @@ export function HistoricoClient({
         </Card>
       )}
 
-      <div className={isPending || monthLoading ? 'opacity-60 pointer-events-none transition-opacity' : ''}>
+      <div className={`transition-opacity${isPending || monthLoading ? ' opacity-60 pointer-events-none' : ''}`}>
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2, 3, 4].map((i) => (
