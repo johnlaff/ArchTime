@@ -100,7 +100,9 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     document.documentElement.style.setProperty('--custom-accent-foreground', getReadableCustomForeground(normalized))
     localStorage.setItem('archtime-accent', 'custom')
     localStorage.setItem(CUSTOM_COLOR_KEY, normalized)
-    document.cookie = `archtime-accent-color=${normalized};path=/;max-age=31536000;SameSite=Lax`
+    if (!architecturalPreset) {
+      document.cookie = `archtime-accent-color=${normalized};path=/;max-age=31536000;SameSite=Lax`
+    }
   }
 
   function setArchitecturalPreset(preset: ArchitecturalPreset | null) {

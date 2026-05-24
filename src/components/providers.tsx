@@ -10,6 +10,7 @@ import { useThemeToggle } from '@/hooks/use-theme-toggle'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import {
   getLastLocalPreferenceChange,
+  hasLocalCustomAccentPreference,
   shouldApplyRemotePreferences,
 } from '@/lib/appearance'
 
@@ -30,7 +31,7 @@ function PreferencesHydrator() {
       .then((body) => {
         if (cancelled || !body?.settings) return
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
-        setAccent(body.settings.accentPreset)
+        if (!hasLocalCustomAccentPreference()) setAccent(body.settings.accentPreset)
         setTheme(body.settings.themeMode)
       })
       .catch(() => {})

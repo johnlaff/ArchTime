@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import type { MouseEvent } from 'react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import {
@@ -14,17 +15,18 @@ import {
   getThemeRevealOrigin,
   getThemeRevealRadius,
   setResolvedThemeClass,
+  startThemeViewTransition,
   THEME_REVEAL_DURATION_MS,
   THEME_SWITCH_SUPPRESSION_MS,
 } from '@/lib/theme-transition'
 
 let themeSwitchTimer: number | null = null
 
-export function useThemeToggle(): (e?: React.MouseEvent) => void {
+export function useThemeToggle(): (e?: MouseEvent) => void {
   const { resolvedTheme, setTheme } = useTheme()
 
   return useCallback(
-    (e?: React.MouseEvent) => {
+    (e?: MouseEvent) => {
       const next = getNextThemeMode(resolvedTheme)
       markLocalPreferenceChange()
 
@@ -46,21 +48,13 @@ export function useThemeToggle(): (e?: React.MouseEvent) => void {
         setTheme(next)
       }
 
-      if (!('startViewTransition' in document)) {
-        apply()
+      const transition = startThemeViewTransition(document, apply)
+      if (!transition) {
         themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
       } else {
         const viewport = { width: window.innerWidth, height: window.innerHeight }
         const origin = getThemeRevealOrigin(e, viewport)
         const radius = getThemeRevealRadius(origin, viewport)
-        const transition = (
-          document as Document & {
-            startViewTransition: (callback: () => void) => {
-              ready: Promise<void>
-              finished: Promise<void>
-            }
-          }
-        ).startViewTransition(apply)
 
         transition.ready
           .then(() => {

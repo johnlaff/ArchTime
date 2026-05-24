@@ -57,7 +57,7 @@ describe('GET /api/history', () => {
 
     expect(response.status).toBe(200)
     expect(buildHistoryBundleMock).toHaveBeenCalledWith('user-1', '2026-04', 2, 25)
-    expect(response.headers.get('Cache-Control')).toBe('private, s-maxage=60, stale-while-revalidate=300')
+    expect(response.headers.get('Cache-Control')).toBe('private, max-age=60, stale-while-revalidate=300')
     expect(response.headers.get('Vary')).toBe('Cookie')
     expect(body.history.page).toBe(2)
     expect(console.info).not.toHaveBeenCalled()

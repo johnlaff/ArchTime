@@ -40,6 +40,11 @@ export function getLastLocalPreferenceChange(): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+export function hasLocalCustomAccentPreference(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.localStorage.getItem(ACCENT_STORAGE_KEY) === 'custom'
+}
+
 export function getLocalAppearancePatch(): AppearancePatch {
   if (typeof window === 'undefined') return {}
 

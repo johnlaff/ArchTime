@@ -18,6 +18,15 @@ interface PointerLike {
   clientY: number
 }
 
+export interface ThemeViewTransition {
+  ready: Promise<void>
+  finished: Promise<void>
+}
+
+export interface ThemeViewTransitionDocument {
+  startViewTransition?: (callback: () => void) => ThemeViewTransition
+}
+
 export function beginThemeSwitch(root: HTMLElement): void {
   root.classList.add('theme-switching')
 }
@@ -45,4 +54,28 @@ export function getThemeRevealRadius(origin: RevealOrigin, viewport: ViewportSiz
     Math.max(origin.x, viewport.width - origin.x),
     Math.max(origin.y, viewport.height - origin.y)
   )
+}
+
+export function startThemeViewTransition(
+  doc: ThemeViewTransitionDocument,
+  apply: () => void
+): ThemeViewTransition | null {
+  let applied = false
+  const applyOnce = () => {
+    if (applied) return
+    applied = true
+    apply()
+  }
+
+  if (typeof doc.startViewTransition !== 'function') {
+    applyOnce()
+    return null
+  }
+
+  try {
+    return doc.startViewTransition(applyOnce)
+  } catch {
+    applyOnce()
+    return null
+  }
 }

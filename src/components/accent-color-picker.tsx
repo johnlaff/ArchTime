@@ -113,13 +113,10 @@ export function AccentColorPicker({
 
         <div
           ref={colorAreaRef}
-          role="slider"
-          aria-label="Saturação e luminosidade"
-          aria-valuetext={`${currentHsl.s}% saturação, ${currentHsl.l}% luminosidade`}
-          tabIndex={0}
+          aria-hidden="true"
           onPointerDown={handleAreaPointerDown}
           onPointerMove={handleAreaPointerMove}
-          className="relative mb-2 h-24 cursor-crosshair overflow-hidden rounded-md border border-border shadow-inner outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="relative mb-2 h-24 cursor-crosshair overflow-hidden rounded-md border border-border shadow-inner"
           style={{
             background: `
               linear-gradient(to top, black, transparent),

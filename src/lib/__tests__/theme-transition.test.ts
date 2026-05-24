@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   beginThemeSwitch,
   endThemeSwitch,
   getThemeRevealOrigin,
   getThemeRevealRadius,
+  startThemeViewTransition,
   setResolvedThemeClass,
 } from '../theme-transition'
 
@@ -32,5 +33,24 @@ describe('theme transition helpers', () => {
     expect(getThemeRevealOrigin(undefined, { width: 100, height: 80 })).toEqual({ x: 50, y: 40 })
     expect(getThemeRevealOrigin({ clientX: 10, clientY: 20 }, { width: 100, height: 80 })).toEqual({ x: 10, y: 20 })
     expect(Math.round(getThemeRevealRadius({ x: 10, y: 20 }, { width: 100, height: 80 }))).toBe(108)
+  })
+
+  it('falls back to a direct apply when View Transitions are unavailable', () => {
+    const apply = vi.fn()
+
+    expect(startThemeViewTransition({}, apply)).toBeNull()
+    expect(apply).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back and applies once when starting a View Transition throws synchronously', () => {
+    const apply = vi.fn()
+    const doc = {
+      startViewTransition: vi.fn(() => {
+        throw new Error('transition failed')
+      }),
+    }
+
+    expect(startThemeViewTransition(doc, apply)).toBeNull()
+    expect(apply).toHaveBeenCalledTimes(1)
   })
 })

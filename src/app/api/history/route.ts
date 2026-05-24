@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const bundle = await buildHistoryBundle(user.id, month, page, pageSize)
   return NextResponse.json(bundle, {
     headers: {
-      'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=300',
+      'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
       'Vary': 'Cookie',
     },
   })

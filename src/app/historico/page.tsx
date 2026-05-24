@@ -2,14 +2,10 @@ import { Suspense } from 'react'
 import { cacheLife, cacheTag } from 'next/cache'
 import { getCachedUser } from '@/lib/server/sidebar-data'
 import { buildHistoryBundle } from '@/lib/history'
+import { getCurrentMonth } from '@/lib/current-month'
 import { HistoricoClient } from './historico-client'
 import { PageShell } from '@/components/page-shell'
 import HistoricoLoading from './loading'
-
-function getCurrentMonth() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
 
 async function HistoricoInitialData({ userId, month }: { userId: string; month: string }) {
   'use cache'

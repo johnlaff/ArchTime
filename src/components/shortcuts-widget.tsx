@@ -1,15 +1,10 @@
-'use client'
-
-import { useIsMac } from '@/hooks/use-is-mac'
-
 export function ShortcutsWidget() {
-  const isMac = useIsMac()
   const items = [
     { desc: 'Ponto',         key: 'P' },
     { desc: 'Histórico',     key: 'H' },
     { desc: 'Projetos',      key: 'J' },
     { desc: 'Configurações', key: 'C' },
-    { desc: 'Alternar Tema', key: isMac ? '⌘⇧T' : 'T' },
+    { desc: 'Alternar Tema', key: 'T' },
   ]
   return (
     <div className="flex flex-col gap-1.5">
