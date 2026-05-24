@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Moon, Sun, Clock, FolderOpen, History, LogOut, Palette, Settings } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,16 +10,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { AccentColorPicker } from '@/components/accent-color-picker'
 import { createClient } from '@/lib/supabase/client'
-import { useAccentColor, ACCENTS } from '@/components/accent-color-provider'
-import {
-  getNextThemeMode,
-  markLocalPreferenceChange,
-  persistAppearanceSettings,
-} from '@/lib/appearance'
-import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
-
-const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
+import { useAccentColor } from '@/components/accent-color-provider'
+import { persistAppearanceSettings } from '@/lib/appearance'
+import type { AccentPreset } from '@/lib/preferences'
+import { useThemeToggle } from '@/hooks/use-theme-toggle'
 
 const navItems = [
   { href: '/dashboard', label: 'Ponto',     icon: Clock },
@@ -31,9 +26,9 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname()
-  const { resolvedTheme, setTheme } = useTheme()
+  const { accent, setAccent, customColor, setCustomColor } = useAccentColor()
   const router = useRouter()
-  const { accent, setAccent } = useAccentColor()
+  const toggleTheme = useThemeToggle()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -52,21 +47,6 @@ export function Navbar() {
     persistAppearance({ accentPreset: nextAccent })
   }
 
-  function handleThemeToggle() {
-    const nextTheme = getNextThemeMode(resolvedTheme)
-    markLocalPreferenceChange()
-    const apply = () => {
-      setTheme(nextTheme)
-      persistAppearance({ themeMode: nextTheme })
-    }
-    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-      (document as Document & { startViewTransition: (cb: () => void) => void })
-        .startViewTransition(apply)
-    } else {
-      apply()
-    }
-  }
-
   return (
     <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-screen-md mx-auto px-4 h-14 flex items-center justify-between">
@@ -74,7 +54,11 @@ export function Navbar() {
           <Link href="/dashboard" className="flex items-center gap-2 mr-2" aria-label="ArchTime">
             <span
               className="flex h-7 w-7 items-center justify-center rounded-[6px] flex-shrink-0"
-              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+              style={{
+                background: 'var(--primary)',
+                color: 'var(--primary-foreground)',
+                boxShadow: 'inset 0 0 0 1px var(--primary-border, transparent)',
+              }}
             >
               <svg width="17" height="17" viewBox="0 0 100 100" fill="none" aria-hidden="true">
                 <circle cx="50" cy="11" r="9" fill="currentColor" />
@@ -110,37 +94,25 @@ export function Navbar() {
                 <Palette className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-3 animate-fade-in" align="end">
+            <PopoverContent className="w-[260px] p-3 animate-fade-in" align="end">
               <p className="text-xs text-muted-foreground mb-2 font-medium">Cor de destaque</p>
-              <div className="grid grid-cols-2 gap-2">
-                {ACCENT_ORDER.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => handleAccentChange(key)}
-                    title={ACCENT_PRESETS[key].label}
-                    className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors ${
-                      accent === key ? 'border-primary bg-accent' : 'hover:bg-accent'
-                    }`}
-                  >
-                    <span
-                      className="h-3.5 w-3.5 rounded-full"
-                      style={{ backgroundColor: ACCENTS[key] }}
-                    />
-                    {ACCENT_PRESETS[key].label}
-                  </button>
-                ))}
-              </div>
+              <AccentColorPicker
+                accent={accent}
+                customColor={customColor}
+                onPresetChange={handleAccentChange}
+                onCustomColorChange={setCustomColor}
+              />
             </PopoverContent>
           </Popover>
 
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleThemeToggle}
+            onClick={toggleTheme}
             aria-label="Alternar tema"
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-[transform,opacity] dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-[transform,opacity] dark:rotate-0 dark:scale-100" />
           </Button>
           <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Sair">
             <LogOut className="h-4 w-4" />

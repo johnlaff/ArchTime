@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
     })
 
     revalidateTag(`sidebar-${user.id}`, { expire: 0 })
+    revalidateTag(`history-${user.id}`, { expire: 0 })
     return NextResponse.json(entry, { status: 201 })
   } catch (error) {
     const maybeError = error as { message?: string; entryId?: string; code?: string }

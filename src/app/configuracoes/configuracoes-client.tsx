@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAccentColor } from '@/components/accent-color-provider'
+import { AccentColorPicker } from '@/components/accent-color-picker'
 import {
   getLocalAppearancePatch,
   markLocalPreferenceChange,
@@ -67,7 +68,7 @@ export function ConfiguracoesClient({
   const [settings, setSettings] = useState(initialSettings)
   const [saving, setSaving] = useState(false)
   const { setTheme } = useTheme()
-  const { setAccent, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
+  const { accent, setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
   useEffect(() => {
     const localAppearance = getLocalAppearancePatch()
@@ -153,7 +154,6 @@ export function ConfiguracoesClient({
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? 'Erro ao salvar configurações')
       setSettings(body.settings)
-      setAccent(body.settings.accentPreset)
       setTheme(body.settings.themeMode)
       toast.success('Configurações salvas')
     } catch (error) {
@@ -288,7 +288,7 @@ export function ConfiguracoesClient({
         <CardContent className="space-y-4">
           {/* Preset arquitetônico */}
           <div className="space-y-2">
-            <Label>Preset arquitetônico</Label>
+            <Label>Preset</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
@@ -352,25 +352,14 @@ export function ConfiguracoesClient({
           </label>
 
           <div className="space-y-2">
-            <Label>Preset visual</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(options.accentPresets).map(([key, preset]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setAccentPreset(key as AccentPreset)}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-left transition-colors ${
-                    settings.accentPreset === key ? 'border-primary bg-accent' : 'hover:bg-accent'
-                  }`}
-                >
-                  <span
-                    className="h-4 w-4 rounded-full"
-                    style={{ backgroundColor: preset.color }}
-                  />
-                  {preset.label}
-                </button>
-              ))}
-            </div>
+            <Label>Cor de destaque</Label>
+            <AccentColorPicker
+              accent={accent}
+              customColor={customColor}
+              onPresetChange={setAccentPreset}
+              onCustomColorChange={setCustomColor}
+              className="max-w-[360px]"
+            />
           </div>
 
           <div className="space-y-1">
@@ -379,7 +368,7 @@ export function ConfiguracoesClient({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper">
                 <SelectItem value="system">Sistema</SelectItem>
                 <SelectItem value="light">Claro</SelectItem>
                 <SelectItem value="dark">Escuro</SelectItem>

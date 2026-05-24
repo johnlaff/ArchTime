@@ -16,5 +16,10 @@ export async function GET(req: NextRequest) {
   const page = parsePage(searchParams.get('page'), 1, 10000)
   const pageSize = parsePage(searchParams.get('pageSize'), 50, 200)
   const bundle = await buildHistoryBundle(user.id, month, page, pageSize)
-  return NextResponse.json(bundle)
+  return NextResponse.json(bundle, {
+    headers: {
+      'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',
+      'Vary': 'Cookie',
+    },
+  })
 }

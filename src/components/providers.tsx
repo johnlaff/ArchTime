@@ -1,20 +1,27 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ThemeProvider, useTheme } from 'next-themes'
 import { SyncProvider } from './sync-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { useAccentColor } from '@/components/accent-color-provider'
 import { usePerfMonitor } from '@/hooks/use-perf-monitor'
+import { useThemeToggle } from '@/hooks/use-theme-toggle'
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import {
   getLastLocalPreferenceChange,
+  hasLocalCustomAccentPreference,
   shouldApplyRemotePreferences,
 } from '@/lib/appearance'
 
 function PreferencesHydrator() {
   const { setTheme } = useTheme()
-  const { setAccent } = useAccentColor()
+  const { syncAccentFromRemote } = useAccentColor()
   usePerfMonitor()
+
+  const toggleTheme = useThemeToggle()
+  const handleThemeToggle = useCallback(() => toggleTheme(), [toggleTheme])
+  useKeyboardShortcuts({ onThemeToggle: handleThemeToggle })
 
   useEffect(() => {
     let cancelled = false
@@ -24,12 +31,12 @@ function PreferencesHydrator() {
       .then((body) => {
         if (cancelled || !body?.settings) return
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
-        setAccent(body.settings.accentPreset)
+        if (!hasLocalCustomAccentPreference()) syncAccentFromRemote(body.settings.accentPreset)
         setTheme(body.settings.themeMode)
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [setAccent, setTheme])
+  }, [syncAccentFromRemote, setTheme])
 
   return null
 }

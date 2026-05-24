@@ -139,6 +139,7 @@ export async function PUT(
   await recalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })
+  revalidateTag(`history-${user.id}`, { expire: 0 })
   return NextResponse.json(updated)
 }
 
@@ -190,6 +191,7 @@ export async function DELETE(
   await recalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut)
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })
+  revalidateTag(`history-${user.id}`, { expire: 0 })
   return new NextResponse(null, { status: 204 })
 }
 
@@ -330,6 +332,7 @@ export async function PATCH(
   ])
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })
+  revalidateTag(`history-${user.id}`, { expire: 0 })
   return NextResponse.json({
     id: updated.id,
     clockIn: updated.clockIn.toISOString(),

@@ -96,7 +96,7 @@ export async function ColRight() {
 
   return (
     <aside
-      className="hidden xl:flex flex-col w-[340px] flex-shrink-0 border-l border-border bg-card/50 sticky top-0 h-screen overflow-y-auto"
+      className="hidden xl:flex flex-col w-[340px] flex-shrink-0 border-l border-border bg-card sticky top-0 h-screen overflow-y-auto"
       style={{ contain: 'layout style paint' }}
     >
       <div className="flex flex-col gap-3 p-4">

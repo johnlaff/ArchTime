@@ -15,7 +15,7 @@ export interface AppearancePatch {
   themeMode?: ThemeMode
 }
 
-export function getNextThemeMode(resolvedTheme: string | undefined): ThemeMode {
+export function getNextThemeMode(resolvedTheme: string | undefined): Exclude<ThemeMode, 'system'> {
   return resolvedTheme === 'dark' ? 'light' : 'dark'
 }
 
@@ -38,6 +38,11 @@ export function getLastLocalPreferenceChange(): number | null {
   if (!raw) return null
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+export function hasLocalCustomAccentPreference(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.localStorage.getItem(ACCENT_STORAGE_KEY) === 'custom'
 }
 
 export function getLocalAppearancePatch(): AppearancePatch {

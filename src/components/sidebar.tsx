@@ -8,7 +8,11 @@ function SidebarBrand() {
     <div className="flex items-center gap-2.5 px-2">
       <span
         className="flex h-8 w-8 items-center justify-center rounded-[7px] flex-shrink-0"
-        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+        style={{
+          background: 'var(--primary)',
+          color: 'var(--primary-foreground)',
+          boxShadow: 'inset 0 0 0 1px var(--primary-border, transparent)',
+        }}
       >
         <svg width="20" height="20" viewBox="0 0 100 100" fill="none" aria-hidden="true">
           <circle cx="50" cy="11" r="9" fill="currentColor" />
@@ -18,7 +22,6 @@ function SidebarBrand() {
         </svg>
       </span>
       <span className="font-semibold text-sm tracking-tight">ArchTime</span>
-      <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">v2</span>
     </div>
   )
 }
