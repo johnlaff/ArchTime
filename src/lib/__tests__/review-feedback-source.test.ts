@@ -25,7 +25,42 @@ describe('review feedback regressions', () => {
     const source = readSource('src/components/accent-color-provider.tsx')
 
     expect(source).toMatch(
-      /function setCustomColor[\s\S]*if \(!architecturalPreset\) {[\s\S]*archtime-accent-color/
+      /function setCustomColor[\s\S]*if \(!architecturalPreset\) {[\s\S]*syncBrowserAccentColor\(normalized\)/
     )
+  })
+
+  it('prevents page text selection while dragging the custom color field', () => {
+    const source = readSource('src/components/accent-color-picker.tsx')
+
+    expect(source).toContain('event.preventDefault()')
+    expect(source).toContain('select-none')
+    expect(source).toContain('touch-none')
+  })
+
+  it('uses the computed accent foreground for active sidebar items', () => {
+    const source = readSource('src/components/sidebar-nav.tsx')
+
+    expect(source).toContain('text-accent-foreground font-medium')
+    expect(source).not.toContain('text-primary font-medium')
+  })
+
+  it('keeps near-white custom logo backgrounds visually bounded', () => {
+    const source = [
+      readSource('src/components/navbar.tsx'),
+      readSource('src/components/sidebar.tsx'),
+      readSource('src/components/sidebar-footer-controls.tsx'),
+    ].join('\n')
+
+    expect(source).toContain("boxShadow: 'inset 0 0 0 1px var(--primary-border, transparent)'")
+  })
+
+  it('syncs browser chrome icon links when the active accent changes', () => {
+    const source = readSource('src/components/accent-color-provider.tsx')
+
+    expect(source).toContain('syncBrowserAccentColor')
+    expect(source).toContain("querySelector('link[rel=\"icon\"]')")
+    expect(source).toContain("querySelectorAll('link[rel=\"icon\"]')")
+    expect(source).toContain('window.setTimeout(updateBrowserAccentLinks')
+    expect(source).toContain("querySelector('meta[name=\"theme-color\"]')")
   })
 })

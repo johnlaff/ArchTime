@@ -66,12 +66,16 @@ export function AccentColorPicker({
   }
 
   function handleAreaPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault()
+    window.getSelection()?.removeAllRanges()
     event.currentTarget.setPointerCapture(event.pointerId)
     updateAreaFromPointer(event.clientX, event.clientY)
   }
 
   function handleAreaPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
+    event.preventDefault()
+    window.getSelection()?.removeAllRanges()
     updateAreaFromPointer(event.clientX, event.clientY)
   }
 
@@ -116,7 +120,8 @@ export function AccentColorPicker({
           aria-hidden="true"
           onPointerDown={handleAreaPointerDown}
           onPointerMove={handleAreaPointerMove}
-          className="relative mb-2 h-24 cursor-crosshair overflow-hidden rounded-md border border-border shadow-inner"
+          onDragStart={(event) => event.preventDefault()}
+          className="relative mb-2 h-24 cursor-crosshair select-none touch-none overflow-hidden rounded-md border border-border shadow-inner"
           style={{
             background: `
               linear-gradient(to top, black, transparent),

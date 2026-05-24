@@ -197,6 +197,16 @@ html {
   mix-blend-mode: normal;
 }
 
+html.theme-switching::view-transition-old(root) {
+  z-index: 1;
+}
+
+html.theme-switching::view-transition-new(root) {
+  clip-path: circle(0px at var(--theme-reveal-x, 50vw) var(--theme-reveal-y, 50vh));
+  will-change: clip-path;
+  z-index: 2;
+}
+
 /* ─── Stable theme switch — bloqueia transições concorrentes durante troca de tema ─── */
 html.theme-switching,
 html.theme-switching *,
@@ -682,19 +692,21 @@ html.theme-switching main {
 [data-accent="custom"] {
   --primary: var(--custom-accent-hex);
   --primary-foreground: var(--custom-accent-foreground);
+  --primary-border: var(--custom-accent-border, transparent);
   --ring: var(--custom-accent-hex);
-  --accent: color-mix(in oklch, var(--custom-accent-hex) 12%, white);
-  --accent-foreground: oklch(0.20 0 0);
-  --muted: color-mix(in oklch, var(--custom-accent-hex) 6%, white);
+  --accent: var(--custom-accent-soft-light, color-mix(in oklch, var(--custom-accent-hex) 12%, white));
+  --accent-foreground: var(--custom-accent-soft-foreground-light, oklch(0.20 0 0));
+  --muted: var(--custom-accent-muted-light, color-mix(in oklch, var(--custom-accent-hex) 6%, white));
   --muted-foreground: oklch(0.556 0 0);
 }
 [data-accent="custom"].dark {
   --primary: var(--custom-accent-hex);
   --primary-foreground: var(--custom-accent-foreground);
+  --primary-border: var(--custom-accent-border, transparent);
   --ring: var(--custom-accent-hex);
-  --accent: color-mix(in oklch, var(--custom-accent-hex) 20%, black);
-  --accent-foreground: oklch(0.96 0 0);
-  --muted: color-mix(in oklch, var(--custom-accent-hex) 10%, black);
+  --accent: var(--custom-accent-soft-dark, color-mix(in oklch, var(--custom-accent-hex) 20%, black));
+  --accent-foreground: var(--custom-accent-soft-foreground-dark, oklch(0.96 0 0));
+  --muted: var(--custom-accent-muted-dark, color-mix(in oklch, var(--custom-accent-hex) 10%, black));
   --muted-foreground: oklch(0.708 0 0);
 }
 

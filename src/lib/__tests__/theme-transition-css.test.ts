@@ -10,4 +10,12 @@ describe('theme transition CSS', () => {
       /html\.theme-switching\s+main\s*{[^}]*view-transition-name:\s*none;/s
     )
   })
+
+  it('hides the new theme snapshot until the circular reveal animation starts', () => {
+    const globalsCss = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
+
+    expect(globalsCss).toMatch(
+      /html\.theme-switching::view-transition-new\(root\)\s*{[^}]*clip-path:\s*circle\(0px at var\(--theme-reveal-x/s
+    )
+  })
 })

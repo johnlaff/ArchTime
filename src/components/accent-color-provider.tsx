@@ -12,8 +12,9 @@ import {
   type DensityPreset,
 } from '@/lib/preferences'
 import {
+  getBrowserAccentIconUrl,
   getColorInputValue,
-  getReadableCustomForeground,
+  getCustomAccentTokens,
   normalizeHexColor,
 } from '@/lib/custom-color'
 
@@ -24,6 +25,17 @@ export const ACCENTS = Object.fromEntries(
 const PRESET_KEY = 'archtime-preset'
 const DENSITY_KEY = 'archtime-density'
 const CUSTOM_COLOR_KEY = 'archtime-accent-custom'
+const CUSTOM_ACCENT_PROPERTIES = [
+  '--custom-accent-hex',
+  '--custom-accent-foreground',
+  '--custom-accent-border',
+  '--custom-accent-soft-light',
+  '--custom-accent-soft-foreground-light',
+  '--custom-accent-muted-light',
+  '--custom-accent-soft-dark',
+  '--custom-accent-soft-foreground-dark',
+  '--custom-accent-muted-dark',
+]
 
 interface AccentColorContextValue {
   accent: AccentPreset | 'custom'
@@ -47,6 +59,71 @@ const AccentColorContext = createContext<AccentColorContextValue>({
   setDensity: () => {},
 })
 
+function applyCustomAccentProperties(hex: string) {
+  const tokens = getCustomAccentTokens(hex)
+  const root = document.documentElement
+  root.style.setProperty('--custom-accent-hex', tokens.primary)
+  root.style.setProperty('--custom-accent-foreground', tokens.primaryForeground)
+  root.style.setProperty('--custom-accent-border', tokens.primaryBorder)
+  root.style.setProperty('--custom-accent-soft-light', tokens.accentLight)
+  root.style.setProperty('--custom-accent-soft-foreground-light', tokens.accentForegroundLight)
+  root.style.setProperty('--custom-accent-muted-light', tokens.mutedLight)
+  root.style.setProperty('--custom-accent-soft-dark', tokens.accentDark)
+  root.style.setProperty('--custom-accent-soft-foreground-dark', tokens.accentForegroundDark)
+  root.style.setProperty('--custom-accent-muted-dark', tokens.mutedDark)
+}
+
+function clearCustomAccentProperties() {
+  for (const property of CUSTOM_ACCENT_PROPERTIES) {
+    document.documentElement.style.removeProperty(property)
+  }
+}
+
+function updateBrowserAccentLinks(color: string) {
+  const primaryIcon = document.head.querySelector('link[rel="icon"]') as HTMLLinkElement | null
+  const icons = primaryIcon
+    ? Array.from(document.head.querySelectorAll('link[rel="icon"]')) as HTMLLinkElement[]
+    : []
+
+  if (icons.length === 0) {
+    const icon = document.createElement('link')
+    icons.push(icon)
+    icon.rel = 'icon'
+    document.head.appendChild(icon)
+  }
+
+  for (const icon of icons) {
+    icon.type = 'image/png'
+    icon.sizes = '32x32'
+    icon.href = getBrowserAccentIconUrl(color, 32)
+  }
+
+  let apple = document.head.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null
+  if (!apple) {
+    apple = document.createElement('link')
+    apple.rel = 'apple-touch-icon'
+    apple.sizes = '192x192'
+    document.head.appendChild(apple)
+  }
+  apple.href = getBrowserAccentIconUrl(color, 192)
+
+  let themeColor = document.head.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
+  if (!themeColor) {
+    themeColor = document.createElement('meta')
+    themeColor.name = 'theme-color'
+    document.head.appendChild(themeColor)
+  }
+  themeColor.content = color
+}
+
+function syncBrowserAccentColor(hex: string) {
+  const color = getColorInputValue(hex)
+  document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
+  updateBrowserAccentLinks(color)
+  window.setTimeout(updateBrowserAccentLinks, 0, color)
+  window.setTimeout(updateBrowserAccentLinks, 250, color)
+}
+
 export function AccentColorProvider({ children }: { children: React.ReactNode }) {
   const [accent, setAccentState] = useState<AccentPreset | 'custom'>('indigo')
   const [customColor, setCustomColorState] = useState<string | null>(null)
@@ -55,20 +132,25 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const savedAccent = localStorage.getItem('archtime-accent')
+    let activeBrowserColor: string = ACCENTS.indigo
     if (savedAccent === 'custom') {
       setAccentState('custom')
       const savedCustom = getColorInputValue(localStorage.getItem(CUSTOM_COLOR_KEY))
       setCustomColorState(savedCustom)
-      document.documentElement.style.setProperty('--custom-accent-hex', savedCustom)
-      document.documentElement.style.setProperty('--custom-accent-foreground', getReadableCustomForeground(savedCustom))
+      applyCustomAccentProperties(savedCustom)
+      activeBrowserColor = savedCustom
     } else if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) {
       setAccentState(savedAccent as AccentPreset)
+      activeBrowserColor = ACCENTS[savedAccent as AccentPreset]
     }
 
     const savedPreset = localStorage.getItem(PRESET_KEY)
     if (savedPreset && isArchitecturalPreset(savedPreset)) {
       setArchitecturalPresetState(savedPreset)
+      activeBrowserColor = ARCHITECTURAL_PRESETS[savedPreset].color
     }
+
+    syncBrowserAccentColor(activeBrowserColor)
 
     const savedDensity = localStorage.getItem(DENSITY_KEY)
     if (savedDensity && isDensityPreset(savedDensity)) setDensityState(savedDensity)
@@ -79,13 +161,12 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     setAccentState(newAccent)
     setCustomColorState(null)
     document.documentElement.setAttribute('data-accent', newAccent)
-    document.documentElement.style.removeProperty('--custom-accent-hex')
-    document.documentElement.style.removeProperty('--custom-accent-foreground')
+    clearCustomAccentProperties()
     localStorage.setItem('archtime-accent', newAccent)
     localStorage.removeItem(CUSTOM_COLOR_KEY)
     if (!architecturalPreset) {
       const color = ACCENTS[newAccent]
-      document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
+      syncBrowserAccentColor(color)
     }
   }
 
@@ -96,12 +177,11 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     setAccentState('custom')
     setCustomColorState(normalized)
     document.documentElement.setAttribute('data-accent', 'custom')
-    document.documentElement.style.setProperty('--custom-accent-hex', normalized)
-    document.documentElement.style.setProperty('--custom-accent-foreground', getReadableCustomForeground(normalized))
+    applyCustomAccentProperties(normalized)
     localStorage.setItem('archtime-accent', 'custom')
     localStorage.setItem(CUSTOM_COLOR_KEY, normalized)
     if (!architecturalPreset) {
-      document.cookie = `archtime-accent-color=${normalized};path=/;max-age=31536000;SameSite=Lax`
+      syncBrowserAccentColor(normalized)
     }
   }
 
@@ -112,12 +192,12 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
       document.documentElement.setAttribute('data-preset', preset)
       localStorage.setItem(PRESET_KEY, preset)
       const color = ARCHITECTURAL_PRESETS[preset].color
-      document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
+      syncBrowserAccentColor(color)
     } else {
       document.documentElement.removeAttribute('data-preset')
       localStorage.removeItem(PRESET_KEY)
       const color = accent === 'custom' ? getColorInputValue(customColor) : ACCENTS[accent]
-      document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
+      syncBrowserAccentColor(color)
     }
   }
 

@@ -22,10 +22,44 @@ export function getColorInputValue(value: string | null | undefined): string {
   return normalizeHexColor(value) ?? DEFAULT_CUSTOM_ACCENT
 }
 
-function relativeLuminance(hex: string): number {
+interface RgbColor {
+  r: number
+  g: number
+  b: number
+}
+
+function hexToRgb(hex: string | null | undefined): RgbColor {
   const normalized = getColorInputValue(hex).slice(1)
-  const channels = [0, 2, 4].map((start) => {
-    const value = Number.parseInt(normalized.slice(start, start + 2), 16) / 255
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  }
+}
+
+function rgbToHex({ r, g, b }: RgbColor): string {
+  return `#${[r, g, b].map((channel) => {
+    const value = Math.round(Math.max(0, Math.min(255, channel)))
+    return value.toString(16).padStart(2, '0')
+  }).join('')}`
+}
+
+function mixHex(from: string, to: string, toWeight: number): string {
+  const a = hexToRgb(from)
+  const b = hexToRgb(to)
+  const weight = Math.max(0, Math.min(1, toWeight))
+
+  return rgbToHex({
+    r: a.r * (1 - weight) + b.r * weight,
+    g: a.g * (1 - weight) + b.g * weight,
+    b: a.b * (1 - weight) + b.b * weight,
+  })
+}
+
+function relativeLuminance(hex: string | null | undefined): number {
+  const { r, g, b } = hexToRgb(hex)
+  const channels = [r, g, b].map((channel) => {
+    const value = channel / 255
     return value <= 0.03928
       ? value / 12.92
       : Math.pow((value + 0.055) / 1.055, 2.4)
@@ -34,10 +68,77 @@ function relativeLuminance(hex: string): number {
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
 }
 
+export function getContrastRatio(
+  foreground: string | null | undefined,
+  background: string | null | undefined
+): number {
+  const a = relativeLuminance(foreground)
+  const b = relativeLuminance(background)
+  const lighter = Math.max(a, b)
+  const darker = Math.min(a, b)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
 export function getReadableCustomForeground(hex: string | null | undefined): string {
-  return relativeLuminance(getColorInputValue(hex)) > 0.45
+  const color = getColorInputValue(hex)
+  return getContrastRatio(CUSTOM_FOREGROUND_DARK, color) >= getContrastRatio(CUSTOM_FOREGROUND_LIGHT, color)
     ? CUSTOM_FOREGROUND_DARK
     : CUSTOM_FOREGROUND_LIGHT
+}
+
+export function getVisibleCustomOutline(hex: string | null | undefined): string {
+  const color = getColorInputValue(hex)
+  if (getContrastRatio(color, '#ffffff') < 1.5) return '#9ca3af'
+  if (getContrastRatio(color, '#111827') < 1.5) return '#4b5563'
+  return 'transparent'
+}
+
+export interface CustomAccentTokens {
+  primary: string
+  primaryForeground: string
+  primaryBorder: string
+  accentLight: string
+  accentForegroundLight: string
+  mutedLight: string
+  accentDark: string
+  accentForegroundDark: string
+  mutedDark: string
+}
+
+export function getCustomAccentTokens(hex: string | null | undefined): CustomAccentTokens {
+  const primary = getColorInputValue(hex)
+  const luminance = relativeLuminance(primary)
+  const accentLight = luminance > 0.78
+    ? mixHex(primary, '#111827', 0.12)
+    : mixHex(primary, '#ffffff', 0.88)
+  const mutedLight = luminance > 0.78
+    ? mixHex(primary, '#111827', 0.06)
+    : mixHex(primary, '#ffffff', 0.94)
+  const accentDark = luminance < 0.18
+    ? mixHex(primary, '#ffffff', 0.18)
+    : mixHex(primary, '#000000', 0.72)
+  const mutedDark = luminance < 0.18
+    ? mixHex(primary, '#ffffff', 0.11)
+    : mixHex(primary, '#000000', 0.82)
+
+  return {
+    primary,
+    primaryForeground: getReadableCustomForeground(primary),
+    primaryBorder: getVisibleCustomOutline(primary),
+    accentLight,
+    accentForegroundLight: getReadableCustomForeground(accentLight),
+    mutedLight,
+    accentDark,
+    accentForegroundDark: getReadableCustomForeground(accentDark),
+    mutedDark,
+  }
+}
+
+export function getBrowserAccentIconUrl(hex: string | null | undefined, size = 192): string {
+  const color = getColorInputValue(hex)
+  const iconSize = Math.min(Math.max(Math.round(size), 32), 512)
+  const cacheKey = color.replace('#', '')
+  return `/api/icon?size=${iconSize}&color=${encodeURIComponent(color)}&v=${cacheKey}`
 }
 
 export interface HslColor {

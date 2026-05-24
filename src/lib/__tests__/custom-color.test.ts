@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   CUSTOM_FOREGROUND_DARK,
   CUSTOM_FOREGROUND_LIGHT,
+  getBrowserAccentIconUrl,
   getColorInputValue,
+  getContrastRatio,
+  getCustomAccentTokens,
   getReadableCustomForeground,
   normalizeHexColor,
 } from '../custom-color'
@@ -33,5 +36,23 @@ describe('custom accent color helpers', () => {
     expect(getReadableCustomForeground('#f8fafc')).toBe(CUSTOM_FOREGROUND_DARK)
     expect(getReadableCustomForeground('#000000')).toBe(CUSTOM_FOREGROUND_LIGHT)
     expect(getReadableCustomForeground('#111827')).toBe(CUSTOM_FOREGROUND_LIGHT)
+  })
+
+  it('generates contrast-safe soft accent tokens for extreme custom colors', () => {
+    const black = getCustomAccentTokens('#000000')
+    const white = getCustomAccentTokens('#ffffff')
+
+    expect(black.accentDark).not.toBe('#000000')
+    expect(getContrastRatio(black.accentDark, black.accentForegroundDark)).toBeGreaterThanOrEqual(4.5)
+    expect(getContrastRatio(black.accentLight, black.accentForegroundLight)).toBeGreaterThanOrEqual(4.5)
+
+    expect(white.primaryBorder).not.toBe('transparent')
+    expect(getContrastRatio('#ffffff', white.primaryBorder)).toBeGreaterThanOrEqual(1.5)
+    expect(getContrastRatio(white.accentLight, white.accentForegroundLight)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('builds browser icon URLs that force a refresh for the active accent color', () => {
+    expect(getBrowserAccentIconUrl('#ffffff', 32)).toBe('/api/icon?size=32&color=%23ffffff&v=ffffff')
+    expect(getBrowserAccentIconUrl('not-a-color', 192)).toBe('/api/icon?size=192&color=%236366f1&v=6366f1')
   })
 })

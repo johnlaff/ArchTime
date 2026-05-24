@@ -11,10 +11,12 @@ import {
 } from '@/lib/appearance'
 import {
   beginThemeSwitch,
+  clearThemeRevealGeometry,
   endThemeSwitch,
   getThemeRevealOrigin,
   getThemeRevealRadius,
   setResolvedThemeClass,
+  setThemeRevealGeometry,
   startThemeViewTransition,
   THEME_REVEAL_DURATION_MS,
   THEME_SWITCH_SUPPRESSION_MS,
@@ -35,11 +37,16 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
       }
 
       const root = document.documentElement
+      const viewport = { width: window.innerWidth, height: window.innerHeight }
+      const origin = getThemeRevealOrigin(e, viewport)
+      const radius = getThemeRevealRadius(origin, viewport)
+      setThemeRevealGeometry(root, origin, radius)
       beginThemeSwitch(root)
 
       if (themeSwitchTimer) window.clearTimeout(themeSwitchTimer)
       const clearSuppression = () => {
         endThemeSwitch(root)
+        clearThemeRevealGeometry(root)
         themeSwitchTimer = null
       }
 
@@ -52,10 +59,6 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
       if (!transition) {
         themeSwitchTimer = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
       } else {
-        const viewport = { width: window.innerWidth, height: window.innerHeight }
-        const origin = getThemeRevealOrigin(e, viewport)
-        const radius = getThemeRevealRadius(origin, viewport)
-
         transition.ready
           .then(() => {
             root.animate(

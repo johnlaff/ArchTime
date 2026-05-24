@@ -54,7 +54,11 @@ export function Navbar() {
           <Link href="/dashboard" className="flex items-center gap-2 mr-2" aria-label="ArchTime">
             <span
               className="flex h-7 w-7 items-center justify-center rounded-[6px] flex-shrink-0"
-              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+              style={{
+                background: 'var(--primary)',
+                color: 'var(--primary-foreground)',
+                boxShadow: 'inset 0 0 0 1px var(--primary-border, transparent)',
+              }}
             >
               <svg width="17" height="17" viewBox="0 0 100 100" fill="none" aria-hidden="true">
                 <circle cx="50" cy="11" r="9" fill="currentColor" />

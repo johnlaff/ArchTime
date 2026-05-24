@@ -56,6 +56,22 @@ export function getThemeRevealRadius(origin: RevealOrigin, viewport: ViewportSiz
   )
 }
 
+export function setThemeRevealGeometry(
+  root: HTMLElement,
+  origin: RevealOrigin,
+  radius: number
+): void {
+  root.style.setProperty('--theme-reveal-x', `${origin.x}px`)
+  root.style.setProperty('--theme-reveal-y', `${origin.y}px`)
+  root.style.setProperty('--theme-reveal-radius', `${radius}px`)
+}
+
+export function clearThemeRevealGeometry(root: HTMLElement): void {
+  root.style.removeProperty('--theme-reveal-x')
+  root.style.removeProperty('--theme-reveal-y')
+  root.style.removeProperty('--theme-reveal-radius')
+}
+
 export function startThemeViewTransition(
   doc: ThemeViewTransitionDocument,
   apply: () => void

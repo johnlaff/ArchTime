@@ -41,7 +41,7 @@ export function SidebarNav() {
               disabled
                 ? 'pointer-events-none opacity-40 text-muted-foreground cursor-not-allowed'
                 : isActive
-                ? 'text-primary font-medium'
+                ? 'text-accent-foreground font-medium'
                 : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
             ].join(' ')}
           >

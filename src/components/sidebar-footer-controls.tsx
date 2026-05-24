@@ -56,7 +56,11 @@ export function SidebarFooterControls({ email, initials, name, avatarUrl }: Side
         ) : (
           <div
             className="h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            style={{
+              background: 'var(--primary)',
+              color: 'var(--primary-foreground)',
+              boxShadow: 'inset 0 0 0 1px var(--primary-border, transparent)',
+            }}
             aria-hidden="true"
           >
             {initials}
