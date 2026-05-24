@@ -7,12 +7,11 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase/client'
-import { useAccentColor, ACCENTS } from '@/components/accent-color-provider'
-import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
+import { useAccentColor } from '@/components/accent-color-provider'
+import { AccentColorPicker } from '@/components/accent-color-picker'
+import type { AccentPreset } from '@/lib/preferences'
 import { persistAppearanceSettings } from '@/lib/appearance'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
-
-const ACCENT_ORDER = Object.keys(ACCENT_PRESETS) as AccentPreset[]
 
 export interface SidebarFooterProps {
   email: string
@@ -81,33 +80,14 @@ export function SidebarFooterControls({ email, initials, name, avatarUrl }: Side
               <Palette className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-3 animate-fade-in" align="start" side="top">
+          <PopoverContent className="w-[260px] p-3 animate-fade-in" align="start" side="top">
             <p className="text-xs text-muted-foreground mb-2 font-medium">Cor de destaque</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {ACCENT_ORDER.map((key) => (
-                <button
-                  key={key}
-                  onClick={() => handleAccentChange(key)}
-                  title={ACCENT_PRESETS[key].label}
-                  className={`flex items-center gap-2 rounded-md border px-2 py-1 text-xs transition-colors ${
-                    accent === key ? 'border-primary bg-accent' : 'hover:bg-accent'
-                  }`}
-                >
-                  <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: ACCENTS[key] }} />
-                  {ACCENT_PRESETS[key].label}
-                </button>
-              ))}
-            </div>
-            <div className="border-t border-border pt-2 mt-1">
-              <p className="text-xs text-muted-foreground mb-1.5">Cor personalizada</p>
-              <input
-                type="color"
-                value={customColor ?? '#6366f1'}
-                onChange={(e) => setCustomColor(e.target.value)}
-                className="h-7 w-full cursor-pointer rounded border border-border"
-                title="Cor personalizada"
-              />
-            </div>
+            <AccentColorPicker
+              accent={accent}
+              customColor={customColor}
+              onPresetChange={handleAccentChange}
+              onCustomColorChange={setCustomColor}
+            />
           </PopoverContent>
         </Popover>
 

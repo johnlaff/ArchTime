@@ -28,7 +28,7 @@ export function ProjectSelector({ projects, value, onChange, disabled }: Project
       <SelectTrigger className="w-full bg-background">
         <SelectValue placeholder="Selecionar projeto (opcional)" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position="popper">
         <SelectItem value="none">Sem projeto</SelectItem>
         {active.map(project => (
           <SelectItem key={project.id} value={project.id}>

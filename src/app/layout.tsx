@@ -57,10 +57,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
+              function norm(v){
+                var m=String(v||'').trim().match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+                if(!m) return null;
+                var h=m[1].toLowerCase();
+                if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+                return '#'+h;
+              }
               var a=localStorage.getItem('archtime-accent')||'indigo';
               document.documentElement.setAttribute('data-accent',a);
               if(a==='custom'){
-                var c=localStorage.getItem('archtime-accent-custom');
+                var c=norm(localStorage.getItem('archtime-accent-custom'));
+                if(!c) c='#6366f1';
                 if(c) document.documentElement.style.setProperty('--custom-accent-hex',c);
               }
               var p=localStorage.getItem('archtime-preset');

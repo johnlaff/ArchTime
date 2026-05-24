@@ -11,6 +11,7 @@ import {
   type ArchitecturalPreset,
   type DensityPreset,
 } from '@/lib/preferences'
+import { getColorInputValue, normalizeHexColor } from '@/lib/custom-color'
 
 export const ACCENTS = Object.fromEntries(
   Object.entries(ACCENT_PRESETS).map(([key, preset]) => [key, preset.color])
@@ -52,11 +53,9 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     const savedAccent = localStorage.getItem('archtime-accent')
     if (savedAccent === 'custom') {
       setAccentState('custom')
-      const savedCustom = localStorage.getItem(CUSTOM_COLOR_KEY)
-      if (savedCustom) {
-        setCustomColorState(savedCustom)
-        document.documentElement.style.setProperty('--custom-accent-hex', savedCustom)
-      }
+      const savedCustom = getColorInputValue(localStorage.getItem(CUSTOM_COLOR_KEY))
+      setCustomColorState(savedCustom)
+      document.documentElement.style.setProperty('--custom-accent-hex', savedCustom)
     } else if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) {
       setAccentState(savedAccent as AccentPreset)
     }
@@ -85,14 +84,16 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
   }
 
   function setCustomColor(hex: string) {
+    const normalized = normalizeHexColor(hex)
+    if (!normalized) return
     markLocalPreferenceChange()
     setAccentState('custom')
-    setCustomColorState(hex)
+    setCustomColorState(normalized)
     document.documentElement.setAttribute('data-accent', 'custom')
-    document.documentElement.style.setProperty('--custom-accent-hex', hex)
+    document.documentElement.style.setProperty('--custom-accent-hex', normalized)
     localStorage.setItem('archtime-accent', 'custom')
-    localStorage.setItem(CUSTOM_COLOR_KEY, hex)
-    document.cookie = `archtime-accent-color=${hex};path=/;max-age=31536000;SameSite=Lax`
+    localStorage.setItem(CUSTOM_COLOR_KEY, normalized)
+    document.cookie = `archtime-accent-color=${normalized};path=/;max-age=31536000;SameSite=Lax`
   }
 
   function setArchitecturalPreset(preset: ArchitecturalPreset | null) {
@@ -106,7 +107,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     } else {
       document.documentElement.removeAttribute('data-preset')
       localStorage.removeItem(PRESET_KEY)
-      const color = accent === 'custom' && customColor ? customColor : (accent !== 'custom' ? ACCENTS[accent] : '#6366f1')
+      const color = accent === 'custom' ? getColorInputValue(customColor) : ACCENTS[accent]
       document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
     }
   }

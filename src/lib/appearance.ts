@@ -15,7 +15,7 @@ export interface AppearancePatch {
   themeMode?: ThemeMode
 }
 
-export function getNextThemeMode(resolvedTheme: string | undefined): ThemeMode {
+export function getNextThemeMode(resolvedTheme: string | undefined): Exclude<ThemeMode, 'system'> {
   return resolvedTheme === 'dark' ? 'light' : 'dark'
 }
 

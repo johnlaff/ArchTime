@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAccentColor } from '@/components/accent-color-provider'
+import { AccentColorPicker } from '@/components/accent-color-picker'
 import {
   getLocalAppearancePatch,
   markLocalPreferenceChange,
@@ -353,39 +354,13 @@ export function ConfiguracoesClient({
 
           <div className="space-y-2">
             <Label>Cor de destaque</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(options.accentPresets).map(([key, preset]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setAccentPreset(key as AccentPreset)}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-left transition-colors ${
-                    settings.accentPreset === key ? 'border-primary bg-accent' : 'hover:bg-accent'
-                  }`}
-                >
-                  <span
-                    className="h-4 w-4 rounded-full"
-                    style={{ backgroundColor: preset.color }}
-                  />
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-            <div className="border-t border-border pt-3 mt-1">
-              <p className="text-sm font-medium mb-2">Cor personalizada</p>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={customColor ?? '#6366f1'}
-                  onChange={(e) => setCustomColor(e.target.value)}
-                  className="h-9 w-16 cursor-pointer rounded border border-border"
-                  title="Cor personalizada"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Escolha qualquer cor como destaque personalizado
-                </p>
-              </div>
-            </div>
+            <AccentColorPicker
+              accent={accent}
+              customColor={customColor}
+              onPresetChange={setAccentPreset}
+              onCustomColorChange={setCustomColor}
+              className="max-w-[360px]"
+            />
           </div>
 
           <div className="space-y-1">
