@@ -23,10 +23,11 @@ describe('review feedback regressions', () => {
 
   it('does not let custom accent changes overwrite the PWA icon color while an architectural preset is active', () => {
     const source = readSource('src/components/accent-color-provider.tsx')
+    const browserAccentSource = readSource('src/lib/browser-accent.ts')
 
-    expect(source).toMatch(
-      /function setCustomColor[\s\S]*if \(!architecturalPreset\) {[\s\S]*syncBrowserAccentColor\(normalized\)/
-    )
+    expect(source).toContain('getEffectiveBrowserAccentColor')
+    expect(source).toContain('setArchitecturalPresetState(null)')
+    expect(browserAccentSource).toContain('if (architecturalPreset) return ARCHITECTURAL_PRESETS[architecturalPreset].color')
   })
 
   it('prevents page text selection while dragging the custom color field', () => {
@@ -55,7 +56,7 @@ describe('review feedback regressions', () => {
   })
 
   it('syncs browser chrome icon links when the active accent changes', () => {
-    const source = readSource('src/components/accent-color-provider.tsx')
+    const source = readSource('src/lib/browser-accent.ts')
     const iconRoute = readSource('src/app/api/icon/route.tsx')
     const layout = readSource('src/app/layout.tsx')
 
@@ -63,7 +64,8 @@ describe('review feedback regressions', () => {
     expect(source).toContain("querySelectorAll('link[rel=\"icon\"]')")
     expect(source).toContain('icon.remove()')
     expect(source).toContain('document.head.appendChild(icon)')
-    expect(source).toContain('window.setTimeout(updateBrowserAccentLinks')
+    expect(source).toContain('clearBrowserAccentTimers')
+    expect(source).toContain('activeBrowserAccentColor === color')
     expect(source).toContain("querySelector('meta[name=\"theme-color\"]')")
     expect(iconRoute).toContain("'Cache-Control': 'no-store, max-age=0'")
     expect(layout).not.toContain('/favicon.ico')

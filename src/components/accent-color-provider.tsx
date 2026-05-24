@@ -12,11 +12,14 @@ import {
   type DensityPreset,
 } from '@/lib/preferences'
 import {
-  getBrowserAccentIconUrl,
   getColorInputValue,
   getCustomAccentTokens,
   normalizeHexColor,
 } from '@/lib/custom-color'
+import {
+  getEffectiveBrowserAccentColor,
+  syncBrowserAccentColor,
+} from '@/lib/browser-accent'
 
 export const ACCENTS = Object.fromEntries(
   Object.entries(ACCENT_PRESETS).map(([key, preset]) => [key, preset.color])
@@ -79,44 +82,6 @@ function clearCustomAccentProperties() {
   }
 }
 
-function updateBrowserAccentLinks(color: string) {
-  for (const icon of Array.from(document.head.querySelectorAll('link[rel="icon"]'))) {
-    icon.remove()
-  }
-
-  const icon = document.createElement('link')
-  icon.rel = 'icon'
-  icon.type = 'image/png'
-  icon.sizes = '32x32'
-  icon.href = getBrowserAccentIconUrl(color, 32)
-  document.head.appendChild(icon)
-
-  let apple = document.head.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null
-  if (!apple) {
-    apple = document.createElement('link')
-    apple.rel = 'apple-touch-icon'
-    apple.sizes = '192x192'
-    document.head.appendChild(apple)
-  }
-  apple.href = getBrowserAccentIconUrl(color, 192)
-
-  let themeColor = document.head.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
-  if (!themeColor) {
-    themeColor = document.createElement('meta')
-    themeColor.name = 'theme-color'
-    document.head.appendChild(themeColor)
-  }
-  themeColor.content = color
-}
-
-function syncBrowserAccentColor(hex: string) {
-  const color = getColorInputValue(hex)
-  document.cookie = `archtime-accent-color=${color};path=/;max-age=31536000;SameSite=Lax`
-  updateBrowserAccentLinks(color)
-  window.setTimeout(updateBrowserAccentLinks, 0, color)
-  window.setTimeout(updateBrowserAccentLinks, 250, color)
-}
-
 export function AccentColorProvider({ children }: { children: React.ReactNode }) {
   const [accent, setAccentState] = useState<AccentPreset | 'custom'>('indigo')
   const [customColor, setCustomColorState] = useState<string | null>(null)
@@ -125,25 +90,35 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const savedAccent = localStorage.getItem('archtime-accent')
-    let activeBrowserColor: string = ACCENTS.indigo
+    let initialAccent: AccentPreset | 'custom' = 'indigo'
+    let initialCustomColor: string | null = null
+    let initialPreset: ArchitecturalPreset | null = null
+
     if (savedAccent === 'custom') {
-      setAccentState('custom')
+      initialAccent = 'custom'
       const savedCustom = getColorInputValue(localStorage.getItem(CUSTOM_COLOR_KEY))
+      initialCustomColor = savedCustom
+      setAccentState('custom')
       setCustomColorState(savedCustom)
       applyCustomAccentProperties(savedCustom)
-      activeBrowserColor = savedCustom
     } else if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) {
-      setAccentState(savedAccent as AccentPreset)
-      activeBrowserColor = ACCENTS[savedAccent as AccentPreset]
+      initialAccent = savedAccent as AccentPreset
+      setAccentState(initialAccent)
     }
 
     const savedPreset = localStorage.getItem(PRESET_KEY)
     if (savedPreset && isArchitecturalPreset(savedPreset)) {
-      setArchitecturalPresetState(savedPreset)
-      activeBrowserColor = ARCHITECTURAL_PRESETS[savedPreset].color
+      initialPreset = savedPreset
+      setArchitecturalPresetState(initialPreset)
     }
 
-    syncBrowserAccentColor(activeBrowserColor)
+    syncBrowserAccentColor(
+      getEffectiveBrowserAccentColor({
+        accent: initialAccent,
+        customColor: initialCustomColor,
+        architecturalPreset: initialPreset,
+      })
+    )
 
     const savedDensity = localStorage.getItem(DENSITY_KEY)
     if (savedDensity && isDensityPreset(savedDensity)) setDensityState(savedDensity)
@@ -153,14 +128,16 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     markLocalPreferenceChange()
     setAccentState(newAccent)
     setCustomColorState(null)
+    setArchitecturalPresetState(null)
     document.documentElement.setAttribute('data-accent', newAccent)
+    document.documentElement.removeAttribute('data-preset')
     clearCustomAccentProperties()
     localStorage.setItem('archtime-accent', newAccent)
     localStorage.removeItem(CUSTOM_COLOR_KEY)
-    if (!architecturalPreset) {
-      const color = ACCENTS[newAccent]
-      syncBrowserAccentColor(color)
-    }
+    localStorage.removeItem(PRESET_KEY)
+    syncBrowserAccentColor(
+      getEffectiveBrowserAccentColor({ accent: newAccent, customColor: null, architecturalPreset: null })
+    )
   }
 
   function setCustomColor(hex: string) {
@@ -169,13 +146,16 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     markLocalPreferenceChange()
     setAccentState('custom')
     setCustomColorState(normalized)
+    setArchitecturalPresetState(null)
     document.documentElement.setAttribute('data-accent', 'custom')
+    document.documentElement.removeAttribute('data-preset')
     applyCustomAccentProperties(normalized)
     localStorage.setItem('archtime-accent', 'custom')
     localStorage.setItem(CUSTOM_COLOR_KEY, normalized)
-    if (!architecturalPreset) {
-      syncBrowserAccentColor(normalized)
-    }
+    localStorage.removeItem(PRESET_KEY)
+    syncBrowserAccentColor(
+      getEffectiveBrowserAccentColor({ accent: 'custom', customColor: normalized, architecturalPreset: null })
+    )
   }
 
   function setArchitecturalPreset(preset: ArchitecturalPreset | null) {
@@ -184,13 +164,23 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     if (preset) {
       document.documentElement.setAttribute('data-preset', preset)
       localStorage.setItem(PRESET_KEY, preset)
-      const color = ARCHITECTURAL_PRESETS[preset].color
-      syncBrowserAccentColor(color)
+      syncBrowserAccentColor(
+        getEffectiveBrowserAccentColor({
+          accent,
+          customColor,
+          architecturalPreset: preset,
+        })
+      )
     } else {
       document.documentElement.removeAttribute('data-preset')
       localStorage.removeItem(PRESET_KEY)
-      const color = accent === 'custom' ? getColorInputValue(customColor) : ACCENTS[accent]
-      syncBrowserAccentColor(color)
+      syncBrowserAccentColor(
+        getEffectiveBrowserAccentColor({
+          accent,
+          customColor,
+          architecturalPreset: null,
+        })
+      )
     }
   }
 
