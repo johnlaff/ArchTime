@@ -78,4 +78,15 @@ describe('review feedback regressions', () => {
     expect(source).toContain("fill: 'both'")
     expect(source).toContain('anim.finished')
   })
+
+  it('wraps keyboard navigation in startTransition to avoid blocking the current page', () => {
+    const source = readSource('src/hooks/use-keyboard-shortcuts.ts')
+
+    expect(source).toContain('startTransition')
+    expect(source).toContain("router.prefetch('/dashboard')")
+    expect(source).toContain("router.prefetch('/historico')")
+    expect(source).toContain("router.prefetch('/projetos')")
+    expect(source).toContain("router.prefetch('/configuracoes')")
+    expect(source).not.toMatch(/case 'p':\s*router\.push/)
+  })
 })
