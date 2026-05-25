@@ -222,15 +222,17 @@ export function getWeekRangeBRT(date: Date = new Date()): {
   }
 }
 
-export function getWeekRangesForMonth(month: string): Array<{ startDate: string; endDate: string }> {
+export function getWeekRangesForMonth(month: string, weekStartDay: 0 | 1 = 1): Array<{ startDate: string; endDate: string }> {
   const { startDate, endDate } = getMonthRangeBRT(month)
   const ranges: Array<{ startDate: string; endDate: string }> = []
   let cursor = startDate
 
   while (cursor <= endDate) {
     const day = getDayOfWeek(cursor)
-    const daysUntilSunday = 6 - ((day + 6) % 7)
-    const rawEnd = addDaysToDateString(cursor, daysUntilSunday)
+    const daysUntilWeekEnd = weekStartDay === 1
+      ? 6 - ((day + 6) % 7)  // Monday start → Sunday end
+      : 6 - day               // Sunday start → Saturday end
+    const rawEnd = addDaysToDateString(cursor, daysUntilWeekEnd)
     const rangeEnd = rawEnd > endDate ? endDate : rawEnd
     ranges.push({ startDate: cursor, endDate: rangeEnd })
     cursor = addDaysToDateString(rangeEnd, 1)

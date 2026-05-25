@@ -8,6 +8,7 @@ import {
   formatMinutes,
   getBrazilNationalHolidays,
   splitIntervalByLocalDay,
+  getWeekRangesForMonth,
 } from '../dates'
 
 describe('formatBRT', () => {
@@ -132,5 +133,34 @@ describe('formatMinutes', () => {
 
   it('formats negative minutes with minus sign', () => {
     expect(formatMinutes(-90)).toBe('-1h 30min')
+  })
+})
+
+describe('getWeekRangesForMonth', () => {
+  it('Monday start: May 2026 first week runs Mon May 4 – Sun May 10', () => {
+    const ranges = getWeekRangesForMonth('2026-05', 1)
+    expect(ranges[0]).toEqual({ startDate: '2026-05-01', endDate: '2026-05-03' })
+    expect(ranges[1]).toEqual({ startDate: '2026-05-04', endDate: '2026-05-10' })
+    expect(ranges[ranges.length - 1]).toEqual({ startDate: '2026-05-25', endDate: '2026-05-31' })
+  })
+
+  it('Sunday start: May 2026 first week runs Sun May 3 – Sat May 9', () => {
+    const ranges = getWeekRangesForMonth('2026-05', 0)
+    expect(ranges[0]).toEqual({ startDate: '2026-05-01', endDate: '2026-05-02' })
+    expect(ranges[1]).toEqual({ startDate: '2026-05-03', endDate: '2026-05-09' })
+    expect(ranges[ranges.length - 1]).toEqual({ startDate: '2026-05-31', endDate: '2026-05-31' })
+  })
+
+  it('Sunday start: February 2026 has correct week boundaries (month starts Sunday)', () => {
+    // Feb 1 2026 is a Sunday — first "week" should start on Feb 1 and run through Feb 7
+    const ranges = getWeekRangesForMonth('2026-02', 0)
+    expect(ranges[0]).toEqual({ startDate: '2026-02-01', endDate: '2026-02-07' })
+    expect(ranges[ranges.length - 1].endDate).toBe('2026-02-28')
+  })
+
+  it('default (no second arg) preserves Monday-start behavior', () => {
+    const withDefault = getWeekRangesForMonth('2026-05')
+    const withMonday = getWeekRangesForMonth('2026-05', 1)
+    expect(withDefault).toEqual(withMonday)
   })
 })
