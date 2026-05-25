@@ -79,4 +79,14 @@ describe('parseSettingsPatch', () => {
       'rolling_12_months',
     ])
   })
+
+  it('accepts valid weekStartDay values', () => {
+    expect(parseSettingsPatch({ weekStartDay: 'monday' })).toMatchObject({ weekStartDay: 'monday' })
+    expect(parseSettingsPatch({ weekStartDay: 'sunday' })).toMatchObject({ weekStartDay: 'sunday' })
+  })
+
+  it('rejects invalid weekStartDay values', () => {
+    expect(parseSettingsPatch({ weekStartDay: 'saturday' })).toBe('Dia de início de semana inválido')
+    expect(parseSettingsPatch({ weekStartDay: 42 })).toBe('Dia de início de semana inválido')
+  })
 })

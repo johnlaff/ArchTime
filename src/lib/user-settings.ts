@@ -11,11 +11,13 @@ import {
   isAccentPreset,
   isCumulativeBalanceScope,
   isThemeMode,
+  isWeekStartDay,
   isWorkScheduleTemplate,
   normalizeWorkMinutesByWeekday,
   type AccentPreset,
   type CumulativeBalanceScope,
   type ThemeMode,
+  type WeekStartDay,
   type WorkMinutesByWeekday,
   type WorkScheduleTemplate,
 } from '@/lib/preferences'
@@ -28,6 +30,7 @@ export interface SerializedUserSettings {
   cumulativeStartDate: string
   accentPreset: AccentPreset
   themeMode: ThemeMode
+  weekStartDay: WeekStartDay
 }
 
 export interface SettingsPatch {
@@ -38,6 +41,7 @@ export interface SettingsPatch {
   cumulativeStartDate?: string
   accentPreset?: AccentPreset
   themeMode?: ThemeMode
+  weekStartDay?: WeekStartDay
 }
 
 function firstDayOfMonth(date: string): string {
@@ -55,6 +59,7 @@ function serialize(settings: UserSettings): SerializedUserSettings {
     : 'since_start'
   const accentPreset = isAccentPreset(settings.accentPreset) ? settings.accentPreset : 'indigo'
   const themeMode = isThemeMode(settings.themeMode) ? settings.themeMode : 'system'
+  const weekStartDay = isWeekStartDay(settings.weekStartDay) ? settings.weekStartDay : 'monday'
 
   return {
     workMinutesByWeekday: minutes,
@@ -64,6 +69,7 @@ function serialize(settings: UserSettings): SerializedUserSettings {
     cumulativeStartDate: settings.cumulativeStartDate.toISOString().slice(0, 10),
     accentPreset,
     themeMode,
+    weekStartDay,
   }
 }
 
@@ -162,6 +168,11 @@ export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatc
     patch.themeMode = value.themeMode
   }
 
+  if ('weekStartDay' in value) {
+    if (!isWeekStartDay(value.weekStartDay)) return 'Dia de início de semana inválido'
+    patch.weekStartDay = value.weekStartDay
+  }
+
   return patch
 }
 
@@ -182,6 +193,7 @@ export async function updateUserSettings(
       ...(patch.cumulativeStartDate ? { cumulativeStartDate: toDateOnlyUTC(patch.cumulativeStartDate) } : {}),
       ...(patch.accentPreset ? { accentPreset: patch.accentPreset } : {}),
       ...(patch.themeMode ? { themeMode: patch.themeMode } : {}),
+      ...(patch.weekStartDay ? { weekStartDay: patch.weekStartDay } : {}),
     },
   })
   return serialize(updated)
