@@ -34,6 +34,7 @@ model UserSettings {
   cumulativeStartDate   DateTime @map("cumulative_start_date") @db.Date
   accentPreset          String   @default("indigo") @map("accent_preset")
   themeMode             String   @default("system") @map("theme_mode")
+  weekStartDay          String   @default("monday") @map("week_start_day")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 

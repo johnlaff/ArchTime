@@ -291,3 +291,14 @@ export type DensityPreset = keyof typeof DENSITY_PRESETS
 export function isDensityPreset(value: unknown): value is DensityPreset {
   return typeof value === 'string' && Object.hasOwn(DENSITY_PRESETS, value)
 }
+
+export const WEEK_START_DAYS = {
+  monday: 'Segunda-feira',
+  sunday: 'Domingo',
+} as const
+
+export type WeekStartDay = keyof typeof WEEK_START_DAYS
+
+export function isWeekStartDay(value: unknown): value is WeekStartDay {
+  return typeof value === 'string' && Object.hasOwn(WEEK_START_DAYS, value)
+}
