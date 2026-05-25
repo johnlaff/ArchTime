@@ -194,7 +194,8 @@ export async function buildHourBankMonth(
     endDate,
     workMinutesByWeekday
   )
-  const weeks = getWeekRangesForMonth(month).map((range) =>
+  const weekStartDay = settings.weekStartDay === 'sunday' ? 0 : 1
+  const weeks = getWeekRangesForMonth(month, weekStartDay).map((range) =>
     buildPeriodBalanceFromEntries(monthEntries, range.startDate, range.endDate, workMinutesByWeekday)
   )
 

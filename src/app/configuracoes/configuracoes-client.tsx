@@ -24,6 +24,7 @@ import {
 } from '@/lib/appearance'
 import {
   WEEKDAY_KEYS,
+  WEEK_START_DAYS,
   WORK_SCHEDULE_TEMPLATES,
   ARCHITECTURAL_PRESETS,
   DENSITY_PRESETS,
@@ -32,6 +33,7 @@ import {
   type DensityPreset,
   type CumulativeBalanceScope,
   type ThemeMode,
+  type WeekStartDay,
   type WorkMinutesByWeekday,
   type WorkScheduleTemplate,
 } from '@/lib/preferences'
@@ -214,6 +216,34 @@ export function ConfiguracoesClient({
 
           <div className="rounded-md bg-accent px-3 py-2 text-sm">
             Previsto neste mês: <strong>{formatMinutes(expectedThisMonth)}</strong>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Semana</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1">
+            <Label>Início da semana</Label>
+            <div className="flex gap-2 mt-1">
+              {(Object.entries(WEEK_START_DAYS) as [WeekStartDay, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSettings((current) => ({ ...current, weekStartDay: key }))}
+                  className={[
+                    'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+                    settings.weekStartDay === key
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-background hover:bg-accent',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
