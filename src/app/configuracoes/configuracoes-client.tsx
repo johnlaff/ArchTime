@@ -146,19 +146,21 @@ export function ConfiguracoesClient({
   }
 
   async function handleSave() {
+    const snapshot = settings
     setSaving(true)
+    toast.success('Configurações salvas')
     try {
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error ?? 'Erro ao salvar configurações')
-      setSettings(body.settings)
-      setTheme(body.settings.themeMode)
-      toast.success('Configurações salvas')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Erro ao salvar configurações')
+      }
     } catch (error) {
+      setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
     } finally {
       setSaving(false)
@@ -226,12 +228,14 @@ export function ConfiguracoesClient({
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <Label>Início da semana</Label>
-            <div className="flex gap-2 mt-1">
+            <Label id="week-start-label">Início da semana</Label>
+            <div role="radiogroup" aria-labelledby="week-start-label" className="flex gap-2 mt-1">
               {(Object.entries(WEEK_START_DAYS) as [WeekStartDay, string][]).map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
+                  role="radio"
+                  aria-checked={settings.weekStartDay === key}
                   onClick={() => setSettings((current) => ({ ...current, weekStartDay: key }))}
                   className={[
                     'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
