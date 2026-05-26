@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useTransition } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface KeyboardShortcutsOptions {
@@ -23,7 +23,6 @@ function isInteractiveElement(): boolean {
 
 export function useKeyboardShortcuts({ onThemeToggle }: KeyboardShortcutsOptions) {
   const router = useRouter()
-  const [, startTransition] = useTransition()
 
   useEffect(() => {
     router.prefetch('/dashboard')
@@ -39,16 +38,16 @@ export function useKeyboardShortcuts({ onThemeToggle }: KeyboardShortcutsOptions
 
       switch (e.key.toLowerCase()) {
         case 'p':
-          startTransition(() => router.push('/dashboard'))
+          router.push('/dashboard')
           break
         case 'h':
-          startTransition(() => router.push('/historico'))
+          router.push('/historico')
           break
         case 'j':
-          startTransition(() => router.push('/projetos'))
+          router.push('/projetos')
           break
         case 'c':
-          startTransition(() => router.push('/configuracoes'))
+          router.push('/configuracoes')
           break
         case 't':
           onThemeToggle()
@@ -58,5 +57,5 @@ export function useKeyboardShortcuts({ onThemeToggle }: KeyboardShortcutsOptions
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [router, startTransition, onThemeToggle])
+  }, [router, onThemeToggle])
 }

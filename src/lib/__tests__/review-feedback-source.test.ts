@@ -79,14 +79,16 @@ describe('review feedback regressions', () => {
     expect(source).toContain('anim.finished')
   })
 
-  it('wraps keyboard navigation in startTransition to avoid blocking the current page', () => {
+  it('uses plain router.push (not startTransition) so the route loading skeleton shows during slow navigation', () => {
     const source = readSource('src/hooks/use-keyboard-shortcuts.ts')
 
-    expect(source).toContain('startTransition')
+    // startTransition keeps the old page visible and suppresses the route's
+    // loading.tsx Suspense fallback, which made slow navigations look frozen.
+    expect(source).not.toContain('startTransition')
+    expect(source).toMatch(/case 'p':\s*router\.push/)
     expect(source).toContain("router.prefetch('/dashboard')")
     expect(source).toContain("router.prefetch('/historico')")
     expect(source).toContain("router.prefetch('/projetos')")
     expect(source).toContain("router.prefetch('/configuracoes')")
-    expect(source).not.toMatch(/case 'p':\s*router\.push/)
   })
 })
