@@ -8,14 +8,14 @@ describe('theme transition CSS', () => {
     expect(nextConfig).not.toContain('viewTransition: true')
 
     const globalsCss = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
-    expect(globalsCss).not.toMatch(/\bmain\s*\{[^}]*view-transition-name:\s*main-content/s)
+    expect(globalsCss).not.toMatch(/\bmain\s*\{[^}]*view-transition-name:\s*main-content/)
   })
 
   it('hides the new theme snapshot until the circular reveal animation starts', () => {
     const globalsCss = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
 
     expect(globalsCss).toMatch(
-      /html\.theme-switching::view-transition-new\(root\)\s*{[^}]*clip-path:\s*circle\(0px at var\(--theme-reveal-x/s
+      /html\.theme-switching::view-transition-new\(root\)\s*{[^}]*clip-path:\s*circle\(0px at var\(--theme-reveal-x/
     )
   })
 })
