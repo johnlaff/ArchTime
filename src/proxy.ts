@@ -26,11 +26,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Local JWT verification (cached JWKS, no Auth-server round-trip) — the
+  // project uses asymmetric signing keys. The createServerClient cookie
+  // handlers above still refresh expiring tokens through getClaims.
+  const { data } = await supabase.auth.getClaims()
+  const claims = data?.claims
 
-  if (!user || !isAllowedEmail(user.email)) {
+  if (!claims || !isAllowedEmail(claims.email)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
