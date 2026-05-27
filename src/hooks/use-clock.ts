@@ -94,7 +94,8 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
       if (navigator.onLine) {
         const res = await fetch(`/api/clock/${snapshot.id}`, { method: 'PUT' })
         if (!res.ok) {
-          toast.error('Erro ao registrar saída')
+          const data = await res.json().catch(() => ({}))
+          toast.error(data.error ?? 'Erro ao registrar saída')
           setSession(snapshot)
           return
         }
