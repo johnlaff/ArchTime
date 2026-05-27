@@ -91,4 +91,12 @@ describe('review feedback regressions', () => {
     expect(source).toContain("router.prefetch('/projetos')")
     expect(source).toContain("router.prefetch('/configuracoes')")
   })
+
+  it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {
+    const providers = readSource('src/components/providers.tsx')
+    expect(providers).toContain('reducedMotion="never"')
+
+    const css = readSource('src/app/globals.css')
+    expect(css).not.toContain('@media (prefers-reduced-motion')
+  })
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect } from 'react'
+import { MotionConfig } from 'motion/react'
 import { ThemeProvider, useTheme } from 'next-themes'
 import { SyncProvider } from './sync-provider'
 import { Toaster } from '@/components/ui/sonner'
@@ -44,11 +45,15 @@ function PreferencesHydrator() {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <SyncProvider>
-        <PreferencesHydrator />
-        {children}
-        <Toaster richColors position="bottom-center" closeButton />
-      </SyncProvider>
+      {/* reducedMotion="never": animations are part of the product experience and
+          play regardless of the OS prefers-reduced-motion setting (deliberate choice). */}
+      <MotionConfig reducedMotion="never">
+        <SyncProvider>
+          <PreferencesHydrator />
+          {children}
+          <Toaster richColors position="bottom-center" closeButton />
+        </SyncProvider>
+      </MotionConfig>
     </ThemeProvider>
   )
 }
