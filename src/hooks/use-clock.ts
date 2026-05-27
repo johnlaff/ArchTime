@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { addPendingEntry } from '@/lib/offline-queue'
 import type { ActiveSession } from '@/types'
@@ -16,63 +16,87 @@ interface UseClockReturn {
 export function useClock(initialSession: ActiveSession | null): UseClockReturn {
   const [session, setSession] = useState<ActiveSession | null>(initialSession)
   const [loading, setLoading] = useState(false)
+  const clockInFlightRef = useRef(false)
 
   const clockIn = useCallback(async (projectId: string | null) => {
+    if (!navigator.onLine) {
+      const id = crypto.randomUUID()
+      const timestamp = new Date().toISOString()
+      await addPendingEntry({
+        id,
+        entryId: id,
+        type: 'clock_in',
+        timestamp,
+        projectId: projectId ?? undefined,
+        createdAt: timestamp,
+      })
+      setSession({
+        id,
+        clockIn: timestamp,
+        projectId,
+        projectName: null,
+        projectColor: null,
+      })
+      toast.warning('Entrada salva offline. Será sincronizada ao reconectar.')
+      return
+    }
+
+    const optimisticId = crypto.randomUUID()
+    setSession({
+      id: optimisticId,
+      clockIn: new Date().toISOString(),
+      projectId,
+      projectName: null,
+      projectColor: null,
+    })
     setLoading(true)
+    clockInFlightRef.current = true
+
     try {
-      if (navigator.onLine) {
-        const res = await fetch('/api/clock', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId }),
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          toast.error(data.error ?? 'Erro ao registrar entrada')
-          return
-        }
-        const entry = await res.json()
-        setSession({
-          id: entry.id,
-          clockIn: entry.clockIn,
-          projectId: projectId ?? null,
-          projectName: null,
-          projectColor: null,
-        })
-        toast.success('Entrada registrada!')
-      } else {
-        const id = crypto.randomUUID()
-        const timestamp = new Date().toISOString()
-        await addPendingEntry({
-          id,
-          entryId: id,
-          type: 'clock_in',
-          timestamp,
-          projectId: projectId ?? undefined,
-          createdAt: timestamp,
-        })
-        setSession({
-          id,
-          clockIn: timestamp,
-          projectId,
-          projectName: null,
-          projectColor: null,
-        })
-        toast.warning('Entrada salva offline. Será sincronizada ao reconectar.')
+      const res = await fetch('/api/clock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        toast.error(data.error ?? 'Erro ao registrar entrada')
+        setSession(null)
+        return
       }
+      const entry = await res.json()
+      setSession({
+        id: entry.id,
+        clockIn: entry.clockIn,
+        projectId: projectId ?? null,
+        projectName: null,
+        projectColor: null,
+      })
+      toast.success('Entrada registrada!')
+    } catch {
+      toast.error('Erro ao registrar entrada')
+      setSession(null)
     } finally {
+      clockInFlightRef.current = false
       setLoading(false)
     }
   }, [])
 
   const clockOut = useCallback(async () => {
     if (!session) return
+    if (clockInFlightRef.current) return
+
+    const snapshot = session
+    setSession(null)
     setLoading(true)
+
     try {
       if (navigator.onLine) {
-        const res = await fetch(`/api/clock/${session.id}`, { method: 'PUT' })
+        const res = await fetch(`/api/clock/${snapshot.id}`, { method: 'PUT' })
         if (!res.ok) {
-          toast.error('Erro ao registrar saída')
+          const data = await res.json().catch(() => ({}))
+          toast.error(data.error ?? 'Erro ao registrar saída')
+          setSession(snapshot)
           return
         }
         toast.success('Saída registrada!')
@@ -80,14 +104,16 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
         const timestamp = new Date().toISOString()
         await addPendingEntry({
           id: crypto.randomUUID(),
-          entryId: session.id,
+          entryId: snapshot.id,
           type: 'clock_out',
           timestamp,
           createdAt: timestamp,
         })
         toast.warning('Saída salva offline. Será sincronizada ao reconectar.')
       }
-      setSession(null)
+    } catch {
+      toast.error('Erro ao registrar saída')
+      setSession(snapshot)
     } finally {
       setLoading(false)
     }

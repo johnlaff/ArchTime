@@ -12,7 +12,10 @@ export function useTimer(startTime: string | null): string {
     }
 
     function tick() {
-      const seconds = Math.floor((Date.now() - new Date(startTime!).getTime()) / 1000)
+      const seconds = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(startTime!).getTime()) / 1000)
+      )
       const h = Math.floor(seconds / 3600)
       const m = Math.floor((seconds % 3600) / 60)
       const s = seconds % 60

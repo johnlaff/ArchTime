@@ -25,6 +25,13 @@ export function useKeyboardShortcuts({ onThemeToggle }: KeyboardShortcutsOptions
   const router = useRouter()
 
   useEffect(() => {
+    router.prefetch('/dashboard')
+    router.prefetch('/historico')
+    router.prefetch('/projetos')
+    router.prefetch('/configuracoes')
+  }, [router])
+
+  useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (isInteractiveElement()) return

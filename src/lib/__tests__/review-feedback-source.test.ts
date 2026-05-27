@@ -78,4 +78,25 @@ describe('review feedback regressions', () => {
     expect(source).toContain("fill: 'both'")
     expect(source).toContain('anim.finished')
   })
+
+  it('uses plain router.push (not startTransition) so the route loading skeleton shows during slow navigation', () => {
+    const source = readSource('src/hooks/use-keyboard-shortcuts.ts')
+
+    // startTransition keeps the old page visible and suppresses the route's
+    // loading.tsx Suspense fallback, which made slow navigations look frozen.
+    expect(source).not.toContain('startTransition')
+    expect(source).toMatch(/case 'p':\s*router\.push/)
+    expect(source).toContain("router.prefetch('/dashboard')")
+    expect(source).toContain("router.prefetch('/historico')")
+    expect(source).toContain("router.prefetch('/projetos')")
+    expect(source).toContain("router.prefetch('/configuracoes')")
+  })
+
+  it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {
+    const providers = readSource('src/components/providers.tsx')
+    expect(providers).toContain('reducedMotion="never"')
+
+    const css = readSource('src/app/globals.css')
+    expect(css).not.toContain('@media (prefers-reduced-motion')
+  })
 })

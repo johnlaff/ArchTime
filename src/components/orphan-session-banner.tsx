@@ -33,16 +33,13 @@ export function OrphanSessionBanner({ session, onResolved }: OrphanSessionBanner
   const today = getLocalDateBRT()
   if (sessionDate === today) return null
 
-  const minutesOpen = Math.floor((Date.now() - new Date(session.clockIn).getTime()) / 60000)
-  const overLimit = minutesOpen > 24 * 60
-
   async function handleResolve() {
     setSaving(true)
     try {
       const res = await fetch(`/api/clock/${session.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clockOutAt }),
+        body: JSON.stringify({ clockOutAt, allowLongSession: true }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -68,7 +65,6 @@ export function OrphanSessionBanner({ session, onResolved }: OrphanSessionBanner
           </p>
           <p className="text-xs text-muted-foreground">
             Informe a data e hora reais da saída em Brasília.
-            {overLimit && ' O limite padrão é 24h; escolha um horário dentro desse intervalo.'}
           </p>
           <Button size="sm" onClick={() => setOpen(true)}>
             Resolver sessão

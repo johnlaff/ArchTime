@@ -34,6 +34,7 @@ const standardSettings: SerializedUserSettings = {
   cumulativeStartDate: '2026-02-01',
   accentPreset: 'indigo',
   themeMode: 'system',
+  weekStartDay: 'monday',
 }
 
 describe('buildPeriodBalance', () => {

@@ -523,13 +523,10 @@ html.theme-switching *::after {
 .stagger > *:nth-child(5) { animation-delay: calc(var(--delay-stagger) * 4); }
 .stagger > *:nth-child(6) { animation-delay: calc(var(--delay-stagger) * 5); }
 
-/* ─── Reduced motion ─── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
-}
+/* ─── Reduced motion ───
+   Intentionally NOT honored: animations are core to the product experience and
+   play regardless of the OS prefers-reduced-motion setting. The motion/react
+   counterpart is <MotionConfig reducedMotion="never"> in providers.tsx. */
 
 /* ═══════════════════════════════════════════════════════════════
    DENSITY SYSTEM

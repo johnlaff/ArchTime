@@ -94,7 +94,9 @@ export async function PUT(
     return NextResponse.json({ error: 'Horário de saída inválido' }, { status: 400 })
   }
 
-  const rangeError = validateClosedRange(entry.clockIn, clockOut)
+  const rangeError = validateClosedRange(entry.clockIn, clockOut, {
+    allowLongSession: body.allowLongSession === true,
+  })
   if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 })
 
   const totalMinutes = calcDurationMinutes(entry.clockIn, clockOut)

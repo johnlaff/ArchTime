@@ -24,6 +24,7 @@ import {
 } from '@/lib/appearance'
 import {
   WEEKDAY_KEYS,
+  WEEK_START_DAYS,
   WORK_SCHEDULE_TEMPLATES,
   ARCHITECTURAL_PRESETS,
   DENSITY_PRESETS,
@@ -32,11 +33,13 @@ import {
   type DensityPreset,
   type CumulativeBalanceScope,
   type ThemeMode,
+  type WeekStartDay,
   type WorkMinutesByWeekday,
   type WorkScheduleTemplate,
 } from '@/lib/preferences'
 import { calculateExpectedMinutes, formatMinutes, getLocalDateBRT, getMonthRangeBRT } from '@/lib/dates'
 import type { SerializedUserSettings, SettingsOptions } from '@/lib/user-settings'
+import { saveSettings } from './actions'
 
 const WEEKDAY_LABELS: Record<string, string> = {
   '0': 'Domingo',
@@ -144,19 +147,14 @@ export function ConfiguracoesClient({
   }
 
   async function handleSave() {
+    const snapshot = settings
     setSaving(true)
+    toast.success('Configurações salvas')
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error ?? 'Erro ao salvar configurações')
-      setSettings(body.settings)
-      setTheme(body.settings.themeMode)
-      toast.success('Configurações salvas')
+      const result = await saveSettings(settings)
+      if ('error' in result) throw new Error(result.error)
     } catch (error) {
+      setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
     } finally {
       setSaving(false)
@@ -214,6 +212,36 @@ export function ConfiguracoesClient({
 
           <div className="rounded-md bg-accent px-3 py-2 text-sm">
             Previsto neste mês: <strong>{formatMinutes(expectedThisMonth)}</strong>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Semana</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1">
+            <Label id="week-start-label">Início da semana</Label>
+            <div role="radiogroup" aria-labelledby="week-start-label" className="flex gap-2 mt-1">
+              {(Object.entries(WEEK_START_DAYS) as [WeekStartDay, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="radio"
+                  aria-checked={settings.weekStartDay === key}
+                  onClick={() => setSettings((current) => ({ ...current, weekStartDay: key }))}
+                  className={[
+                    'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+                    settings.weekStartDay === key
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-background hover:bg-accent',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
