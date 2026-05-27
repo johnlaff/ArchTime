@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { getCachedUser, fetchActiveProjects, fetchWeekComparison } from '@/lib/server/sidebar-data'
+import { getOrCreateUserSettings } from '@/lib/user-settings'
 import { ShortcutsWidget } from './shortcuts-widget'
 
 function WidgetSkeleton({ rows = 3 }: { rows?: number }) {
@@ -22,7 +23,9 @@ function Widget({ title, children }: { title: string; children: React.ReactNode 
 }
 
 async function TrendWidget({ userId }: { userId: string }) {
-  const cmp = await fetchWeekComparison(userId)
+  const settings = await getOrCreateUserSettings(userId)
+  const weekStartDay = settings.weekStartDay === 'sunday' ? 0 : 1
+  const cmp = await fetchWeekComparison(userId, weekStartDay)
   const isUp = cmp.deltaMinutes >= 0
   const absMinutes = Math.abs(cmp.deltaMinutes)
   const absH = Math.floor(absMinutes / 60)

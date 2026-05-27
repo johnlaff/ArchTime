@@ -9,6 +9,7 @@ import {
   getBrazilNationalHolidays,
   splitIntervalByLocalDay,
   getWeekRangesForMonth,
+  getWeekRangeBRT,
 } from '../dates'
 
 describe('formatBRT', () => {
@@ -162,5 +163,26 @@ describe('getWeekRangesForMonth', () => {
     const withDefault = getWeekRangesForMonth('2026-05')
     const withMonday = getWeekRangesForMonth('2026-05', 1)
     expect(withDefault).toEqual(withMonday)
+  })
+})
+
+describe('getWeekRangeBRT', () => {
+  // 2026-05-20 at noon UTC = 09:00 BRT, a Wednesday
+  const wednesday = new Date('2026-05-20T12:00:00Z')
+
+  it('Monday start: Mon May 18 – Sun May 24', () => {
+    const r = getWeekRangeBRT(wednesday, 1)
+    expect(r.startDate).toBe('2026-05-18')
+    expect(r.endDate).toBe('2026-05-24')
+  })
+
+  it('Sunday start: Sun May 17 – Sat May 23', () => {
+    const r = getWeekRangeBRT(wednesday, 0)
+    expect(r.startDate).toBe('2026-05-17')
+    expect(r.endDate).toBe('2026-05-23')
+  })
+
+  it('defaults to Monday start when weekStartDay is omitted', () => {
+    expect(getWeekRangeBRT(wednesday)).toEqual(getWeekRangeBRT(wednesday, 1))
   })
 })

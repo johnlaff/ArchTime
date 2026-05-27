@@ -24,10 +24,13 @@ function laterDate(a: Date, b: Date): Date {
 }
 
 export async function buildDailySummary(userId: string): Promise<DailySummary> {
+  const settings = await getOrCreateUserSettings(userId)
+  const weekStartDay = settings.weekStartDay === 'sunday' ? 0 : 1
+
   const todayDate = getLocalDateBRT()
   const todayStart = startOfLocalDayBRT(todayDate)
   const todayEnd = endExclusiveOfLocalDayBRT(todayDate)
-  const week = getWeekRangeBRT()
+  const week = getWeekRangeBRT(new Date(), weekStartDay)
   const month = getMonthRangeBRT(todayDate.slice(0, 7))
   const balanceStart = earlierDate(week.start, month.start)
   const balanceEnd = laterDate(week.end, month.end)
@@ -40,8 +43,7 @@ export async function buildDailySummary(userId: string): Promise<DailySummary> {
     AND: [{ clockOut: { gt: todayStart } }],
   }
 
-  const [settings, recentEntries, sessionCount, balanceEntries] = await Promise.all([
-    getOrCreateUserSettings(userId),
+  const [recentEntries, sessionCount, balanceEntries] = await Promise.all([
     prisma.clockEntry.findMany({
       where: todayEntryWhere,
       include: {

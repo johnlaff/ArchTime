@@ -203,7 +203,7 @@ export function getMonthRangeBRT(month: string): {
   }
 }
 
-export function getWeekRangeBRT(date: Date = new Date()): {
+export function getWeekRangeBRT(date: Date = new Date(), weekStartDay: 0 | 1 = 1): {
   startDate: string
   endDate: string
   start: Date
@@ -211,8 +211,8 @@ export function getWeekRangeBRT(date: Date = new Date()): {
 } {
   const current = getLocalDateBRT(date)
   const day = getDayOfWeek(current)
-  const daysSinceMonday = (day + 6) % 7
-  const startDate = addDaysToDateString(current, -daysSinceMonday)
+  const daysSinceStart = weekStartDay === 1 ? (day + 6) % 7 : day
+  const startDate = addDaysToDateString(current, -daysSinceStart)
   const endDate = addDaysToDateString(startDate, 6)
   return {
     startDate,
