@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
@@ -69,6 +70,7 @@ export function ConfiguracoesClient({
 }) {
   const [settings, setSettings] = useState(initialSettings)
   const [saving, setSaving] = useState(false)
+  const router = useRouter()
   const { setTheme } = useTheme()
   const { accent, setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
@@ -159,6 +161,9 @@ export function ConfiguracoesClient({
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error ?? 'Erro ao salvar configurações')
       }
+      // Bust the client Router Cache so other modules (dashboard, histórico,
+      // sidebar) reflect the new settings without a manual reload.
+      router.refresh()
     } catch (error) {
       setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
