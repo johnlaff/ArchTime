@@ -17,19 +17,15 @@ vi.mock('@/lib/server/auth', () => ({
   getAuthenticatedUser: vi.fn(),
 }))
 
-vi.mock('next/cache', () => ({ revalidateTag: vi.fn() }))
-
 import {
   getOrCreateUserSettings,
   parseSettingsPatch,
   updateUserSettings,
 } from '@/lib/user-settings'
 import { getAuthenticatedUser } from '@/lib/server/auth'
-import { revalidateTag } from 'next/cache'
 import { GET, PATCH } from './route'
 
 const getAuthenticatedUserMock = getAuthenticatedUser as unknown as Mock
-const revalidateTagMock = revalidateTag as unknown as Mock
 const getOrCreateUserSettingsMock = getOrCreateUserSettings as unknown as Mock
 const parseSettingsPatchMock = parseSettingsPatch as unknown as Mock
 const updateUserSettingsMock = updateUserSettings as unknown as Mock
@@ -66,8 +62,6 @@ describe('/api/settings', () => {
     expect(updateUserSettingsMock).toHaveBeenCalledWith('user-1', {
       showCumulativeBalance: true,
     })
-    expect(revalidateTagMock).toHaveBeenCalledWith('history-user-1', { expire: 0 })
-    expect(revalidateTagMock).toHaveBeenCalledWith('sidebar-user-1', { expire: 0 })
   })
 
   it('returns 400 for invalid settings payloads', async () => {

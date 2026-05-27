@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
@@ -40,6 +39,7 @@ import {
 } from '@/lib/preferences'
 import { calculateExpectedMinutes, formatMinutes, getLocalDateBRT, getMonthRangeBRT } from '@/lib/dates'
 import type { SerializedUserSettings, SettingsOptions } from '@/lib/user-settings'
+import { saveSettings } from './actions'
 
 const WEEKDAY_LABELS: Record<string, string> = {
   '0': 'Domingo',
@@ -70,7 +70,6 @@ export function ConfiguracoesClient({
 }) {
   const [settings, setSettings] = useState(initialSettings)
   const [saving, setSaving] = useState(false)
-  const router = useRouter()
   const { setTheme } = useTheme()
   const { accent, setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
@@ -152,18 +151,8 @@ export function ConfiguracoesClient({
     setSaving(true)
     toast.success('Configurações salvas')
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Erro ao salvar configurações')
-      }
-      // Bust the client Router Cache so other modules (dashboard, histórico,
-      // sidebar) reflect the new settings without a manual reload.
-      router.refresh()
+      const result = await saveSettings(settings)
+      if ('error' in result) throw new Error(result.error)
     } catch (error) {
       setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')

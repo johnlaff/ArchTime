@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
 import {
   getOrCreateUserSettings,
   parseSettingsPatch,
@@ -38,11 +37,5 @@ export async function PATCH(req: NextRequest) {
   }
 
   const settings = await updateUserSettings(user.id, patch)
-
-  // Settings (week start, work schedule, cumulative scope) feed the cached
-  // hour-bank / history / sidebar data — bust those so other modules recompute.
-  revalidateTag(`history-${user.id}`, { expire: 0 })
-  revalidateTag(`sidebar-${user.id}`, { expire: 0 })
-
   return NextResponse.json({ settings, options: settingsOptions })
 }
