@@ -1,7 +1,6 @@
-import { cache } from 'react'
 import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getAuthenticatedUser } from '@/lib/server/auth'
+import { getCachedAuthenticatedUser } from '@/lib/server/auth'
 
 export interface ActiveProject {
   id: string
@@ -17,8 +16,7 @@ export interface WeekComparison {
   deltaPercent: number | null
 }
 
-// Deduplicates the Supabase auth call within a single React render pass.
-export const getCachedUser = cache(getAuthenticatedUser)
+export const getCachedUser = getCachedAuthenticatedUser
 
 type RawActiveProject = { id: string; name: string; color: string; month_minutes: number }
 

@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { isAllowedEmail } from '@/lib/auth'
 
@@ -25,3 +26,6 @@ export async function getAuthenticatedUser(): Promise<AuthUser | null> {
     user_metadata: claims.user_metadata ?? {},
   }
 }
+
+// Deduplicates auth verification across Server Components in the same render pass.
+export const getCachedAuthenticatedUser = cache(getAuthenticatedUser)

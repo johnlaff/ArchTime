@@ -1,20 +1,29 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getAuthenticatedUser } from '@/lib/server/auth'
+import { getCachedAuthenticatedUser } from '@/lib/server/auth'
 import { ProjetosClient } from './projetos-client'
 import ProjetosLoading from './loading'
 import { PageShell } from '@/components/page-shell'
 import type { ProjectOption } from '@/types'
 
-async function ProjetosContent() {
-  const user = await getAuthenticatedUser()
-  if (!user) redirect('/login')
+async function getCachedProjectsForManagement(userId: string) {
+  'use cache'
+  cacheLife({ stale: 30, revalidate: 60, expire: 3600 })
+  cacheTag(`projects-${userId}`)
 
-  const projects = await prisma.project.findMany({
-    where: { userId: user.id },
+  return prisma.project.findMany({
+    where: { userId },
     orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
   })
+}
+
+async function ProjetosContent() {
+  const user = await getCachedAuthenticatedUser()
+  if (!user) redirect('/login')
+
+  const projects = await getCachedProjectsForManagement(user.id)
 
   const initialProjects: ProjectOption[] = projects.map((project) => ({
     id: project.id,

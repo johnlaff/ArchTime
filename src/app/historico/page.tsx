@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
+import { redirect } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
-import { getCachedUser } from '@/lib/server/sidebar-data'
+import { getCachedAuthenticatedUser } from '@/lib/server/auth'
 import { buildHistoryBundle } from '@/lib/history'
 import { getCurrentMonth } from '@/lib/current-month'
 import { HistoricoClient } from './historico-client'
@@ -17,15 +18,19 @@ async function HistoricoInitialData({ userId, month }: { userId: string; month: 
   return <HistoricoClient initialBundle={bundle} initialMonth={month} />
 }
 
-export default async function HistoricoPage() {
-  const user = await getCachedUser()
-  if (!user) return null
-  const month = getCurrentMonth()
+async function HistoricoContent() {
+  const user = await getCachedAuthenticatedUser()
+  if (!user) redirect('/login')
 
+  const month = getCurrentMonth()
+  return <HistoricoInitialData userId={user.id} month={month} />
+}
+
+export default function HistoricoPage() {
   return (
     <PageShell>
       <Suspense fallback={<HistoricoLoading />}>
-        <HistoricoInitialData userId={user.id} month={month} />
+        <HistoricoContent />
       </Suspense>
     </PageShell>
   )

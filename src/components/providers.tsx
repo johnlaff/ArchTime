@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { MotionConfig } from 'motion/react'
 import { ThemeProvider, useTheme } from 'next-themes'
 import { SyncProvider } from './sync-provider'
@@ -9,6 +10,7 @@ import { useAccentColor } from '@/components/accent-color-provider'
 import { usePerfMonitor } from '@/hooks/use-perf-monitor'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
+import { useRoutePrefetch } from '@/hooks/use-route-prefetch'
 import {
   getLastLocalPreferenceChange,
   hasLocalCustomAccentPreference,
@@ -16,15 +18,20 @@ import {
 } from '@/lib/appearance'
 
 function PreferencesHydrator() {
+  const pathname = usePathname()
   const { setTheme } = useTheme()
   const { syncAccentFromRemote } = useAccentColor()
   usePerfMonitor()
 
   const toggleTheme = useThemeToggle()
   const handleThemeToggle = useCallback(() => toggleTheme(), [toggleTheme])
-  useKeyboardShortcuts({ onThemeToggle: handleThemeToggle })
+  const isAuthRoute = pathname === '/login' || pathname.startsWith('/auth/')
+  useKeyboardShortcuts({ onThemeToggle: handleThemeToggle, disabled: isAuthRoute })
+  useRoutePrefetch({ disabled: isAuthRoute })
 
   useEffect(() => {
+    if (isAuthRoute) return
+
     let cancelled = false
     const startedAt = Date.now()
     fetch('/api/settings')
@@ -37,7 +44,7 @@ function PreferencesHydrator() {
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [syncAccentFromRemote, setTheme])
+  }, [syncAccentFromRemote, setTheme, isAuthRoute])
 
   return null
 }

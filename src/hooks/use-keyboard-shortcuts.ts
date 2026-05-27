@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 interface KeyboardShortcutsOptions {
   onThemeToggle: () => void
+  disabled?: boolean
 }
 
 function isInteractiveElement(): boolean {
@@ -21,41 +22,38 @@ function isInteractiveElement(): boolean {
   return false
 }
 
-export function useKeyboardShortcuts({ onThemeToggle }: KeyboardShortcutsOptions) {
-  const router = useRouter()
+const ROUTES = {
+  p: '/dashboard',
+  h: '/historico',
+  j: '/projetos',
+  c: '/configuracoes',
+} as const
 
-  useEffect(() => {
-    router.prefetch('/dashboard')
-    router.prefetch('/historico')
-    router.prefetch('/projetos')
-    router.prefetch('/configuracoes')
-  }, [router])
+export function useKeyboardShortcuts({
+  onThemeToggle,
+  disabled = false,
+}: KeyboardShortcutsOptions) {
+  const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if (disabled) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (isInteractiveElement()) return
 
-      switch (e.key.toLowerCase()) {
-        case 'p':
-          router.push('/dashboard')
-          break
-        case 'h':
-          router.push('/historico')
-          break
-        case 'j':
-          router.push('/projetos')
-          break
-        case 'c':
-          router.push('/configuracoes')
-          break
-        case 't':
-          onThemeToggle()
-          break
+      const key = e.key.toLowerCase()
+      if (key === 't') {
+        onThemeToggle()
+        return
       }
+
+      const href = ROUTES[key as keyof typeof ROUTES]
+      if (!href || pathname === href) return
+      router.push(href)
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [router, onThemeToggle])
+  }, [router, pathname, onThemeToggle, disabled])
 }

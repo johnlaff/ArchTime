@@ -79,17 +79,30 @@ describe('review feedback regressions', () => {
     expect(source).toContain('anim.finished')
   })
 
-  it('uses plain router.push (not startTransition) so the route loading skeleton shows during slow navigation', () => {
+  it('uses plain router.push and avoids mount-time route prefetch storms', () => {
     const source = readSource('src/hooks/use-keyboard-shortcuts.ts')
 
     // startTransition keeps the old page visible and suppresses the route's
     // loading.tsx Suspense fallback, which made slow navigations look frozen.
     expect(source).not.toContain('startTransition')
-    expect(source).toMatch(/case 'p':\s*router\.push/)
-    expect(source).toContain("router.prefetch('/dashboard')")
-    expect(source).toContain("router.prefetch('/historico')")
-    expect(source).toContain("router.prefetch('/projetos')")
-    expect(source).toContain("router.prefetch('/configuracoes')")
+    expect(source).toContain('router.push(href)')
+    expect(source).toContain('pathname === href')
+    expect(source).not.toContain('router.prefetch(')
+  })
+
+  it('warms authenticated routes in the background without prefetching auth pages', () => {
+    const providers = readSource('src/components/providers.tsx')
+    const warmup = readSource('src/hooks/use-route-prefetch.ts')
+
+    expect(providers).toContain('useRoutePrefetch({ disabled: isAuthRoute })')
+    expect(warmup).toContain("'/dashboard'")
+    expect(warmup).toContain("'/historico'")
+    expect(warmup).toContain("'/projetos'")
+    expect(warmup).toContain("'/configuracoes'")
+    expect(warmup).toContain('requestIdleCallback')
+    expect(warmup).toContain('PREFETCH_STAGGER_MS')
+    expect(warmup).toContain('prefetchedRoutesRef')
+    expect(warmup).not.toContain("'/login'")
   })
 
   it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {

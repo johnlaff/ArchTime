@@ -39,6 +39,16 @@ function LoginContent() {
               Falha ao autenticar. Tente novamente.
             </p>
           )}
+          {error === 'session_expired' && (
+            <p className="text-sm text-destructive text-center">
+              Sua sessão expirou. Entre novamente para continuar.
+            </p>
+          )}
+          {error === 'auth_failed' && (
+            <p className="text-sm text-destructive text-center">
+              Não foi possível validar sua sessão. Tente entrar novamente.
+            </p>
+          )}
           <Button onClick={handleGoogleLogin} className="w-full" size="lg">
             Entrar com Google
           </Button>
