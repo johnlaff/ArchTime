@@ -10,7 +10,6 @@ import { useAccentColor } from '@/components/accent-color-provider'
 import { usePerfMonitor } from '@/hooks/use-perf-monitor'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
-import { useRoutePrefetch } from '@/hooks/use-route-prefetch'
 import {
   getLastLocalPreferenceChange,
   hasLocalCustomAccentPreference,
@@ -27,7 +26,6 @@ function PreferencesHydrator() {
   const handleThemeToggle = useCallback(() => toggleTheme(), [toggleTheme])
   const isAuthRoute = pathname === '/login' || pathname.startsWith('/auth/')
   useKeyboardShortcuts({ onThemeToggle: handleThemeToggle, disabled: isAuthRoute })
-  useRoutePrefetch({ disabled: isAuthRoute })
 
   useEffect(() => {
     if (isAuthRoute) return

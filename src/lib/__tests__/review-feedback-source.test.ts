@@ -90,19 +90,18 @@ describe('review feedback regressions', () => {
     expect(source).not.toContain('router.prefetch(')
   })
 
-  it('warms authenticated routes in the background without prefetching auth pages', () => {
+  it('does not force/eagerly prefetch nav routes (Next.js #86182: cacheComponents blocks navigation until an in-flight prefetch completes)', () => {
     const providers = readSource('src/components/providers.tsx')
-    const warmup = readSource('src/hooks/use-route-prefetch.ts')
+    const sidebarNav = readSource('src/components/sidebar-nav.tsx')
+    const navbar = readSource('src/components/navbar.tsx')
 
-    expect(providers).toContain('useRoutePrefetch({ disabled: isAuthRoute })')
-    expect(warmup).toContain("'/dashboard'")
-    expect(warmup).toContain("'/historico'")
-    expect(warmup).toContain("'/projetos'")
-    expect(warmup).toContain("'/configuracoes'")
-    expect(warmup).toContain('requestIdleCallback')
-    expect(warmup).toContain('PREFETCH_STAGGER_MS')
-    expect(warmup).toContain('prefetchedRoutesRef')
-    expect(warmup).not.toContain("'/login'")
+    // prefetch={true} forces a full dynamic prefetch (cross-region auth + DB) and
+    // useRoutePrefetch eagerly prefetched every route — both keep a slow prefetch
+    // in flight, and clicking during it freezes navigation (URL changes, UI does not).
+    expect(providers).not.toContain('useRoutePrefetch')
+    expect(sidebarNav).toContain('prefetch={false}')
+    expect(navbar).not.toContain('prefetch={true}')
+    expect(existsSync(join(process.cwd(), 'src/hooks/use-route-prefetch.ts'))).toBe(false)
   })
 
   it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {
