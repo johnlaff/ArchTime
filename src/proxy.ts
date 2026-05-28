@@ -1,9 +1,34 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAllowedEmail } from '@/lib/auth'
+import {
+  getSupabaseAuthCookieNames,
+  isStaleRefreshTokenError,
+} from '@/lib/server/supabase-session'
+
+function redirectToLogin(request: NextRequest, error?: string) {
+  const url = request.nextUrl.clone()
+  url.pathname = '/login'
+  if (error) url.searchParams.set('error', error)
+  const response = NextResponse.redirect(url)
+  response.headers.set('Cache-Control', 'private, no-store')
+  return response
+}
+
+function expireAuthCookies(response: NextResponse, cookieNames: string[]) {
+  cookieNames.forEach((name) => {
+    response.cookies.set(name, '', {
+      path: '/',
+      maxAge: 0,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    })
+  })
+}
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
+  const authCookieNames = getSupabaseAuthCookieNames(request.cookies.getAll())
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,11 +38,14 @@ export async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
+          Object.entries(headers).forEach(([key, value]) =>
+            supabaseResponse.headers.set(key, value)
+          )
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -29,13 +57,32 @@ export async function proxy(request: NextRequest) {
   // Local JWT verification (cached JWKS, no Auth-server round-trip) — the
   // project uses asymmetric signing keys. The createServerClient cookie
   // handlers above still refresh expiring tokens through getClaims.
-  const { data } = await supabase.auth.getClaims()
+  let data: Awaited<ReturnType<typeof supabase.auth.getClaims>>['data'] | null = null
+  let authError: unknown = null
+
+  try {
+    const result = await supabase.auth.getClaims()
+    data = result.data
+    authError = result.error
+  } catch (error) {
+    authError = error
+  }
+
+  if (authError) {
+    const response = redirectToLogin(
+      request,
+      isStaleRefreshTokenError(authError) ? 'session_expired' : 'auth_failed'
+    )
+    if (isStaleRefreshTokenError(authError)) expireAuthCookies(response, authCookieNames)
+    return response
+  }
+
   const claims = data?.claims
 
   if (!claims || !isAllowedEmail(claims.email)) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    const response = redirectToLogin(request)
+    if (authCookieNames.length > 0) expireAuthCookies(response, authCookieNames)
+    return response
   }
 
   return supabaseResponse

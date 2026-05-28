@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { MotionConfig } from 'motion/react'
 import { ThemeProvider, useTheme } from 'next-themes'
 import { SyncProvider } from './sync-provider'
@@ -16,15 +17,19 @@ import {
 } from '@/lib/appearance'
 
 function PreferencesHydrator() {
+  const pathname = usePathname()
   const { setTheme } = useTheme()
   const { syncAccentFromRemote } = useAccentColor()
   usePerfMonitor()
 
   const toggleTheme = useThemeToggle()
   const handleThemeToggle = useCallback(() => toggleTheme(), [toggleTheme])
-  useKeyboardShortcuts({ onThemeToggle: handleThemeToggle })
+  const isAuthRoute = pathname === '/login' || pathname.startsWith('/auth/')
+  useKeyboardShortcuts({ onThemeToggle: handleThemeToggle, disabled: isAuthRoute })
 
   useEffect(() => {
+    if (isAuthRoute) return
+
     let cancelled = false
     const startedAt = Date.now()
     fetch('/api/settings')
@@ -37,7 +42,7 @@ function PreferencesHydrator() {
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [syncAccentFromRemote, setTheme])
+  }, [syncAccentFromRemote, setTheme, isAuthRoute])
 
   return null
 }

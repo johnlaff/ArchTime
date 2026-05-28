@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   }
 
   const cookieStore = await cookies()
+  let authHeaders: Record<string, string> = {}
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +23,8 @@ export async function GET(request: NextRequest) {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
+          authHeaders = { ...authHeaders, ...headers }
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options)
           )
@@ -45,14 +47,18 @@ export async function GET(request: NextRequest) {
       user = existingUser ?? null
     }
     if (!user) {
-      return NextResponse.redirect(`${origin}/login?error=exchange_failed`)
+      const response = NextResponse.redirect(`${origin}/login?error=exchange_failed`)
+      Object.entries(authHeaders).forEach(([key, value]) => response.headers.set(key, value))
+      return response
     }
   }
 
   // Verifica email permitido DEPOIS da troca — nunca antes
   if (!isAllowedEmail(user!.email)) {
     await supabase.auth.signOut()
-    return NextResponse.redirect(`${origin}/login?error=unauthorized`)
+    const response = NextResponse.redirect(`${origin}/login?error=unauthorized`)
+    Object.entries(authHeaders).forEach(([key, value]) => response.headers.set(key, value))
+    return response
   }
 
   // Sincroniza usuário na base de dados (email garantido não-nulo pela guarda acima)
@@ -71,5 +77,7 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  return NextResponse.redirect(`${origin}/dashboard`)
+  const response = NextResponse.redirect(`${origin}/dashboard`)
+  Object.entries(authHeaders).forEach(([key, value]) => response.headers.set(key, value))
+  return response
 }

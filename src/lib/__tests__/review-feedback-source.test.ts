@@ -79,17 +79,29 @@ describe('review feedback regressions', () => {
     expect(source).toContain('anim.finished')
   })
 
-  it('uses plain router.push (not startTransition) so the route loading skeleton shows during slow navigation', () => {
+  it('uses plain router.push and avoids mount-time route prefetch storms', () => {
     const source = readSource('src/hooks/use-keyboard-shortcuts.ts')
 
     // startTransition keeps the old page visible and suppresses the route's
     // loading.tsx Suspense fallback, which made slow navigations look frozen.
     expect(source).not.toContain('startTransition')
-    expect(source).toMatch(/case 'p':\s*router\.push/)
-    expect(source).toContain("router.prefetch('/dashboard')")
-    expect(source).toContain("router.prefetch('/historico')")
-    expect(source).toContain("router.prefetch('/projetos')")
-    expect(source).toContain("router.prefetch('/configuracoes')")
+    expect(source).toContain('router.push(href)')
+    expect(source).toContain('pathname === href')
+    expect(source).not.toContain('router.prefetch(')
+  })
+
+  it('does not force/eagerly prefetch nav routes (Next.js #86182: cacheComponents blocks navigation until an in-flight prefetch completes)', () => {
+    const providers = readSource('src/components/providers.tsx')
+    const sidebarNav = readSource('src/components/sidebar-nav.tsx')
+    const navbar = readSource('src/components/navbar.tsx')
+
+    // prefetch={true} forces a full dynamic prefetch (cross-region auth + DB) and
+    // useRoutePrefetch eagerly prefetched every route — both keep a slow prefetch
+    // in flight, and clicking during it freezes navigation (URL changes, UI does not).
+    expect(providers).not.toContain('useRoutePrefetch')
+    expect(sidebarNav).toContain('prefetch={false}')
+    expect(navbar).not.toContain('prefetch={true}')
+    expect(existsSync(join(process.cwd(), 'src/hooks/use-route-prefetch.ts'))).toBe(false)
   })
 
   it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {

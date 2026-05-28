@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getAuthenticatedUser } from '@/lib/server/auth'
+import { getCachedAuthenticatedUser } from '@/lib/server/auth'
 import { buildDailySummary } from '@/lib/summary'
 import { DashboardClient } from './dashboard-client'
 import DashboardLoading from './loading'
@@ -20,7 +20,7 @@ async function getCachedProjects(userId: string) {
 }
 
 async function DashboardContent() {
-  const user = await getAuthenticatedUser()
+  const user = await getCachedAuthenticatedUser()
   if (!user) redirect('/login')
 
   const [activeEntry, projects, summary] = await Promise.all([

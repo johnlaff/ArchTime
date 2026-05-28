@@ -21,6 +21,10 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/faturamento',   label: 'Faturamento',   icon: CreditCard,  disabled: true },
 ]
 
+// Nav links set prefetch={false} on purpose — Next.js #86182: with cacheComponents,
+// clicking a link while its prefetch RSC request is still in flight blocks navigation
+// until the prefetch finishes (the URL changes but the UI stays frozen). loading.tsx
+// renders an instant skeleton on click instead. Revisit when #86182 is fixed upstream.
 export function SidebarNav() {
   const pathname = usePathname()
 
@@ -32,7 +36,7 @@ export function SidebarNav() {
           <Link
             key={href}
             href={disabled ? '#' : href}
-            prefetch={disabled ? false : true}
+            prefetch={false}
             aria-disabled={disabled}
             tabIndex={disabled ? -1 : undefined}
             onClick={(e) => { if (disabled) e.preventDefault() }}
