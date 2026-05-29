@@ -24,10 +24,13 @@ export const metadata: Metadata = {
   description: 'Time tracking para freelancers e profissionais independentes',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'ArchTime' },
-  icons: {
-    icon: [{ url: '/api/icon?size=32', sizes: '32x32', type: 'image/png' }],
-    apple: '/api/icon?size=192',
-  },
+  // Favicon / apple-touch-icon / theme-color are owned at runtime by
+  // browser-accent.ts so they track the user's accent color. They are deliberately
+  // NOT declared here (metadata) nor in `viewport`: if React renders & owns these
+  // <head> nodes and browser-accent removes/replaces them, React's <head>
+  // reconciliation on every client navigation throws "Cannot read properties of
+  // null (reading 'removeChild')" and the page swap freezes (URL changes, UI does
+  // not). Keeping a single owner (browser-accent) eliminates that conflict.
   openGraph: {
     title: 'ArchTime',
     description: 'Time tracking para freelancers e profissionais independentes',
@@ -44,7 +47,8 @@ export const metadata: Metadata = {
   },
 }
 
-export const viewport: Viewport = { themeColor: '#6366f1' }
+// themeColor is set at runtime by browser-accent.ts (see metadata note above).
+export const viewport: Viewport = {}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

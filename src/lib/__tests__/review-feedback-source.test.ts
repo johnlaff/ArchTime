@@ -104,6 +104,20 @@ describe('review feedback regressions', () => {
     expect(existsSync(join(process.cwd(), 'src/hooks/use-route-prefetch.ts'))).toBe(false)
   })
 
+  it('keeps <head> icon/theme-color out of React metadata so browser-accent owns them (removeChild freeze regression)', () => {
+    // browser-accent.ts manages <link rel="icon">, apple-touch-icon and the
+    // theme-color <meta> imperatively at runtime (to track the accent color).
+    // If layout.tsx ALSO declares them via `metadata.icons` / `viewport.themeColor`,
+    // React 19 owns those same <head> nodes; when browser-accent removes them React's
+    // <head> reconciliation on the next client navigation throws "Cannot read
+    // properties of null (reading 'removeChild')" and the page swap freezes
+    // (URL changes, UI does not). Keep a single owner — do not re-add these here.
+    const layout = readSource('src/app/layout.tsx')
+
+    expect(layout).not.toMatch(/^\s*icons\s*:/m)
+    expect(layout).not.toMatch(/themeColor\s*:/)
+  })
+
   it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {
     const providers = readSource('src/components/providers.tsx')
     expect(providers).toContain('reducedMotion="never"')
