@@ -90,17 +90,17 @@ describe('review feedback regressions', () => {
     expect(source).not.toContain('router.prefetch(')
   })
 
-  it('does not force/eagerly prefetch nav routes (Next.js #86182: cacheComponents blocks navigation until an in-flight prefetch completes)', () => {
+  it('keeps default <Link> prefetch enabled on nav links (the page-swap freeze was the removeChild <head> conflict, fixed in layout.tsx — not prefetch)', () => {
     const providers = readSource('src/components/providers.tsx')
     const sidebarNav = readSource('src/components/sidebar-nav.tsx')
     const navbar = readSource('src/components/navbar.tsx')
 
-    // prefetch={true} forces a full dynamic prefetch (cross-region auth + DB) and
-    // useRoutePrefetch eagerly prefetched every route — both keep a slow prefetch
-    // in flight, and clicking during it freezes navigation (URL changes, UI does not).
+    // Re-enabling default prefetch makes nav content ready on hover/viewport.
+    // Do NOT re-add prefetch={false} (that was the #86182 misdiagnosis).
+    expect(sidebarNav).not.toContain('prefetch={false}')
+    expect(navbar).not.toContain('prefetch={false}')
+    // But still no mount-time "prefetch every route" storm.
     expect(providers).not.toContain('useRoutePrefetch')
-    expect(sidebarNav).toContain('prefetch={false}')
-    expect(navbar).not.toContain('prefetch={true}')
     expect(existsSync(join(process.cwd(), 'src/hooks/use-route-prefetch.ts'))).toBe(false)
   })
 

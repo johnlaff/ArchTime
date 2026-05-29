@@ -73,7 +73,6 @@ export function Navbar() {
             <Link
               key={href}
               href={href}
-              prefetch={false}
             >
               <Button
                 variant={pathname === href ? 'secondary' : 'ghost'}
