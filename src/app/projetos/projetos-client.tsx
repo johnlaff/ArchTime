@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Pencil, Archive, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useSupabaseQuery } from '@/hooks/use-supabase-query'
+import { createClient } from '@/lib/supabase/client'
+import { fetchProjects } from '@/lib/client-data'
+import ProjetosLoading from './loading'
 import type { ProjectOption } from '@/types'
 
 const PRESET_COLORS = [
@@ -52,8 +56,18 @@ function upsertProject(projects: ProjectOption[], project: ProjectOption): Proje
   return sortProjects(next)
 }
 
-export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOption[] }) {
-  const [projects, setProjects] = useState<ProjectOption[]>(initialProjects)
+export function ProjetosClient() {
+  const supabase = useMemo(() => createClient(), [])
+  const query = useSupabaseQuery('projetos:all', () => fetchProjects(supabase, { activeOnly: false }))
+  const [projects, setProjects] = useState<ProjectOption[]>([])
+  const seededRef = useRef(false)
+
+  useEffect(() => {
+    if (!seededRef.current && !query.loading) {
+      seededRef.current = true
+      setProjects(query.data ?? [])
+    }
+  }, [query.loading, query.data])
   const [open, setOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ProjectForm>(emptyForm)
@@ -114,6 +128,7 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
       }
       const saved = normalizeProject(await res.json())
       setProjects((current) => upsertProject(current, saved))
+      query.refetch()
       toast.success(editingId ? 'Projeto atualizado' : 'Projeto criado')
       setOpen(false)
     } catch (error) {
@@ -136,6 +151,7 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
       }
       const updated = normalizeProject(await res.json())
       setProjects((current) => upsertProject(current, updated))
+      query.refetch()
       toast.success(project.isActive ? 'Projeto arquivado' : 'Projeto reativado')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao arquivar projeto')
@@ -160,6 +176,7 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
         }
         return current.filter((project) => project.id !== deleteTarget.id)
       })
+      query.refetch()
     } catch {
       toast.error('Erro ao apagar projeto')
     } finally {
@@ -167,6 +184,8 @@ export function ProjetosClient({ initialProjects }: { initialProjects: ProjectOp
       setDeleteTarget(null)
     }
   }
+
+  if (!seededRef.current) return <ProjetosLoading />
 
   return (
     <div className="space-y-4">

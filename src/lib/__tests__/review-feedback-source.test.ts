@@ -132,4 +132,11 @@ describe('review feedback regressions', () => {
     expect(dashboard).not.toContain('getCachedAuthenticatedUser')
     expect(dashboard).not.toContain("'use cache'")
   })
+
+  it('keeps the projetos page a static shell (no server-side prisma/auth/use cache)', () => {
+    const projetos = readSource('src/app/projetos/page.tsx')
+    expect(projetos).not.toContain("from '@/lib/prisma'")
+    expect(projetos).not.toContain('getCachedAuthenticatedUser')
+    expect(projetos).not.toContain("'use cache'")
+  })
 })
