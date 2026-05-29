@@ -125,4 +125,11 @@ describe('review feedback regressions', () => {
     const css = readSource('src/app/globals.css')
     expect(css).not.toContain('@media (prefers-reduced-motion')
   })
+
+  it('keeps the dashboard page a static shell (no server-side prisma/auth/use cache)', () => {
+    const dashboard = readSource('src/app/dashboard/page.tsx')
+    expect(dashboard).not.toContain("from '@/lib/prisma'")
+    expect(dashboard).not.toContain('getCachedAuthenticatedUser')
+    expect(dashboard).not.toContain("'use cache'")
+  })
 })
