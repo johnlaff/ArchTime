@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
@@ -69,7 +69,7 @@ export function ConfiguracoesClient({
   options: SettingsOptions
 }) {
   const [settings, setSettings] = useState(initialSettings)
-  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
   const { setTheme } = useTheme()
   const { accent, setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
@@ -147,8 +147,9 @@ export function ConfiguracoesClient({
   }
 
   async function handleSave() {
+    if (savingRef.current) return
+    savingRef.current = true
     const snapshot = settings
-    setSaving(true)
     toast.success('Configurações salvas')
     try {
       const result = await saveSettings(settings)
@@ -157,7 +158,7 @@ export function ConfiguracoesClient({
       setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
     } finally {
-      setSaving(false)
+      savingRef.current = false
     }
   }
 
@@ -165,9 +166,9 @@ export function ConfiguracoesClient({
     <div className="space-y-4 animate-fade-in-up">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Configurações</h1>
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
+        <Button onClick={handleSave} className="gap-2">
           <Save className="h-4 w-4" />
-          {saving ? 'Salvando...' : 'Salvar'}
+          Salvar
         </Button>
       </div>
 
