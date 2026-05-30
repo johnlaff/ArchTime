@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
@@ -70,6 +71,7 @@ export function ConfiguracoesClient({
 }) {
   const [settings, setSettings] = useState(initialSettings)
   const savingRef = useRef(false)
+  const router = useRouter()
   const { setTheme } = useTheme()
   const { accent, setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
@@ -154,6 +156,11 @@ export function ConfiguracoesClient({
     try {
       const result = await saveSettings(settings)
       if ('error' in result) throw new Error(result.error)
+      // The week-comparison column (col-right) and sidebar live in the persistent
+      // layout and are settings-dependent (e.g. weekStartDay); refresh the current
+      // route tree so they reflect the new settings immediately — revalidateTag in
+      // the server action already cleared their server cache.
+      router.refresh()
     } catch (error) {
       setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
