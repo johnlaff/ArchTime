@@ -109,16 +109,31 @@ export function ProjetosClient() {
       return
     }
     setSaving(true)
+    const snapshot = projects
+    const editing = editingId
+    if (editing) {
+      // Optimistic in-place update; close the dialog immediately.
+      const optimistic: ProjectOption = {
+        id: editing,
+        name: form.name.trim(),
+        clientName: form.clientName.trim() || null,
+        color: form.color,
+        hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
+        isActive: snapshot.find((p) => p.id === editing)?.isActive ?? true,
+      }
+      setProjects((current) => upsertProject(current, optimistic))
+      setOpen(false)
+    }
     try {
       const payload = {
-        ...(editingId ? { id: editingId } : {}),
+        ...(editing ? { id: editing } : {}),
         name: form.name.trim(),
         clientName: form.clientName.trim() || null,
         hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
         color: form.color,
       }
       const res = await fetch('/api/projects', {
-        method: editingId ? 'PUT' : 'POST',
+        method: editing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
@@ -129,9 +144,10 @@ export function ProjetosClient() {
       const saved = normalizeProject(await res.json())
       setProjects((current) => upsertProject(current, saved))
       query.refetch()
-      toast.success(editingId ? 'Projeto atualizado' : 'Projeto criado')
-      setOpen(false)
+      toast.success(editing ? 'Projeto atualizado' : 'Projeto criado')
+      if (!editing) setOpen(false)
     } catch (error) {
+      if (editing) setProjects(snapshot) // rollback the optimistic edit
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar projeto')
     } finally {
       setSaving(false)
@@ -139,6 +155,9 @@ export function ProjetosClient() {
   }
 
   async function handleArchive(project: ProjectOption) {
+    const snapshot = projects
+    // Optimistic: flip isActive immediately.
+    setProjects((current) => upsertProject(current, { ...project, isActive: !project.isActive }))
     try {
       const res = await fetch('/api/projects', {
         method: 'PUT',
@@ -154,6 +173,7 @@ export function ProjetosClient() {
       query.refetch()
       toast.success(project.isActive ? 'Projeto arquivado' : 'Projeto reativado')
     } catch (error) {
+      setProjects(snapshot) // rollback
       toast.error(error instanceof Error ? error.message : 'Erro ao arquivar projeto')
     }
   }
