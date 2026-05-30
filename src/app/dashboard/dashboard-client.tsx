@@ -53,6 +53,14 @@ export function DashboardClient() {
     return () => window.removeEventListener('archtime:sync-complete', onSync)
   }, [sessionQuery, summaryQuery])
 
+  // The daily summary's week balance depends on weekStartDay; refetch when settings
+  // change so it updates without a manual reload (covers the in-flight cold-save race).
+  useEffect(() => {
+    const onSettingsChanged = () => summaryQuery.refetch()
+    window.addEventListener('archtime:settings-changed', onSettingsChanged)
+    return () => window.removeEventListener('archtime:settings-changed', onSettingsChanged)
+  }, [summaryQuery])
+
   async function handleClockIn() {
     await clockIn(selectedProjectId)
     sessionQuery.refetch()

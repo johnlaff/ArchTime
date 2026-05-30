@@ -1,11 +1,15 @@
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor, cleanup, act } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HistoricoClient } from './historico-client'
 import type { HistoryBundle } from '@/lib/history'
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
-}))
+// Next's useRouter returns a stable reference across renders; mirror that so
+// `load` (a useCallback keyed on router) stays stable and effects don't re-run
+// every render (an unstable mock causes a refetch loop that doesn't exist in-app).
+vi.mock('next/navigation', () => {
+  const router = { replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }
+  return { useRouter: () => router }
+})
 
 function makeBundle(weekCount: number): HistoryBundle {
   return {
@@ -63,5 +67,21 @@ describe('HistoricoClient mount revalidation (week-start / settings freshness)',
 
     // The fresh bundle (5 weeks) must replace the stale initialBundle (4 weeks).
     expect(await screen.findByText('Semana 5')).toBeTruthy()
+  })
+
+  it('refetches /api/history when settings change while mounted (closes the cold-save race)', async () => {
+    render(<HistoricoClient initialMonth="2026-05" initialBundle={makeBundle(4)} />)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    // The user changed weekStartDay; the save just committed and broadcast the event
+    // while histórico is already mounted (they navigated here during the in-flight save).
+    act(() => {
+      window.dispatchEvent(new Event('archtime:settings-changed'))
+    })
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    const [, init] = fetchMock.mock.calls[1]
+    expect(init).toMatchObject({ cache: 'no-store' })
   })
 })

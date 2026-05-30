@@ -156,11 +156,14 @@ export function ConfiguracoesClient({
     try {
       const result = await saveSettings(settings)
       if ('error' in result) throw new Error(result.error)
-      // The week-comparison column (col-right) and sidebar live in the persistent
-      // layout and are settings-dependent (e.g. weekStartDay); refresh the current
-      // route tree so they reflect the new settings immediately — revalidateTag in
-      // the server action already cleared their server cache.
+      // Settings-dependent views must reflect the change without a manual reload.
+      // router.refresh() updates the server-rendered persistent layout (col-right
+      // week comparison, sidebar) on the current route. The event lets already-mounted
+      // client views (histórico weekly breakdown, dashboard week balance) refetch —
+      // this covers the case where the user navigated to them while the (cold) save
+      // was still in flight, so the update lands the instant the save commits.
       router.refresh()
+      window.dispatchEvent(new Event('archtime:settings-changed'))
     } catch (error) {
       setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')

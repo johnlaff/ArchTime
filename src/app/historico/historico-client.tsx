@@ -134,6 +134,14 @@ export function HistoricoClient({
     load(currentMonth)
   }, [currentMonth, initialBundle, load])
 
+  // Refetch when settings change elsewhere (e.g. weekStartDay on Configurações) so
+  // the weekly breakdown reflects them even if we mounted during the in-flight save.
+  useEffect(() => {
+    const onSettingsChanged = () => load(currentMonth, 1, false, { silent: true, fresh: true })
+    window.addEventListener('archtime:settings-changed', onSettingsChanged)
+    return () => window.removeEventListener('archtime:settings-changed', onSettingsChanged)
+  }, [currentMonth, load])
+
   function prevMonth() {
     startTransition(() => {
       monthChangedByUser.current = true
