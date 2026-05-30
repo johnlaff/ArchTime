@@ -30,6 +30,11 @@ export function DashboardClient() {
   const projectsQuery = useSupabaseQuery('dashboard:projects-active', () => fetchProjects(supabase, { activeOnly: true }))
   const summaryQuery = useSupabaseQuery('dashboard:summary', fetchSummary)
 
+  // refetch is stable per key inside the hook; capture the stable refs so the
+  // event-listener effects below subscribe once instead of on every render.
+  const refetchSession = sessionQuery.refetch
+  const refetchSummary = summaryQuery.refetch
+
   const { session, setSession, clockIn, clockOut, loading } = useClock(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const seededRef = useRef(false)
@@ -46,20 +51,20 @@ export function DashboardClient() {
 
   useEffect(() => {
     const onSync = () => {
-      sessionQuery.refetch()
-      summaryQuery.refetch()
+      refetchSession()
+      refetchSummary()
     }
     window.addEventListener('archtime:sync-complete', onSync)
     return () => window.removeEventListener('archtime:sync-complete', onSync)
-  }, [sessionQuery, summaryQuery])
+  }, [refetchSession, refetchSummary])
 
   // The daily summary's week balance depends on weekStartDay; refetch when settings
   // change so it updates without a manual reload (covers the in-flight cold-save race).
   useEffect(() => {
-    const onSettingsChanged = () => summaryQuery.refetch()
+    const onSettingsChanged = () => refetchSummary()
     window.addEventListener('archtime:settings-changed', onSettingsChanged)
     return () => window.removeEventListener('archtime:settings-changed', onSettingsChanged)
-  }, [summaryQuery])
+  }, [refetchSummary])
 
   async function handleClockIn() {
     await clockIn(selectedProjectId)
