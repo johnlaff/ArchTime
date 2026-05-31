@@ -16,6 +16,7 @@ import { useAccentColor } from '@/components/accent-color-provider'
 import { persistAppearanceSettings } from '@/lib/appearance'
 import type { AccentPreset } from '@/lib/preferences'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
+import { clearClientQueryCache } from '@/hooks/use-supabase-query'
 
 const navItems = [
   { href: '/dashboard', label: 'Ponto',     icon: Clock },
@@ -33,6 +34,7 @@ export function Navbar() {
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
+    clearClientQueryCache()
     router.push('/login')
   }
 
@@ -73,7 +75,6 @@ export function Navbar() {
             <Link
               key={href}
               href={href}
-              prefetch={false}
             >
               <Button
                 variant={pathname === href ? 'secondary' : 'ghost'}

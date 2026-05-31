@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
@@ -69,7 +70,8 @@ export function ConfiguracoesClient({
   options: SettingsOptions
 }) {
   const [settings, setSettings] = useState(initialSettings)
-  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const router = useRouter()
   const { setTheme } = useTheme()
   const { accent, setAccent, customColor, setCustomColor, architecturalPreset: activePreset, setArchitecturalPreset, density, setDensity } = useAccentColor()
 
@@ -147,17 +149,26 @@ export function ConfiguracoesClient({
   }
 
   async function handleSave() {
+    if (savingRef.current) return
+    savingRef.current = true
     const snapshot = settings
-    setSaving(true)
     toast.success('Configurações salvas')
     try {
       const result = await saveSettings(settings)
       if ('error' in result) throw new Error(result.error)
+      // Settings-dependent views must reflect the change without a manual reload.
+      // router.refresh() updates the server-rendered persistent layout (col-right
+      // week comparison, sidebar) on the current route. The event lets already-mounted
+      // client views (histórico weekly breakdown, dashboard week balance) refetch —
+      // this covers the case where the user navigated to them while the (cold) save
+      // was still in flight, so the update lands the instant the save commits.
+      router.refresh()
+      window.dispatchEvent(new Event('archtime:settings-changed'))
     } catch (error) {
       setSettings(snapshot)
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
     } finally {
-      setSaving(false)
+      savingRef.current = false
     }
   }
 
@@ -165,9 +176,9 @@ export function ConfiguracoesClient({
     <div className="space-y-4 animate-fade-in-up">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Configurações</h1>
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
+        <Button onClick={handleSave} className="gap-2">
           <Save className="h-4 w-4" />
-          {saving ? 'Salvando...' : 'Salvar'}
+          Salvar
         </Button>
       </div>
 

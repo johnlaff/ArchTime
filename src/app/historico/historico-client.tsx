@@ -83,15 +83,23 @@ export function HistoricoClient({
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
-  const load = useCallback(async (date: Date, page = 1, append = false) => {
-    const silent = monthChangedByUser.current
+  const load = useCallback(async (
+    date: Date,
+    page = 1,
+    append = false,
+    opts: { silent?: boolean; fresh?: boolean } = {}
+  ) => {
+    const silent = monthChangedByUser.current || opts.silent
     monthChangedByUser.current = false
     if (append) setLoadingMore(true)
     else if (silent) setMonthLoading(true)
-    else if (!silent) setLoading(true)
+    else setLoading(true)
     try {
       const month = toYYYYMM(date)
-      const res = await fetch(`/api/history?month=${month}&page=${page}&pageSize=50`)
+      const res = await fetch(
+        `/api/history?month=${month}&page=${page}&pageSize=50`,
+        opts.fresh ? { cache: 'no-store' } : undefined
+      )
       const bundle = await parseHistoryBundleResponse(res)
       const history = bundle.history
       setData((current) => append && current
@@ -116,11 +124,23 @@ export function HistoricoClient({
   useEffect(() => {
     if (!didMount.current) {
       didMount.current = true
-      if (!initialBundle) load(currentMonth)
+      // Always revalidate settings-dependent data (week breakdown, expected, balance)
+      // on mount so a stale cached/prefetched initialBundle doesn't keep showing old
+      // week boundaries after the user changes weekStartDay. Silent + cache-bypassing
+      // when we already have an initialBundle to display (no skeleton flash).
+      load(currentMonth, 1, false, { silent: !!initialBundle, fresh: true })
       return
     }
     load(currentMonth)
   }, [currentMonth, initialBundle, load])
+
+  // Refetch when settings change elsewhere (e.g. weekStartDay on Configurações) so
+  // the weekly breakdown reflects them even if we mounted during the in-flight save.
+  useEffect(() => {
+    const onSettingsChanged = () => load(currentMonth, 1, false, { silent: true, fresh: true })
+    window.addEventListener('archtime:settings-changed', onSettingsChanged)
+    return () => window.removeEventListener('archtime:settings-changed', onSettingsChanged)
+  }, [currentMonth, load])
 
   function prevMonth() {
     startTransition(() => {
