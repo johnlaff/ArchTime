@@ -9,13 +9,17 @@ import {
   WORK_SCHEDULE_TEMPLATES,
   detectWorkScheduleTemplate,
   isAccentPreset,
+  isArchitecturalPreset,
   isCumulativeBalanceScope,
+  isDensityPreset,
   isThemeMode,
   isWeekStartDay,
   isWorkScheduleTemplate,
   normalizeWorkMinutesByWeekday,
   type AccentPreset,
+  type ArchitecturalPreset,
   type CumulativeBalanceScope,
+  type DensityPreset,
   type ThemeMode,
   type WeekStartDay,
   type WorkMinutesByWeekday,
@@ -31,6 +35,8 @@ export interface SerializedUserSettings {
   accentPreset: AccentPreset
   themeMode: ThemeMode
   weekStartDay: WeekStartDay
+  architecturalPreset: ArchitecturalPreset | null
+  density: DensityPreset
 }
 
 export interface SettingsPatch {
@@ -42,6 +48,8 @@ export interface SettingsPatch {
   accentPreset?: AccentPreset
   themeMode?: ThemeMode
   weekStartDay?: WeekStartDay
+  architecturalPreset?: ArchitecturalPreset | null
+  density?: DensityPreset
 }
 
 function firstDayOfMonth(date: string): string {
@@ -60,6 +68,10 @@ function serialize(settings: UserSettings): SerializedUserSettings {
   const accentPreset = isAccentPreset(settings.accentPreset) ? settings.accentPreset : 'indigo'
   const themeMode = isThemeMode(settings.themeMode) ? settings.themeMode : 'system'
   const weekStartDay = isWeekStartDay(settings.weekStartDay) ? settings.weekStartDay : 'monday'
+  const architecturalPreset = isArchitecturalPreset(settings.architecturalPreset)
+    ? settings.architecturalPreset
+    : null
+  const density = isDensityPreset(settings.density) ? settings.density : 'cozy'
 
   return {
     workMinutesByWeekday: minutes,
@@ -70,6 +82,8 @@ function serialize(settings: UserSettings): SerializedUserSettings {
     accentPreset,
     themeMode,
     weekStartDay,
+    architecturalPreset,
+    density,
   }
 }
 
@@ -173,6 +187,18 @@ export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatc
     patch.weekStartDay = value.weekStartDay
   }
 
+  if ('architecturalPreset' in value) {
+    if (value.architecturalPreset !== null && !isArchitecturalPreset(value.architecturalPreset)) {
+      return 'Preset arquitetônico inválido'
+    }
+    patch.architecturalPreset = value.architecturalPreset as ArchitecturalPreset | null
+  }
+
+  if ('density' in value) {
+    if (!isDensityPreset(value.density)) return 'Densidade inválida'
+    patch.density = value.density
+  }
+
   return patch
 }
 
@@ -194,6 +220,8 @@ export async function updateUserSettings(
       ...(patch.accentPreset ? { accentPreset: patch.accentPreset } : {}),
       ...(patch.themeMode ? { themeMode: patch.themeMode } : {}),
       ...(patch.weekStartDay ? { weekStartDay: patch.weekStartDay } : {}),
+      ...(patch.architecturalPreset !== undefined ? { architecturalPreset: patch.architecturalPreset } : {}),
+      ...(patch.density ? { density: patch.density } : {}),
     },
   })
   return serialize(updated)

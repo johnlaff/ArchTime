@@ -89,4 +89,23 @@ describe('parseSettingsPatch', () => {
     expect(parseSettingsPatch({ weekStartDay: 'saturday' })).toBe('Dia de início de semana inválido')
     expect(parseSettingsPatch({ weekStartDay: 42 })).toBe('Dia de início de semana inválido')
   })
+
+  it('accepts a valid architectural preset and null to clear it', () => {
+    expect(parseSettingsPatch({ architecturalPreset: 'concreto' })).toMatchObject({ architecturalPreset: 'concreto' })
+    expect(parseSettingsPatch({ architecturalPreset: null })).toMatchObject({ architecturalPreset: null })
+  })
+
+  it('rejects an invalid architectural preset', () => {
+    expect(parseSettingsPatch({ architecturalPreset: 'brutalismo' })).toBe('Preset arquitetônico inválido')
+  })
+
+  it('accepts a valid density and rejects an invalid one', () => {
+    expect(parseSettingsPatch({ density: 'compact' })).toMatchObject({ density: 'compact' })
+    expect(parseSettingsPatch({ density: 'gigante' })).toBe('Densidade inválida')
+  })
+
+  it('preserves accent and theme through parse (regression: both still round-trip)', () => {
+    expect(parseSettingsPatch({ accentPreset: 'rose' })).toMatchObject({ accentPreset: 'rose' })
+    expect(parseSettingsPatch({ themeMode: 'dark' })).toMatchObject({ themeMode: 'dark' })
+  })
 })

@@ -35,6 +35,8 @@ const standardSettings: SerializedUserSettings = {
   accentPreset: 'indigo',
   themeMode: 'system',
   weekStartDay: 'monday',
+  architecturalPreset: null,
+  density: 'cozy',
 }
 
 describe('buildPeriodBalance', () => {
