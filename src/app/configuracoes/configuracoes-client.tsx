@@ -81,6 +81,12 @@ export function ConfiguracoesClient({
     setSettings((current) => ({ ...current, ...localAppearance }))
   }, [])
 
+  // Keep settings in sync with provider appearance state so that clicking Salvar
+  // doesn't overwrite a just-changed preset or density with the stale initial value.
+  useEffect(() => {
+    setSettings((current) => ({ ...current, architecturalPreset: activePreset, density }))
+  }, [activePreset, density])
+
   const [blueprint, setBlueprint] = useState<boolean>(false)
 
   useEffect(() => {
@@ -132,11 +138,10 @@ export function ConfiguracoesClient({
   }
 
   function setAccentPreset(accentPreset: AccentPreset) {
-    setSettings((current) => ({ ...current, accentPreset }))
-    setAccent(accentPreset)
-    persistAppearanceSettings({ accentPreset }).catch((error) => {
-      toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
-    })
+    // Mirror what setAccent does server-side: clear preset + custom color so that
+    // clicking Salvar afterwards doesn't restore a stale architecturalPreset.
+    setSettings((current) => ({ ...current, accentPreset, architecturalPreset: null, customAccentColor: null }))
+    setAccent(accentPreset) // provider persists accent (+ clears preset) server-side
   }
 
   function setThemeMode(themeMode: ThemeMode) {

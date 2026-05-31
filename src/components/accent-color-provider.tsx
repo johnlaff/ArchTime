@@ -1,7 +1,8 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect } from 'react'
-import { markLocalPreferenceChange } from '@/lib/appearance'
+import { toast } from 'sonner'
+import { markLocalPreferenceChange, persistAppearanceSettings, type AppearancePatch } from '@/lib/appearance'
 import {
   ACCENT_PRESETS,
   ARCHITECTURAL_PRESETS,
@@ -43,25 +44,30 @@ const CUSTOM_ACCENT_PROPERTIES = [
 interface AccentColorContextValue {
   accent: AccentPreset | 'custom'
   setAccent: (a: AccentPreset) => void
-  syncAccentFromRemote: (a: AccentPreset) => void
   customColor: string | null
   setCustomColor: (hex: string) => void
   architecturalPreset: ArchitecturalPreset | null
   setArchitecturalPreset: (p: ArchitecturalPreset | null) => void
   density: DensityPreset
   setDensity: (d: DensityPreset) => void
+  syncAppearanceFromRemote: (patch: {
+    accentPreset?: AccentPreset | 'custom'
+    customAccentColor?: string | null
+    architecturalPreset?: ArchitecturalPreset | null
+    density?: DensityPreset
+  }) => void
 }
 
 const AccentColorContext = createContext<AccentColorContextValue>({
   accent: 'indigo',
   setAccent: () => {},
-  syncAccentFromRemote: () => {},
   customColor: null,
   setCustomColor: () => {},
   architecturalPreset: null,
   setArchitecturalPreset: () => {},
   density: 'cozy',
   setDensity: () => {},
+  syncAppearanceFromRemote: () => {},
 })
 
 function applyCustomAccentProperties(hex: string) {
@@ -126,6 +132,12 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     if (savedDensity && isDensityPreset(savedDensity)) setDensityState(savedDensity)
   }, [])
 
+  function persist(patch: AppearancePatch) {
+    persistAppearanceSettings(patch).catch((error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
+    })
+  }
+
   function setAccent(newAccent: AccentPreset) {
     markLocalPreferenceChange()
     setAccentState(newAccent)
@@ -140,16 +152,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     syncBrowserAccentColor(
       getEffectiveBrowserAccentColor({ accent: newAccent, customColor: null, architecturalPreset: null })
     )
-  }
-
-  // For server-sync paths (hydration, save response) — updates accent state only
-  // without touching the architectural preset or custom color.
-  function syncAccentFromRemote(newAccent: AccentPreset) {
-    setAccentState(newAccent)
-    document.documentElement.setAttribute('data-accent', newAccent)
-    clearCustomAccentProperties()
-    localStorage.setItem('archtime-accent', newAccent)
-    localStorage.removeItem(CUSTOM_COLOR_KEY)
+    persist({ accentPreset: newAccent, architecturalPreset: null })
   }
 
   function setCustomColor(hex: string) {
@@ -168,6 +171,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     syncBrowserAccentColor(
       getEffectiveBrowserAccentColor({ accent: 'custom', customColor: normalized, architecturalPreset: null })
     )
+    persist({ accentPreset: 'custom', customAccentColor: normalized, architecturalPreset: null })
   }
 
   function setArchitecturalPreset(preset: ArchitecturalPreset | null) {
@@ -194,6 +198,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
         })
       )
     }
+    persist({ architecturalPreset: preset })
   }
 
   function setDensity(newDensity: DensityPreset) {
@@ -201,11 +206,69 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     setDensityState(newDensity)
     document.documentElement.setAttribute('data-density', newDensity)
     localStorage.setItem(DENSITY_KEY, newDensity)
+    persist({ density: newDensity })
+  }
+
+  // Applies server-synced appearance (hydration path) without marking a local change.
+  function syncAppearanceFromRemote(patch: {
+    accentPreset?: AccentPreset | 'custom'
+    customAccentColor?: string | null
+    architecturalPreset?: ArchitecturalPreset | null
+    density?: DensityPreset
+  }) {
+    let nextAccent: AccentPreset | 'custom' = accent
+    let nextCustomColor = customColor
+    let nextPreset = architecturalPreset
+
+    if (patch.accentPreset === 'custom' && patch.customAccentColor) {
+      const normalized = normalizeHexColor(patch.customAccentColor)
+      if (normalized) {
+        nextAccent = 'custom'
+        nextCustomColor = normalized
+        setAccentState('custom')
+        setCustomColorState(normalized)
+        document.documentElement.setAttribute('data-accent', 'custom')
+        applyCustomAccentProperties(normalized)
+        localStorage.setItem('archtime-accent', 'custom')
+        localStorage.setItem(CUSTOM_COLOR_KEY, normalized)
+      }
+    } else if (patch.accentPreset && patch.accentPreset !== 'custom') {
+      nextAccent = patch.accentPreset
+      nextCustomColor = null
+      setAccentState(patch.accentPreset)
+      setCustomColorState(null)
+      document.documentElement.setAttribute('data-accent', patch.accentPreset)
+      clearCustomAccentProperties()
+      localStorage.setItem('archtime-accent', patch.accentPreset)
+      localStorage.removeItem(CUSTOM_COLOR_KEY)
+    }
+
+    if (patch.architecturalPreset !== undefined) {
+      nextPreset = patch.architecturalPreset
+      setArchitecturalPresetState(patch.architecturalPreset)
+      if (patch.architecturalPreset) {
+        document.documentElement.setAttribute('data-preset', patch.architecturalPreset)
+        localStorage.setItem(PRESET_KEY, patch.architecturalPreset)
+      } else {
+        document.documentElement.removeAttribute('data-preset')
+        localStorage.removeItem(PRESET_KEY)
+      }
+    }
+
+    if (patch.density) {
+      setDensityState(patch.density)
+      document.documentElement.setAttribute('data-density', patch.density)
+      localStorage.setItem(DENSITY_KEY, patch.density)
+    }
+
+    syncBrowserAccentColor(
+      getEffectiveBrowserAccentColor({ accent: nextAccent, customColor: nextCustomColor, architecturalPreset: nextPreset })
+    )
   }
 
   return (
     <AccentColorContext.Provider
-      value={{ accent, setAccent, syncAccentFromRemote, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity }}
+      value={{ accent, setAccent, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity, syncAppearanceFromRemote }}
     >
       {children}
     </AccentColorContext.Provider>

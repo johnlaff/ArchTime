@@ -3,14 +3,12 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Moon, Sun, Palette, Settings, LogOut } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase/client'
 import { useAccentColor } from '@/components/accent-color-provider'
 import { AccentColorPicker } from '@/components/accent-color-picker'
 import type { AccentPreset } from '@/lib/preferences'
-import { persistAppearanceSettings } from '@/lib/appearance'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
 
 export interface SidebarFooterProps {
@@ -31,15 +29,8 @@ export function SidebarFooterControls({ email, initials, name, avatarUrl }: Side
     router.push('/login')
   }
 
-  function persistAppearance(patch: Parameters<typeof persistAppearanceSettings>[0]) {
-    persistAppearanceSettings(patch).catch((err) => {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar aparência')
-    })
-  }
-
   function handleAccentChange(next: AccentPreset) {
-    setAccent(next)
-    persistAppearance({ accentPreset: next })
+    setAccent(next) // provider persists accent server-side
   }
 
   return (

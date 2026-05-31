@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Moon, Sun, Clock, FolderOpen, History, LogOut, Palette, Settings } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -13,7 +12,6 @@ import {
 import { AccentColorPicker } from '@/components/accent-color-picker'
 import { createClient } from '@/lib/supabase/client'
 import { useAccentColor } from '@/components/accent-color-provider'
-import { persistAppearanceSettings } from '@/lib/appearance'
 import type { AccentPreset } from '@/lib/preferences'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
 import { clearClientQueryCache } from '@/hooks/use-supabase-query'
@@ -38,15 +36,8 @@ export function Navbar() {
     router.push('/login')
   }
 
-  function persistAppearance(patch: Parameters<typeof persistAppearanceSettings>[0]) {
-    persistAppearanceSettings(patch).catch((error) => {
-      toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
-    })
-  }
-
   function handleAccentChange(nextAccent: AccentPreset) {
-    setAccent(nextAccent)
-    persistAppearance({ accentPreset: nextAccent })
+    setAccent(nextAccent) // provider persists accent server-side
   }
 
   return (

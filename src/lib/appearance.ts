@@ -2,6 +2,8 @@ import {
   isAccentPreset,
   isThemeMode,
   type AccentPreset,
+  type ArchitecturalPreset,
+  type DensityPreset,
   type ThemeMode,
 } from '@/lib/preferences'
 
@@ -11,8 +13,11 @@ const ACCENT_STORAGE_KEY = 'archtime-accent'
 const THEME_STORAGE_KEY = 'theme'
 
 export interface AppearancePatch {
-  accentPreset?: AccentPreset
+  accentPreset?: AccentPreset | 'custom'
   themeMode?: ThemeMode
+  architecturalPreset?: ArchitecturalPreset | null
+  density?: DensityPreset
+  customAccentColor?: string | null
 }
 
 export function getNextThemeMode(resolvedTheme: string | undefined): Exclude<ThemeMode, 'system'> {

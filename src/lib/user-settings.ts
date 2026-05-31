@@ -1,6 +1,7 @@
 import { Prisma, type UserSettings } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
+import { normalizeHexColor } from '@/lib/custom-color'
 import {
   ACCENT_PRESETS,
   CUMULATIVE_BALANCE_SCOPES,
@@ -9,13 +10,17 @@ import {
   WORK_SCHEDULE_TEMPLATES,
   detectWorkScheduleTemplate,
   isAccentPreset,
+  isArchitecturalPreset,
   isCumulativeBalanceScope,
+  isDensityPreset,
   isThemeMode,
   isWeekStartDay,
   isWorkScheduleTemplate,
   normalizeWorkMinutesByWeekday,
   type AccentPreset,
+  type ArchitecturalPreset,
   type CumulativeBalanceScope,
+  type DensityPreset,
   type ThemeMode,
   type WeekStartDay,
   type WorkMinutesByWeekday,
@@ -28,9 +33,12 @@ export interface SerializedUserSettings {
   showCumulativeBalance: boolean
   cumulativeBalanceScope: CumulativeBalanceScope
   cumulativeStartDate: string
-  accentPreset: AccentPreset
+  accentPreset: AccentPreset | 'custom'
   themeMode: ThemeMode
   weekStartDay: WeekStartDay
+  architecturalPreset: ArchitecturalPreset | null
+  density: DensityPreset
+  customAccentColor: string | null
 }
 
 export interface SettingsPatch {
@@ -39,9 +47,12 @@ export interface SettingsPatch {
   showCumulativeBalance?: boolean
   cumulativeBalanceScope?: CumulativeBalanceScope
   cumulativeStartDate?: string
-  accentPreset?: AccentPreset
+  accentPreset?: AccentPreset | 'custom'
   themeMode?: ThemeMode
   weekStartDay?: WeekStartDay
+  architecturalPreset?: ArchitecturalPreset | null
+  density?: DensityPreset
+  customAccentColor?: string | null
 }
 
 function firstDayOfMonth(date: string): string {
@@ -57,9 +68,16 @@ function serialize(settings: UserSettings): SerializedUserSettings {
   const scope = isCumulativeBalanceScope(settings.cumulativeBalanceScope)
     ? settings.cumulativeBalanceScope
     : 'since_start'
-  const accentPreset = isAccentPreset(settings.accentPreset) ? settings.accentPreset : 'indigo'
+  const accentPreset = settings.accentPreset === 'custom'
+    ? 'custom' as const
+    : (isAccentPreset(settings.accentPreset) ? settings.accentPreset : 'indigo')
+  const customAccentColor = normalizeHexColor(settings.customAccentColor)
   const themeMode = isThemeMode(settings.themeMode) ? settings.themeMode : 'system'
   const weekStartDay = isWeekStartDay(settings.weekStartDay) ? settings.weekStartDay : 'monday'
+  const architecturalPreset = isArchitecturalPreset(settings.architecturalPreset)
+    ? settings.architecturalPreset
+    : null
+  const density = isDensityPreset(settings.density) ? settings.density : 'cozy'
 
   return {
     workMinutesByWeekday: minutes,
@@ -70,6 +88,9 @@ function serialize(settings: UserSettings): SerializedUserSettings {
     accentPreset,
     themeMode,
     weekStartDay,
+    architecturalPreset,
+    density,
+    customAccentColor,
   }
 }
 
@@ -159,8 +180,10 @@ export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatc
   }
 
   if ('accentPreset' in value) {
-    if (!isAccentPreset(value.accentPreset)) return 'Preset visual inválido'
-    patch.accentPreset = value.accentPreset
+    if (value.accentPreset !== 'custom' && !isAccentPreset(value.accentPreset)) {
+      return 'Preset visual inválido'
+    }
+    patch.accentPreset = value.accentPreset as AccentPreset | 'custom'
   }
 
   if ('themeMode' in value) {
@@ -171,6 +194,30 @@ export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatc
   if ('weekStartDay' in value) {
     if (!isWeekStartDay(value.weekStartDay)) return 'Dia de início de semana inválido'
     patch.weekStartDay = value.weekStartDay
+  }
+
+  if ('architecturalPreset' in value) {
+    if (value.architecturalPreset !== null && !isArchitecturalPreset(value.architecturalPreset)) {
+      return 'Preset arquitetônico inválido'
+    }
+    patch.architecturalPreset = value.architecturalPreset as ArchitecturalPreset | null
+  }
+
+  if ('density' in value) {
+    if (!isDensityPreset(value.density)) return 'Densidade inválida'
+    patch.density = value.density
+  }
+
+  if ('customAccentColor' in value) {
+    if (value.customAccentColor === null) {
+      patch.customAccentColor = null
+    } else if (typeof value.customAccentColor !== 'string') {
+      return 'Cor personalizada inválida'
+    } else {
+      const normalized = normalizeHexColor(value.customAccentColor)
+      if (!normalized) return 'Cor personalizada inválida'
+      patch.customAccentColor = normalized
+    }
   }
 
   return patch
@@ -194,6 +241,9 @@ export async function updateUserSettings(
       ...(patch.accentPreset ? { accentPreset: patch.accentPreset } : {}),
       ...(patch.themeMode ? { themeMode: patch.themeMode } : {}),
       ...(patch.weekStartDay ? { weekStartDay: patch.weekStartDay } : {}),
+      ...(patch.architecturalPreset !== undefined ? { architecturalPreset: patch.architecturalPreset } : {}),
+      ...(patch.density ? { density: patch.density } : {}),
+      ...(patch.customAccentColor !== undefined ? { customAccentColor: patch.customAccentColor } : {}),
     },
   })
   return serialize(updated)

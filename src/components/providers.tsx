@@ -19,7 +19,7 @@ import {
 function PreferencesHydrator() {
   const pathname = usePathname()
   const { setTheme } = useTheme()
-  const { syncAccentFromRemote } = useAccentColor()
+  const { syncAppearanceFromRemote } = useAccentColor()
   usePerfMonitor()
 
   const toggleTheme = useThemeToggle()
@@ -37,12 +37,27 @@ function PreferencesHydrator() {
       .then((body) => {
         if (cancelled || !body?.settings) return
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
-        if (!hasLocalCustomAccentPreference()) syncAccentFromRemote(body.settings.accentPreset)
+        // Skip overwriting a local custom accent only when the server is a plain
+        // preset — but when both sides are 'custom', the server hex is newer (the
+        // user updated it on another device) so we DO sync it.
+        if (!hasLocalCustomAccentPreference() || body.settings.accentPreset === 'custom') {
+          syncAppearanceFromRemote({
+            accentPreset: body.settings.accentPreset,
+            customAccentColor: body.settings.customAccentColor,
+            architecturalPreset: body.settings.architecturalPreset ?? null,
+            density: body.settings.density,
+          })
+        } else {
+          syncAppearanceFromRemote({
+            architecturalPreset: body.settings.architecturalPreset ?? null,
+            density: body.settings.density,
+          })
+        }
         setTheme(body.settings.themeMode)
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [syncAccentFromRemote, setTheme, isAuthRoute])
+  }, [syncAppearanceFromRemote, setTheme, isAuthRoute])
 
   return null
 }
