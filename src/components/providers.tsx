@@ -37,7 +37,16 @@ function PreferencesHydrator() {
       .then((body) => {
         if (cancelled || !body?.settings) return
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
-        if (!hasLocalCustomAccentPreference()) syncAccentFromRemote(body.settings.accentPreset)
+        if (!hasLocalCustomAccentPreference()) {
+          if (body.settings.accentPreset === 'custom' && body.settings.customAccentColor) {
+            syncAppearanceFromRemote({
+              accentPreset: 'custom',
+              customAccentColor: body.settings.customAccentColor,
+            })
+          } else {
+            syncAccentFromRemote(body.settings.accentPreset)
+          }
+        }
         setTheme(body.settings.themeMode)
         syncAppearanceFromRemote({
           architecturalPreset: body.settings.architecturalPreset ?? null,
