@@ -19,7 +19,7 @@ import {
 function PreferencesHydrator() {
   const pathname = usePathname()
   const { setTheme } = useTheme()
-  const { syncAccentFromRemote, syncAppearanceFromRemote } = useAccentColor()
+  const { syncAppearanceFromRemote } = useAccentColor()
   usePerfMonitor()
 
   const toggleTheme = useThemeToggle()
@@ -38,24 +38,23 @@ function PreferencesHydrator() {
         if (cancelled || !body?.settings) return
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
         if (!hasLocalCustomAccentPreference()) {
-          if (body.settings.accentPreset === 'custom' && body.settings.customAccentColor) {
-            syncAppearanceFromRemote({
-              accentPreset: 'custom',
-              customAccentColor: body.settings.customAccentColor,
-            })
-          } else {
-            syncAccentFromRemote(body.settings.accentPreset)
-          }
+          syncAppearanceFromRemote({
+            accentPreset: body.settings.accentPreset,
+            customAccentColor: body.settings.customAccentColor,
+            architecturalPreset: body.settings.architecturalPreset ?? null,
+            density: body.settings.density,
+          })
+        } else {
+          syncAppearanceFromRemote({
+            architecturalPreset: body.settings.architecturalPreset ?? null,
+            density: body.settings.density,
+          })
         }
         setTheme(body.settings.themeMode)
-        syncAppearanceFromRemote({
-          architecturalPreset: body.settings.architecturalPreset ?? null,
-          density: body.settings.density,
-        })
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [syncAccentFromRemote, syncAppearanceFromRemote, setTheme, isAuthRoute])
+  }, [syncAppearanceFromRemote, setTheme, isAuthRoute])
 
   return null
 }

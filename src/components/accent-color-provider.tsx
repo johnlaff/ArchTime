@@ -44,7 +44,6 @@ const CUSTOM_ACCENT_PROPERTIES = [
 interface AccentColorContextValue {
   accent: AccentPreset | 'custom'
   setAccent: (a: AccentPreset) => void
-  syncAccentFromRemote: (a: AccentPreset) => void
   customColor: string | null
   setCustomColor: (hex: string) => void
   architecturalPreset: ArchitecturalPreset | null
@@ -62,7 +61,6 @@ interface AccentColorContextValue {
 const AccentColorContext = createContext<AccentColorContextValue>({
   accent: 'indigo',
   setAccent: () => {},
-  syncAccentFromRemote: () => {},
   customColor: null,
   setCustomColor: () => {},
   architecturalPreset: null,
@@ -157,16 +155,6 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     persist({ accentPreset: newAccent, architecturalPreset: null })
   }
 
-  // For server-sync paths (hydration, save response) — updates accent state only
-  // without touching the architectural preset or custom color.
-  function syncAccentFromRemote(newAccent: AccentPreset) {
-    setAccentState(newAccent)
-    document.documentElement.setAttribute('data-accent', newAccent)
-    clearCustomAccentProperties()
-    localStorage.setItem('archtime-accent', newAccent)
-    localStorage.removeItem(CUSTOM_COLOR_KEY)
-  }
-
   function setCustomColor(hex: string) {
     const normalized = normalizeHexColor(hex)
     if (!normalized) return
@@ -244,6 +232,15 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
         localStorage.setItem('archtime-accent', 'custom')
         localStorage.setItem(CUSTOM_COLOR_KEY, normalized)
       }
+    } else if (patch.accentPreset && patch.accentPreset !== 'custom') {
+      nextAccent = patch.accentPreset
+      nextCustomColor = null
+      setAccentState(patch.accentPreset)
+      setCustomColorState(null)
+      document.documentElement.setAttribute('data-accent', patch.accentPreset)
+      clearCustomAccentProperties()
+      localStorage.setItem('archtime-accent', patch.accentPreset)
+      localStorage.removeItem(CUSTOM_COLOR_KEY)
     }
 
     if (patch.architecturalPreset !== undefined) {
@@ -271,7 +268,7 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
 
   return (
     <AccentColorContext.Provider
-      value={{ accent, setAccent, syncAccentFromRemote, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity, syncAppearanceFromRemote }}
+      value={{ accent, setAccent, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity, syncAppearanceFromRemote }}
     >
       {children}
     </AccentColorContext.Provider>

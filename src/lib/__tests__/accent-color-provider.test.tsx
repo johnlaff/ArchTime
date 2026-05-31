@@ -29,6 +29,9 @@ function ProviderHarness() {
       <button type="button" onClick={() => syncAppearanceFromRemote({ accentPreset: 'custom', customAccentColor: '#123456' })}>
         hydrate-custom
       </button>
+      <button type="button" onClick={() => syncAppearanceFromRemote({ accentPreset: 'blue' })}>
+        hydrate-accent
+      </button>
     </div>
   )
 }
@@ -151,6 +154,16 @@ describe('AccentColorProvider browser accent sync', () => {
     expect(document.documentElement.getAttribute('data-accent')).toBe('custom')
     expect(localStorage.getItem('archtime-accent')).toBe('custom')
     expect(localStorage.getItem('archtime-accent-custom')).toBe('#123456')
+    expect(currentIconHref()).toContain('%23123456')
+  })
+
+  it('applies a remote preset accent on hydration (icon + state)', () => {
+    act(() => {
+      root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
+    })
+    act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(7)')?.click() })
+    expect(document.documentElement.getAttribute('data-accent')).toBe('blue')
+    expect(currentIconHref()).toContain('%233b82f6')
   })
 
   it('clears the architectural preset before syncing a custom color', () => {
