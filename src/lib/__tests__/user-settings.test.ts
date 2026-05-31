@@ -108,4 +108,14 @@ describe('parseSettingsPatch', () => {
     expect(parseSettingsPatch({ accentPreset: 'rose' })).toMatchObject({ accentPreset: 'rose' })
     expect(parseSettingsPatch({ themeMode: 'dark' })).toMatchObject({ themeMode: 'dark' })
   })
+
+  it('accepts accentPreset "custom" and a valid custom color', () => {
+    expect(parseSettingsPatch({ accentPreset: 'custom' })).toMatchObject({ accentPreset: 'custom' })
+    expect(parseSettingsPatch({ customAccentColor: '#AB12CD' })).toMatchObject({ customAccentColor: '#ab12cd' })
+    expect(parseSettingsPatch({ customAccentColor: null })).toMatchObject({ customAccentColor: null })
+  })
+
+  it('rejects an invalid custom color', () => {
+    expect(parseSettingsPatch({ customAccentColor: 'not-a-color' })).toBe('Cor personalizada inválida')
+  })
 })

@@ -1,6 +1,7 @@
 import { Prisma, type UserSettings } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
+import { normalizeHexColor } from '@/lib/custom-color'
 import {
   ACCENT_PRESETS,
   CUMULATIVE_BALANCE_SCOPES,
@@ -32,11 +33,12 @@ export interface SerializedUserSettings {
   showCumulativeBalance: boolean
   cumulativeBalanceScope: CumulativeBalanceScope
   cumulativeStartDate: string
-  accentPreset: AccentPreset
+  accentPreset: AccentPreset | 'custom'
   themeMode: ThemeMode
   weekStartDay: WeekStartDay
   architecturalPreset: ArchitecturalPreset | null
   density: DensityPreset
+  customAccentColor: string | null
 }
 
 export interface SettingsPatch {
@@ -45,11 +47,12 @@ export interface SettingsPatch {
   showCumulativeBalance?: boolean
   cumulativeBalanceScope?: CumulativeBalanceScope
   cumulativeStartDate?: string
-  accentPreset?: AccentPreset
+  accentPreset?: AccentPreset | 'custom'
   themeMode?: ThemeMode
   weekStartDay?: WeekStartDay
   architecturalPreset?: ArchitecturalPreset | null
   density?: DensityPreset
+  customAccentColor?: string | null
 }
 
 function firstDayOfMonth(date: string): string {
@@ -65,7 +68,10 @@ function serialize(settings: UserSettings): SerializedUserSettings {
   const scope = isCumulativeBalanceScope(settings.cumulativeBalanceScope)
     ? settings.cumulativeBalanceScope
     : 'since_start'
-  const accentPreset = isAccentPreset(settings.accentPreset) ? settings.accentPreset : 'indigo'
+  const accentPreset = settings.accentPreset === 'custom'
+    ? 'custom' as const
+    : (isAccentPreset(settings.accentPreset) ? settings.accentPreset : 'indigo')
+  const customAccentColor = normalizeHexColor(settings.customAccentColor)
   const themeMode = isThemeMode(settings.themeMode) ? settings.themeMode : 'system'
   const weekStartDay = isWeekStartDay(settings.weekStartDay) ? settings.weekStartDay : 'monday'
   const architecturalPreset = isArchitecturalPreset(settings.architecturalPreset)
@@ -84,6 +90,7 @@ function serialize(settings: UserSettings): SerializedUserSettings {
     weekStartDay,
     architecturalPreset,
     density,
+    customAccentColor,
   }
 }
 
@@ -173,8 +180,10 @@ export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatc
   }
 
   if ('accentPreset' in value) {
-    if (!isAccentPreset(value.accentPreset)) return 'Preset visual inválido'
-    patch.accentPreset = value.accentPreset
+    if (value.accentPreset !== 'custom' && !isAccentPreset(value.accentPreset)) {
+      return 'Preset visual inválido'
+    }
+    patch.accentPreset = value.accentPreset as AccentPreset | 'custom'
   }
 
   if ('themeMode' in value) {
@@ -197,6 +206,16 @@ export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatc
   if ('density' in value) {
     if (!isDensityPreset(value.density)) return 'Densidade inválida'
     patch.density = value.density
+  }
+
+  if ('customAccentColor' in value) {
+    if (value.customAccentColor === null) {
+      patch.customAccentColor = null
+    } else {
+      const normalized = normalizeHexColor(value.customAccentColor as string)
+      if (!normalized) return 'Cor personalizada inválida'
+      patch.customAccentColor = normalized
+    }
   }
 
   return patch
@@ -222,6 +241,7 @@ export async function updateUserSettings(
       ...(patch.weekStartDay ? { weekStartDay: patch.weekStartDay } : {}),
       ...(patch.architecturalPreset !== undefined ? { architecturalPreset: patch.architecturalPreset } : {}),
       ...(patch.density ? { density: patch.density } : {}),
+      ...(patch.customAccentColor !== undefined ? { customAccentColor: patch.customAccentColor } : {}),
     },
   })
   return serialize(updated)

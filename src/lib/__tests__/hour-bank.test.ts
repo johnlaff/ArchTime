@@ -37,6 +37,7 @@ const standardSettings: SerializedUserSettings = {
   weekStartDay: 'monday',
   architecturalPreset: null,
   density: 'cozy',
+  customAccentColor: null,
 }
 
 describe('buildPeriodBalance', () => {
