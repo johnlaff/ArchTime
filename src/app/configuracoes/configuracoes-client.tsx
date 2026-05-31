@@ -81,6 +81,12 @@ export function ConfiguracoesClient({
     setSettings((current) => ({ ...current, ...localAppearance }))
   }, [])
 
+  // Keep settings in sync with provider appearance state so that clicking Salvar
+  // doesn't overwrite a just-changed preset or density with the stale initial value.
+  useEffect(() => {
+    setSettings((current) => ({ ...current, architecturalPreset: activePreset, density }))
+  }, [activePreset, density])
+
   const [blueprint, setBlueprint] = useState<boolean>(false)
 
   useEffect(() => {
