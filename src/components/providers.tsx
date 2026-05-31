@@ -19,7 +19,7 @@ import {
 function PreferencesHydrator() {
   const pathname = usePathname()
   const { setTheme } = useTheme()
-  const { syncAccentFromRemote } = useAccentColor()
+  const { syncAccentFromRemote, syncAppearanceFromRemote } = useAccentColor()
   usePerfMonitor()
 
   const toggleTheme = useThemeToggle()
@@ -39,10 +39,14 @@ function PreferencesHydrator() {
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
         if (!hasLocalCustomAccentPreference()) syncAccentFromRemote(body.settings.accentPreset)
         setTheme(body.settings.themeMode)
+        syncAppearanceFromRemote({
+          architecturalPreset: body.settings.architecturalPreset ?? null,
+          density: body.settings.density,
+        })
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [syncAccentFromRemote, setTheme, isAuthRoute])
+  }, [syncAccentFromRemote, syncAppearanceFromRemote, setTheme, isAuthRoute])
 
   return null
 }
