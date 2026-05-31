@@ -37,7 +37,10 @@ function PreferencesHydrator() {
       .then((body) => {
         if (cancelled || !body?.settings) return
         if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
-        if (!hasLocalCustomAccentPreference()) {
+        // Skip overwriting a local custom accent only when the server is a plain
+        // preset — but when both sides are 'custom', the server hex is newer (the
+        // user updated it on another device) so we DO sync it.
+        if (!hasLocalCustomAccentPreference() || body.settings.accentPreset === 'custom') {
           syncAppearanceFromRemote({
             accentPreset: body.settings.accentPreset,
             customAccentColor: body.settings.customAccentColor,

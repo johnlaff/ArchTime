@@ -132,7 +132,9 @@ export function ConfiguracoesClient({
   }
 
   function setAccentPreset(accentPreset: AccentPreset) {
-    setSettings((current) => ({ ...current, accentPreset }))
+    // Mirror what setAccent does server-side: clear preset + custom color so that
+    // clicking Salvar afterwards doesn't restore a stale architecturalPreset.
+    setSettings((current) => ({ ...current, accentPreset, architecturalPreset: null, customAccentColor: null }))
     setAccent(accentPreset) // provider persists accent (+ clears preset) server-side
   }
 

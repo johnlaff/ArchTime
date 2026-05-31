@@ -211,8 +211,10 @@ export function parseSettingsPatch(value: Record<string, unknown>): SettingsPatc
   if ('customAccentColor' in value) {
     if (value.customAccentColor === null) {
       patch.customAccentColor = null
+    } else if (typeof value.customAccentColor !== 'string') {
+      return 'Cor personalizada inválida'
     } else {
-      const normalized = normalizeHexColor(value.customAccentColor as string)
+      const normalized = normalizeHexColor(value.customAccentColor)
       if (!normalized) return 'Cor personalizada inválida'
       patch.customAccentColor = normalized
     }

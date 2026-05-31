@@ -115,7 +115,10 @@ describe('parseSettingsPatch', () => {
     expect(parseSettingsPatch({ customAccentColor: null })).toMatchObject({ customAccentColor: null })
   })
 
-  it('rejects an invalid custom color', () => {
+  it('rejects an invalid custom color (string or non-string)', () => {
     expect(parseSettingsPatch({ customAccentColor: 'not-a-color' })).toBe('Cor personalizada inválida')
+    // Non-string values must return an error, not throw a TypeError (Copilot #2 regression)
+    expect(parseSettingsPatch({ customAccentColor: 42 as unknown as string })).toBe('Cor personalizada inválida')
+    expect(parseSettingsPatch({ customAccentColor: {} as unknown as string })).toBe('Cor personalizada inválida')
   })
 })
