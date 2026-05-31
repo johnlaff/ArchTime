@@ -133,10 +133,7 @@ export function ConfiguracoesClient({
 
   function setAccentPreset(accentPreset: AccentPreset) {
     setSettings((current) => ({ ...current, accentPreset }))
-    setAccent(accentPreset)
-    persistAppearanceSettings({ accentPreset }).catch((error) => {
-      toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
-    })
+    setAccent(accentPreset) // provider persists accent (+ clears preset) server-side
   }
 
   function setThemeMode(themeMode: ThemeMode) {
