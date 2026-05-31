@@ -7,7 +7,7 @@ import {
 } from '@/components/accent-color-provider'
 
 function ProviderHarness() {
-  const { setAccent, setArchitecturalPreset, setCustomColor } = useAccentColor()
+  const { setAccent, setArchitecturalPreset, setCustomColor, setDensity, syncAppearanceFromRemote } = useAccentColor()
 
   return (
     <div>
@@ -19,6 +19,12 @@ function ProviderHarness() {
       </button>
       <button type="button" onClick={() => setCustomColor('#ffffff')}>
         white
+      </button>
+      <button type="button" onClick={() => setDensity('compact')}>
+        density
+      </button>
+      <button type="button" onClick={() => syncAppearanceFromRemote({ architecturalPreset: 'terracota', density: 'spacious' })}>
+        hydrate
       </button>
     </div>
   )
@@ -34,6 +40,7 @@ describe('AccentColorProvider browser accent sync', () => {
 
   beforeEach(() => {
     vi.useFakeTimers()
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
     localStorage.clear()
     document.cookie = ''
     document.head.innerHTML = ''
@@ -49,10 +56,55 @@ describe('AccentColorProvider browser accent sync', () => {
     container.remove()
     vi.runOnlyPendingTimers()
     vi.useRealTimers()
+    vi.unstubAllGlobals()
     localStorage.clear()
     document.head.innerHTML = ''
     document.documentElement.removeAttribute('data-accent')
     document.documentElement.removeAttribute('data-preset')
+  })
+
+  function lastPatch() {
+    const fetchMock = globalThis.fetch as unknown as { mock: { calls: [string, { body: string }][] } }
+    const call = fetchMock.mock.calls.at(-1)
+    return call ? JSON.parse(call[1].body) : null
+  }
+
+  it('persists the architectural preset to the server when set', () => {
+    act(() => {
+      root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
+    })
+    act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(1)')?.click() })
+    expect(lastPatch()).toEqual({ architecturalPreset: 'vegetacao' })
+  })
+
+  it('persists density to the server when set', () => {
+    act(() => {
+      root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
+    })
+    act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(4)')?.click() })
+    expect(lastPatch()).toEqual({ density: 'compact' })
+  })
+
+  it('persists accent AND clears the preset server-side when an accent is chosen (regression: accent still syncs)', () => {
+    act(() => {
+      root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
+    })
+    act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(2)')?.click() })
+    expect(lastPatch()).toEqual({ accentPreset: 'rose', architecturalPreset: null })
+  })
+
+  it('applies remote preset + density on hydration without persisting them back', () => {
+    act(() => {
+      root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
+    })
+    const before = (globalThis.fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length
+    act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(5)')?.click() })
+    expect(document.documentElement.getAttribute('data-preset')).toBe('terracota')
+    expect(document.documentElement.getAttribute('data-density')).toBe('spacious')
+    expect(localStorage.getItem('archtime-preset')).toBe('terracota')
+    expect(localStorage.getItem('archtime-density')).toBe('spacious')
+    const after = (globalThis.fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length
+    expect(after).toBe(before)
   })
 
   it('clears the architectural preset before syncing a selected accent color', () => {
