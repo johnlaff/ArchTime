@@ -26,6 +26,10 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   retries: 0,
+  // Serial: a suíte compartilha um dev server e UMA conta; o fluxo de ponto é
+  // mutante. Rodar em paralelo causa interferência e timeouts no dev frio.
+  workers: 1,
+  fullyParallel: false,
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     trace: 'on-first-retry',
