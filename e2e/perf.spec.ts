@@ -12,6 +12,11 @@ const THRESHOLD_MS = 300
 
 test.describe('Navegação entre abas', () => {
   test.beforeEach(async ({ page }) => {
+    // Benchmark de navegação: o limite de 300ms é calibrado para um build de
+    // produção. O `next dev` (compile sob demanda, sem otimização) é lento demais,
+    // então este spec é opt-in: rode com PERF=1 e, idealmente, PLAYWRIGHT_BASE_URL
+    // apontando para um `next start`/preview.
+    test.skip(!process.env.PERF, 'Perf é opt-in: PERF=1 contra um build de produção')
     await injectSupabaseSession(page)
     await page.reload()
   })

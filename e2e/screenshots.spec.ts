@@ -6,11 +6,18 @@ import { test, expect, type Page } from '@playwright/test'
 
 const DIR = 'e2e/screenshots'
 
+// Capture tooling, not an assertion suite: opt-in via SHOTS=1 so `npm run test:e2e`
+// stays focused on functional assertions (the dev server is slow/uneven for full-page
+// captures). Run: `SHOTS=1 npx playwright test --project=chromium screenshots.spec.ts`.
+test.beforeEach(() => {
+  test.skip(!process.env.SHOTS, 'Captura sob demanda: rode com SHOTS=1')
+})
+
 async function gotoDashboard(page: Page) {
   await page.goto('/dashboard')
-  await expect(page.getByRole('heading', { name: 'Ponto' })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('heading', { name: 'Ponto' })).toBeVisible({ timeout: 30_000 })
   // ActivityPanel is lazy + fetches /api/activity/overview; wait past the skeleton.
-  await expect(page.getByRole('tab', { name: '6 meses' })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('tab', { name: '6 meses' })).toBeVisible({ timeout: 30_000 })
   await page.waitForTimeout(900) // chart/heatmap settle
 }
 
