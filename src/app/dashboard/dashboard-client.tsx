@@ -16,7 +16,7 @@ import { useSupabaseQuery } from '@/hooks/use-supabase-query'
 import { createClient } from '@/lib/supabase/client'
 import { fetchActiveSession, fetchProjects } from '@/lib/client-data'
 import { getLocalDateBRT } from '@/lib/dates'
-import { CLOCK_TOGGLE_EVENT, consumePendingClockToggle } from '@/lib/clock-bus'
+import { CLOCK_TOGGLE_EVENT, consumePendingClockToggle, setPendingClockToggle } from '@/lib/clock-bus'
 import type { ActivityType } from '@/lib/activity-types'
 import DashboardLoading from './loading'
 import type { DailySummary } from '@/types'
@@ -89,6 +89,13 @@ export function DashboardClient() {
   // always points at the latest handlers so the listener subscribes once.
   const toggleRef = useRef<() => void>(() => {})
   toggleRef.current = () => {
+    // Toggled before the optimistic session is seeded (brief skeleton window):
+    // defer so we don't clock IN over an already-open server session. The
+    // post-seed effect below consumes the pending toggle once ready.
+    if (!seededRef.current) {
+      setPendingClockToggle()
+      return
+    }
     if (loading) return
     if (session) handleClockOut()
     else handleClockIn()
