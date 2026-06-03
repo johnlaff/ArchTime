@@ -8,7 +8,7 @@ import type { ActiveSession } from '@/types'
 interface UseClockReturn {
   session: ActiveSession | null
   setSession: (s: ActiveSession | null) => void
-  clockIn: (projectId: string | null) => Promise<void>
+  clockIn: (projectId: string | null, activityType?: string | null) => Promise<void>
   clockOut: () => Promise<void>
   loading: boolean
 }
@@ -18,7 +18,10 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
   const [loading, setLoading] = useState(false)
   const clockInFlightRef = useRef(false)
 
-  const clockIn = useCallback(async (projectId: string | null) => {
+  const clockIn = useCallback(async (
+    projectId: string | null,
+    activityType: string | null = null,
+  ) => {
     if (!navigator.onLine) {
       const id = crypto.randomUUID()
       const timestamp = new Date().toISOString()
@@ -28,6 +31,7 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
         type: 'clock_in',
         timestamp,
         projectId: projectId ?? undefined,
+        activityType: activityType ?? undefined,
         createdAt: timestamp,
       })
       setSession({
@@ -36,6 +40,7 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
         projectId,
         projectName: null,
         projectColor: null,
+        activityType: activityType ?? null,
       })
       toast.warning('Entrada salva offline. Será sincronizada ao reconectar.')
       return
@@ -48,6 +53,7 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
       projectId,
       projectName: null,
       projectColor: null,
+      activityType: activityType ?? null,
     })
     setLoading(true)
     clockInFlightRef.current = true
@@ -56,7 +62,7 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
       const res = await fetch('/api/clock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId }),
+        body: JSON.stringify({ projectId, activityType }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -71,6 +77,7 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
         projectId: projectId ?? null,
         projectName: null,
         projectColor: null,
+        activityType: entry.activityType ?? activityType ?? null,
       })
       toast.success('Entrada registrada!')
     } catch {

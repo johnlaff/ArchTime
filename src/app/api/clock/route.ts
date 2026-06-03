@@ -5,6 +5,7 @@ import { getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { validateMutationOrigin } from '@/lib/server/security'
 import { safeJsonObject } from '@/lib/server/validation'
+import { parseActivityType } from '@/lib/activity-types'
 
 export async function POST(req: NextRequest) {
   const originError = validateMutationOrigin(req)
@@ -23,6 +24,11 @@ export async function POST(req: NextRequest) {
   const projectId = typeof body.projectId === 'string' && body.projectId.length > 0
     ? body.projectId
     : null
+
+  const activityType = parseActivityType(body.activityType)
+  if (activityType === undefined) {
+    return NextResponse.json({ error: 'Atividade inválida' }, { status: 400 })
+  }
 
   if (projectId) {
     const project = await prisma.project.findFirst({
@@ -52,6 +58,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           clockIn: now,
           entryDate,
+          activityType,
           source: 'web',
         },
       })
@@ -72,6 +79,7 @@ export async function POST(req: NextRequest) {
             clockIn: now.toISOString(),
             entryDate: getLocalDateBRT(now),
             projectId,
+            activityType,
             source: 'web',
           },
           userAgent: req.headers.get('user-agent'),

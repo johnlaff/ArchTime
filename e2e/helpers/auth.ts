@@ -3,12 +3,9 @@ import type { Page } from '@playwright/test'
 export async function injectSupabaseSession(page: Page): Promise<void> {
   const session = process.env.SUPABASE_TEST_SESSION
   if (!session) {
-    throw new Error(
-      'SUPABASE_TEST_SESSION não definido em .env.local.\n' +
-      'Faça login no app, abra DevTools → Application → Local Storage,\n' +
-      'copie o valor da chave que começa com "sb-" e termine em "-auth-token",\n' +
-      'e cole em .env.local como SUPABASE_TEST_SESSION=<valor>'
-    )
+    // Auth agora vem do storageState gerado por auth.setup.ts (cookie-based SSR).
+    // Mantido como no-op para compatibilidade com specs que ainda chamam isto.
+    return
   }
   await page.goto('/')
   await page.evaluate((s) => {

@@ -10,7 +10,7 @@ interface ClockButtonProps {
   loading: boolean
 }
 
-const MotionButton = motion(Button)
+const MotionButton = motion.create(Button)
 
 export function ClockButton({ isClockedIn, onClick, loading }: ClockButtonProps) {
   return (

@@ -1,10 +1,17 @@
+'use client'
+
+import { useModKey } from '@/components/command-palette'
+
 export function ShortcutsWidget() {
+  const mod = useModKey()
   const items = [
-    { desc: 'Ponto',         key: 'P' },
-    { desc: 'Histórico',     key: 'H' },
-    { desc: 'Projetos',      key: 'J' },
+    { desc: 'Comando rápido', key: mod === '⌘' ? '⌘K' : 'Ctrl K' },
+    { desc: 'Bater ponto', key: 'B' },
+    { desc: 'Ponto', key: 'P' },
+    { desc: 'Histórico', key: 'H' },
+    { desc: 'Projetos', key: 'J' },
     { desc: 'Configurações', key: 'C' },
-    { desc: 'Alternar Tema', key: 'T' },
+    { desc: 'Alternar tema', key: 'T' },
   ]
   return (
     <div className="flex flex-col gap-1.5">

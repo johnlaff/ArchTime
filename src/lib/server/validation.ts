@@ -1,9 +1,32 @@
 import { calcDurationMinutes, getLocalDateBRT, parseBRTDateTimeLocal } from '@/lib/dates'
 
 export const MAX_SESSION_MINUTES = 24 * 60
+export const NOTES_MAX_LENGTH = 1000
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
+const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
+
+/**
+ * Normaliza notas de sessão (texto livre opcional):
+ * - `null`/`''`/ausente → `null`
+ * - string dentro do limite → texto aparado (ou `null` se só espaços)
+ * - não-string ou acima do limite → `undefined` (chamador → 400)
+ */
+export function parseNotes(value: unknown): string | null | undefined {
+  if (value == null) return null
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return null
+  if (trimmed.length > NOTES_MAX_LENGTH) return undefined
+  return trimmed
+}
+
+/** Valida uma data YYYY-MM-DD (calendário-válida o suficiente para filtro). */
+export function parseDateOnly(value: string | null): string | null {
+  if (!value) return null
+  return DATE_RE.test(value) ? value : null
+}
 
 export function parseMonth(value: string | null, fallback = new Date()): string | null {
   const month = value ?? getLocalDateBRT(fallback).slice(0, 7)

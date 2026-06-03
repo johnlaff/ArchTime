@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Moon, Sun, Clock, FolderOpen, History, LogOut, Palette, Settings } from 'lucide-react'
+import { Moon, Sun, Clock, FolderOpen, History, LogOut, Palette, Search, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { OPEN_PALETTE_EVENT } from '@/components/command-palette'
 import {
   Popover,
   PopoverContent,
@@ -80,6 +81,14 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Comando rápido"
+            onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT))}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Cor de destaque">

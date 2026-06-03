@@ -42,6 +42,7 @@ export async function fetchProjects(
 type ActiveEntryRow = {
   id: string
   clock_in: string
+  activity_type: string | null
   time_allocations: { project_id: string; projects: { name: string; color: string } | null }[]
 }
 
@@ -55,7 +56,7 @@ export async function fetchActiveSession(
 ): Promise<ActiveSession | null> {
   const { data, error } = await supabase
     .from('clock_entries')
-    .select('id, clock_in, time_allocations(project_id, projects(name, color))')
+    .select('id, clock_in, activity_type, time_allocations(project_id, projects(name, color))')
     .is('clock_out', null)
     .is('deleted_at', null)
     .order('clock_in', { ascending: false })
@@ -72,5 +73,6 @@ export async function fetchActiveSession(
     projectId: allocation?.project_id ?? null,
     projectName: allocation?.projects?.name ?? null,
     projectColor: allocation?.projects?.color ?? null,
+    activityType: row.activity_type ?? null,
   }
 }

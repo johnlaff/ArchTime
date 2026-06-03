@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
 import { SidebarNav } from './sidebar-nav'
 import { SidebarFooterControls } from './sidebar-footer-controls'
+import { CommandTrigger } from './command-palette'
+import { Separator } from '@/components/ui/separator'
 import { getCachedUser, fetchActiveProjects, type ActiveProject } from '@/lib/server/sidebar-data'
 
 function SidebarBrand() {
@@ -84,7 +86,11 @@ export async function AppSidebar() {
       <div className="flex flex-col gap-5 p-4 h-full">
         <SidebarBrand />
 
+        <CommandTrigger />
+
         <SidebarNav />
+
+        <Separator />
 
         <div className="flex flex-col gap-2">
           <p className="px-2 text-[10px] uppercase tracking-widest font-medium text-muted-foreground/60">

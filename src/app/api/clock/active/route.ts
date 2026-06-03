@@ -27,6 +27,7 @@ export async function GET() {
     projectId: allocation?.projectId ?? null,
     projectName: allocation?.project.name ?? null,
     projectColor: allocation?.project.color ?? null,
+    activityType: entry.activityType,
   }
 
   return NextResponse.json(session)

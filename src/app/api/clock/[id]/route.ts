@@ -12,10 +12,13 @@ import { generateEntryHash } from '@/lib/hash'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { validateMutationOrigin } from '@/lib/server/security'
 import {
+  NOTES_MAX_LENGTH,
   parseClockDateTime,
+  parseNotes,
   safeJsonObject,
   validateClosedRange,
 } from '@/lib/server/validation'
+import { parseActivityType } from '@/lib/activity-types'
 import { recalculateHourBankForInterval } from '@/lib/hour-bank'
 
 type EntryWithAllocations = Awaited<ReturnType<typeof getEntry>>
@@ -47,6 +50,8 @@ function serializeOldData(entry: NonNullable<EntryWithAllocations>) {
     totalMinutes: entry.totalMinutes,
     projectId: entry.allocations[0]?.projectId ?? null,
     projectName: entry.allocations[0]?.project.name ?? null,
+    activityType: entry.activityType,
+    notes: entry.notes,
     hash: entry.hash,
     source: entry.source,
   }
@@ -79,6 +84,7 @@ export async function PUT(
       projectId: entry.allocations[0]?.projectId ?? null,
       projectName: entry.allocations[0]?.project.name ?? null,
       projectColor: entry.allocations[0]?.project.color ?? null,
+      activityType: entry.activityType,
     })
   }
 
@@ -263,6 +269,27 @@ export async function PATCH(
     ? rawProjectId
     : null
 
+  // activityType / notes are only touched when the key is present in the body,
+  // so a PATCH that omits them leaves the stored value intact.
+  const fieldUpdates: { activityType?: string | null; notes?: string | null } = {}
+  if ('activityType' in body) {
+    const at = parseActivityType(body.activityType)
+    if (at === undefined) {
+      return NextResponse.json({ error: 'Atividade inválida' }, { status: 400 })
+    }
+    fieldUpdates.activityType = at
+  }
+  if ('notes' in body) {
+    const n = parseNotes(body.notes)
+    if (n === undefined) {
+      return NextResponse.json(
+        { error: `Nota muito longa (máximo ${NOTES_MAX_LENGTH} caracteres)` },
+        { status: 400 }
+      )
+    }
+    fieldUpdates.notes = n
+  }
+
   let project: { id: string; name: string; color: string } | null = null
   if (projectId) {
     project = await prisma.project.findFirst({
@@ -295,6 +322,7 @@ export async function PATCH(
         totalMinutes,
         hash,
         source: 'edited',
+        ...fieldUpdates,
       },
     })
 
@@ -318,6 +346,8 @@ export async function PATCH(
           totalMinutes,
           projectId: projectId ?? null,
           projectName: project?.name ?? null,
+          activityType: updatedEntry.activityType,
+          notes: updatedEntry.notes,
           hash,
           source: 'edited',
         },
@@ -345,5 +375,7 @@ export async function PATCH(
     projectId: projectId ?? null,
     projectName: project?.name ?? null,
     projectColor: project?.color ?? null,
+    activityType: updated.activityType,
+    notes: updated.notes,
   })
 }

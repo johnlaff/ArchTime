@@ -6,6 +6,8 @@ import { ClockButton } from '@/components/clock-button'
 import { CurrentSession } from '@/components/current-session'
 import { DailySummaryCard } from '@/components/daily-summary'
 import { ProjectSelector } from '@/components/project-selector'
+import { ActivitySelector } from '@/components/activity-selector'
+import { ActivityPanel } from '@/components/activity-panel'
 import { OfflineIndicator } from '@/components/offline-indicator'
 import { OrphanSessionBanner } from '@/components/orphan-session-banner'
 import { InstallPrompt } from '@/components/install-prompt'
@@ -14,6 +16,8 @@ import { useSupabaseQuery } from '@/hooks/use-supabase-query'
 import { createClient } from '@/lib/supabase/client'
 import { fetchActiveSession, fetchProjects } from '@/lib/client-data'
 import { getLocalDateBRT } from '@/lib/dates'
+import { CLOCK_TOGGLE_EVENT, consumePendingClockToggle, setPendingClockToggle } from '@/lib/clock-bus'
+import type { ActivityType } from '@/lib/activity-types'
 import DashboardLoading from './loading'
 import type { DailySummary } from '@/types'
 
@@ -37,7 +41,9 @@ export function DashboardClient() {
 
   const { session, setSession, clockIn, clockOut, loading } = useClock(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null)
   const seededRef = useRef(false)
+  const [seeded, setSeeded] = useState(false)
 
   // Seed the optimistic clock state once from the first server read; after that,
   // clockIn/clockOut own the session locally. Revalidations update the cache only.
@@ -46,6 +52,7 @@ export function DashboardClient() {
       seededRef.current = true
       setSession(sessionQuery.data ?? null)
       setSelectedProjectId(sessionQuery.data?.projectId ?? null)
+      setSeeded(true)
     }
   }, [sessionQuery.loading, sessionQuery.data, setSession])
 
@@ -67,7 +74,7 @@ export function DashboardClient() {
   }, [refetchSummary])
 
   async function handleClockIn() {
-    await clockIn(selectedProjectId)
+    await clockIn(selectedProjectId, selectedActivity)
     sessionQuery.refetch()
     summaryQuery.refetch()
   }
@@ -77,6 +84,35 @@ export function DashboardClient() {
     sessionQuery.refetch()
     summaryQuery.refetch()
   }
+
+  // Clock toggle requested by the command palette / `B` key (docs/adr/0001). The ref
+  // always points at the latest handlers so the listener subscribes once.
+  const toggleRef = useRef<() => void>(() => {})
+  toggleRef.current = () => {
+    // Toggled before the optimistic session is seeded (brief skeleton window):
+    // defer so we don't clock IN over an already-open server session. The
+    // post-seed effect below consumes the pending toggle once ready.
+    if (!seededRef.current) {
+      setPendingClockToggle()
+      return
+    }
+    if (loading) return
+    if (session) handleClockOut()
+    else handleClockIn()
+  }
+
+  useEffect(() => {
+    const onToggle = () => toggleRef.current()
+    window.addEventListener(CLOCK_TOGGLE_EVENT, onToggle)
+    return () => window.removeEventListener(CLOCK_TOGGLE_EVENT, onToggle)
+  }, [])
+
+  // Consume a toggle requested from another route (we just navigated here), but only
+  // after seeding so we never act on a stale/empty session.
+  useEffect(() => {
+    if (seeded && consumePendingClockToggle()) toggleRef.current()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seeded])
 
   // Show the full skeleton (matching final dimensions) until session+projects are
   // ready AND the clock state is seeded — holds CLS < 0.1 and avoids a session flash.
@@ -120,12 +156,15 @@ export function DashboardClient() {
       </AnimatePresence>
 
       {!session && (
-        <ProjectSelector
-          projects={projects}
-          value={selectedProjectId}
-          onChange={setSelectedProjectId}
-          disabled={loading}
-        />
+        <div className="space-y-3">
+          <ProjectSelector
+            projects={projects}
+            value={selectedProjectId}
+            onChange={setSelectedProjectId}
+            disabled={loading}
+          />
+          <ActivitySelector value={selectedActivity} onChange={setSelectedActivity} disabled={loading} />
+        </div>
       )}
 
       <InstallPrompt />
@@ -143,6 +182,8 @@ export function DashboardClient() {
       ) : (
         <DailySummaryCard summary={summary} />
       )}
+
+      <ActivityPanel />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ActivityTag } from '@/components/activity-selector'
 import { formatBRT, formatMinutes } from '@/lib/dates'
 import type { BalanceSummary, DailySummary } from '@/types'
 
@@ -72,20 +73,28 @@ export function DailySummaryCard({ summary }: DailySummaryProps) {
               className="py-2 px-3 animate-fade-in-up hover:bg-muted/40 cursor-default"
               style={{ animationDelay: `${150 + i * 50}ms` }}
             >
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between text-sm gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {entry.projectColor && (
                     <div
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: entry.projectColor }}
                     />
                   )}
-                  <span>
-                    {formatBRT(entry.clockIn)} — {entry.clockOut ? formatBRT(entry.clockOut) : '...'}
-                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="tabular-nums">
+                        {formatBRT(entry.clockIn)} — {entry.clockOut ? formatBRT(entry.clockOut) : '...'}
+                      </span>
+                      <ActivityTag activityType={entry.activityType} />
+                    </div>
+                    {entry.notes && (
+                      <p className="text-xs text-muted-foreground/80 leading-snug truncate">{entry.notes}</p>
+                    )}
+                  </div>
                 </div>
                 {entry.totalMinutes != null && (
-                  <span className="text-muted-foreground tabular-nums">{formatMinutes(entry.totalMinutes)}</span>
+                  <span className="text-muted-foreground tabular-nums flex-shrink-0">{formatMinutes(entry.totalMinutes)}</span>
                 )}
               </div>
             </Card>

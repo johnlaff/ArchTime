@@ -73,6 +73,7 @@ model ClockEntry {
   entryDate    DateTime         @map("entry_date") @db.Date
   totalMinutes Int?             @map("total_minutes")
   notes        String?
+  activityType String?          @map("activity_type") @db.VarChar(50)
   hash         String?
   source       String           @default("web")
   deletedAt    DateTime?        @map("deleted_at") @db.Timestamptz

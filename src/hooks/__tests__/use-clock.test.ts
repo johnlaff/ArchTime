@@ -107,6 +107,7 @@ describe('useClock', () => {
       projectId: null,
       projectName: null,
       projectColor: null,
+      activityType: null,
     }
     const { fn, resolve } = deferredFetch()
     vi.stubGlobal('fetch', fn)
@@ -140,6 +141,7 @@ describe('useClock', () => {
       projectId: null,
       projectName: null,
       projectColor: null,
+      activityType: null,
     }
     const { fn, resolve } = deferredFetch()
     vi.stubGlobal('fetch', fn)
