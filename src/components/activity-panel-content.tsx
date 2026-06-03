@@ -130,19 +130,19 @@ export default function ActivityPanelContent() {
               Atividade
             </p>
             <TabsList>
+              <TabsTrigger value="semana">Semana</TabsTrigger>
               <TabsTrigger value="semestre">6 meses</TabsTrigger>
               <TabsTrigger value="ano">Ano</TabsTrigger>
-              <TabsTrigger value="semana">Semana</TabsTrigger>
             </TabsList>
           </div>
+          <TabsContent value="semana" className="mt-0">
+            <WeekBars week={data.week} />
+          </TabsContent>
           <TabsContent value="semestre" className="mt-0">
             <Heatmap days={halfYearDays} />
           </TabsContent>
           <TabsContent value="ano" className="mt-0">
             <Heatmap days={data.heatmap} />
-          </TabsContent>
-          <TabsContent value="semana" className="mt-0">
-            <WeekBars week={data.week} />
           </TabsContent>
         </Tabs>
       </Panel>
