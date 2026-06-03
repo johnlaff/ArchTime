@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildHistoryBundle } from '@/lib/history'
 import { getAuthenticatedUser } from '@/lib/server/auth'
-import { parseMonth, parsePage } from '@/lib/server/validation'
+import { parseDateOnly, parseMonth, parsePage } from '@/lib/server/validation'
+import { isActivityType } from '@/lib/activity-types'
+import type { HistoryFilters } from '@/types'
 
 export async function GET(req: NextRequest) {
   const user = await getAuthenticatedUser()
@@ -15,7 +17,17 @@ export async function GET(req: NextRequest) {
 
   const page = parsePage(searchParams.get('page'), 1, 10000)
   const pageSize = parsePage(searchParams.get('pageSize'), 50, 200)
-  const bundle = await buildHistoryBundle(user.id, month, page, pageSize)
+
+  const rawActivity = searchParams.get('activityType')
+  const filters: HistoryFilters = {
+    q: searchParams.get('q')?.trim().slice(0, 100) || undefined,
+    projectId: searchParams.get('projectId') || undefined,
+    activityType: isActivityType(rawActivity) ? rawActivity : undefined,
+    dateStart: parseDateOnly(searchParams.get('dateStart')) || undefined,
+    dateEnd: parseDateOnly(searchParams.get('dateEnd')) || undefined,
+  }
+
+  const bundle = await buildHistoryBundle(user.id, month, page, pageSize, filters)
   return NextResponse.json(bundle, {
     headers: {
       'Cache-Control': 'private, max-age=60, stale-while-revalidate=300',

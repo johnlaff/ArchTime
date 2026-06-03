@@ -4,6 +4,7 @@ export interface ActiveSession {
   projectId: string | null
   projectName: string | null
   projectColor: string | null
+  activityType: string | null
 }
 
 export interface DailySummary {
@@ -25,6 +26,8 @@ export interface RecentEntry {
   totalMinutes: number | null
   projectName: string | null
   projectColor: string | null
+  activityType: string | null
+  notes: string | null
 }
 
 export interface BalanceSummary {
@@ -55,6 +58,8 @@ export interface HistoryEntry {
   projectName: string | null
   projectColor: string | null
   projectId: string | null
+  activityType: string | null
+  notes: string | null
   entryDate: string
   source: string
 }
@@ -73,6 +78,7 @@ export interface PendingEntry {
   type: 'clock_in' | 'clock_out'
   timestamp: string // ISO string — original client timestamp
   projectId?: string
+  activityType?: string // clock_in only — survives the offline path
   entryId?: string // for clock_out: references the offline clock_in id
   createdAt: string
 }
@@ -81,4 +87,53 @@ export interface FailedPendingEntry extends PendingEntry {
   failedAt: string
   status: number
   error: string
+}
+
+// ─── Insights / Activity panel ───
+
+export interface HeatmapDay {
+  date: string // YYYY-MM-DD (local BRT)
+  totalMinutes: number
+  sessionCount: number
+  topProject: string | null
+  level: 0 | 1 | 2 | 3 | 4
+}
+
+export interface WeekBar {
+  date: string // YYYY-MM-DD of this weekday
+  dayLabel: string // 'seg' … 'dom'
+  weekday: number // 0=dom … 6=sáb
+  totalMinutes: number
+  goalMinutes: number
+}
+
+export interface TrendInsight {
+  thisWeekMinutes: number
+  lastWeekMinutes: number
+  deltaMinutes: number
+  deltaPercent: number | null
+}
+
+export interface DistributionItem {
+  id: string
+  name: string
+  color: string
+  monthMinutes: number
+}
+
+export interface ActivityOverview {
+  heatmap: HeatmapDay[]
+  week: WeekBar[]
+  trend: TrendInsight
+  distribution: DistributionItem[]
+}
+
+// ─── History filters (server-side, complete-month results) ───
+
+export interface HistoryFilters {
+  q?: string
+  projectId?: string
+  activityType?: string
+  dateStart?: string // YYYY-MM-DD
+  dateEnd?: string // YYYY-MM-DD
 }

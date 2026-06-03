@@ -18,7 +18,7 @@ describe('review feedback regressions', () => {
     const source = readSource('src/components/shortcuts-widget.tsx')
 
     expect(source).not.toContain('⌘⇧T')
-    expect(source).toContain("{ desc: 'Alternar Tema', key: 'T' }")
+    expect(source).toContain("{ desc: 'Alternar tema', key: 'T' }")
   })
 
   it('does not let custom accent changes overwrite the PWA icon color while an architectural preset is active', () => {

@@ -109,6 +109,8 @@ export async function buildDailySummary(userId: string): Promise<DailySummary> {
         totalMinutes: dayMinutes,
         projectName: entry.allocations[0]?.project.name ?? null,
         projectColor: entry.allocations[0]?.project.color ?? null,
+        activityType: entry.activityType,
+        notes: entry.notes,
       }
     }),
   }

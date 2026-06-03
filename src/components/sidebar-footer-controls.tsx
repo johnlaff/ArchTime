@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Moon, Sun, Palette, Settings, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase/client'
 import { useAccentColor } from '@/components/accent-color-provider'
@@ -37,26 +38,19 @@ export function SidebarFooterControls({ email, initials, name, avatarUrl }: Side
     <div className="mt-auto border-t border-border pt-3 flex flex-col gap-2">
       {/* User info */}
       <div className="flex items-center gap-2 px-1">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={name ?? email}
-            referrerPolicy="no-referrer"
-            className="h-7 w-7 rounded-full flex-shrink-0 object-cover"
-          />
-        ) : (
-          <div
-            className="h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+        <Avatar className="h-7 w-7 flex-shrink-0">
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={name ?? email} referrerPolicy="no-referrer" />}
+          <AvatarFallback
+            className="text-[11px] font-semibold"
             style={{
               background: 'var(--primary)',
               color: 'var(--primary-foreground)',
               boxShadow: 'inset 0 0 0 1px var(--primary-border, transparent)',
             }}
-            aria-hidden="true"
           >
             {initials}
-          </div>
-        )}
+          </AvatarFallback>
+        </Avatar>
         <div className="flex-1 min-w-0">
           {name && (
             <p className="text-xs font-medium text-foreground truncate leading-tight">{name}</p>

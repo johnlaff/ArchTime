@@ -43,6 +43,7 @@ describe('fetchActiveSession', () => {
         {
           id: 'e1',
           clock_in: '2026-05-29T12:00:00+00:00',
+          activity_type: 'modelagem',
           time_allocations: [{ project_id: 'p1', projects: { name: 'A', color: '#111111' } }],
         },
       ],
@@ -55,6 +56,7 @@ describe('fetchActiveSession', () => {
       projectId: 'p1',
       projectName: 'A',
       projectColor: '#111111',
+      activityType: 'modelagem',
     })
   })
 

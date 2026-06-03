@@ -10,6 +10,7 @@ import {
   safeJsonObject,
   validateClosedRange,
 } from '@/lib/server/validation'
+import { parseActivityType } from '@/lib/activity-types'
 import type { PendingEntry } from '@/types'
 
 function permanentError(message: string, status: number) {
@@ -67,6 +68,9 @@ export async function POST(req: NextRequest) {
       if (!project) return permanentError('Projeto inválido', 404)
     }
 
+    const activityType = parseActivityType(entry.activityType)
+    if (activityType === undefined) return permanentError('Atividade inválida', 400)
+
     try {
       await prisma.$transaction(async (tx) => {
         const existingOpen = await tx.clockEntry.findFirst({
@@ -83,6 +87,7 @@ export async function POST(req: NextRequest) {
             userId: user.id,
             clockIn,
             entryDate,
+            activityType,
             source: 'offline_sync',
           },
         })
@@ -107,6 +112,7 @@ export async function POST(req: NextRequest) {
               clockIn: clockIn.toISOString(),
               entryDate: getLocalDateBRT(clockIn),
               projectId: entry.projectId ?? null,
+              activityType,
               source: 'offline_sync',
             },
             userAgent: req.headers.get('user-agent'),

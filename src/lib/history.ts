@@ -2,7 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { getMonthRangeBRT, splitIntervalByLocalDay } from '@/lib/dates'
 import { buildHourBankMonth, type ClockEntryInterval, type HourBankMonth } from '@/lib/hour-bank'
 import { getOrCreateUserSettings, type SerializedUserSettings } from '@/lib/user-settings'
-import type { HistoryData, ProjectOption } from '@/types'
+import { hasActiveFilters, matchesFilters } from '@/lib/history-filters'
+import type { HistoryData, HistoryFilters, ProjectOption } from '@/types'
 
 function serializeProject(project: {
   id: string
@@ -33,7 +34,8 @@ export async function buildHistoryData(
   userId: string,
   month: string,
   page = 1,
-  pageSize = 50
+  pageSize = 50,
+  filters: HistoryFilters = {}
 ): Promise<{ history: HistoryData; intervals: ClockEntryInterval[] }> {
   const { start, end, startDate, endDate } = getMonthRangeBRT(month)
 
@@ -72,6 +74,8 @@ export async function buildHistoryData(
       projectName: entry.allocations[0]?.project.name ?? null,
       projectColor: entry.allocations[0]?.project.color ?? null,
       projectId: entry.allocations[0]?.projectId ?? null,
+      activityType: entry.activityType,
+      notes: entry.notes,
       entryDate: segment.date,
       source: entry.source,
     }))
@@ -81,18 +85,22 @@ export async function buildHistoryData(
     return b.clockIn.localeCompare(a.clockIn)
   })
 
-  const totalMinutes = segments.reduce((sum, entry) => sum + entry.segmentMinutes, 0)
+  const visible = hasActiveFilters(filters)
+    ? segments.filter((segment) => matchesFilters(segment, filters))
+    : segments
+
+  const totalMinutes = visible.reduce((sum, entry) => sum + entry.segmentMinutes, 0)
   const offset = (page - 1) * pageSize
-  const paged = segments.slice(offset, offset + pageSize)
+  const paged = visible.slice(offset, offset + pageSize)
 
   return {
     history: {
       entries: paged,
       totalMinutes,
-      sessionCount: segments.length,
+      sessionCount: visible.length,
       page,
       pageSize,
-      hasMore: offset + pageSize < segments.length,
+      hasMore: offset + pageSize < visible.length,
     },
     intervals: entries.map((entry) => ({
       clockIn: entry.clockIn,
@@ -105,11 +113,12 @@ export async function buildHistoryBundle(
   userId: string,
   month: string,
   page = 1,
-  pageSize = 50
+  pageSize = 50,
+  filters: HistoryFilters = {}
 ): Promise<HistoryBundle> {
   const [settings, historyResult, projects] = await Promise.all([
     getOrCreateUserSettings(userId),
-    buildHistoryData(userId, month, page, pageSize),
+    buildHistoryData(userId, month, page, pageSize, filters),
     prisma.project.findMany({
       where: { userId },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],

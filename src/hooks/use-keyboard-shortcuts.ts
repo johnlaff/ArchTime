@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { fireClockToggle, setPendingClockToggle } from '@/lib/clock-bus'
 
 interface KeyboardShortcutsOptions {
   onThemeToggle: () => void
@@ -45,6 +46,18 @@ export function useKeyboardShortcuts({
       const key = e.key.toLowerCase()
       if (key === 't') {
         onThemeToggle()
+        return
+      }
+
+      // B = bater ponto (toggle). On the dashboard the page handles it; elsewhere
+      // we mark the intent and navigate there (see docs/adr/0001).
+      if (key === 'b') {
+        if (pathname === '/dashboard') {
+          fireClockToggle()
+        } else {
+          setPendingClockToggle()
+          router.push('/dashboard')
+        }
         return
       }
 

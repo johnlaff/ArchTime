@@ -3,6 +3,8 @@
 import { Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useTimer } from '@/hooks/use-timer'
+import { TimerDisplay } from '@/components/timer-display'
+import { ActivityTag } from '@/components/activity-selector'
 import type { ActiveSession } from '@/types'
 
 interface CurrentSessionProps {
@@ -24,20 +26,21 @@ export function CurrentSession({ session }: CurrentSessionProps) {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Em andamento</p>
-            {session.projectName && (
-              <p className="text-sm font-medium flex items-center gap-1">
-                <span
-                  className="w-2 h-2 rounded-full inline-block"
-                  style={{ backgroundColor: session.projectColor ?? '#6366f1' }}
-                />
-                {session.projectName}
-              </p>
-            )}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {session.projectName && (
+                <p className="text-sm font-medium flex items-center gap-1">
+                  <span
+                    className="w-2 h-2 rounded-full inline-block"
+                    style={{ backgroundColor: session.projectColor ?? '#6366f1' }}
+                  />
+                  {session.projectName}
+                </p>
+              )}
+              <ActivityTag activityType={session.activityType} />
+            </div>
           </div>
         </div>
-        <span className="text-2xl font-bold tabular-nums tracking-tight">
-          {elapsed}
-        </span>
+        <TimerDisplay time={elapsed} className="text-2xl font-bold tracking-tight" />
       </CardContent>
     </Card>
   )
