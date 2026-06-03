@@ -88,7 +88,7 @@ test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async (
     await page.locator('#edit-notes').fill(NOTE)
     await page.getByRole('button', { name: 'Salvar' }).click()
     await expect(page.getByText('Registro atualizado')).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByText(NOTE)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(NOTE).first()).toBeVisible({ timeout: 10_000 })
 
     // 9) busca server-side encontra a sessão pela nota (prova filtro por nota)
     const found = await (await request.get(`/api/history?q=${encodeURIComponent(NOTE)}`)).json()
