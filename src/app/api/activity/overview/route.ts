@@ -6,7 +6,7 @@ import { fetchActiveProjects, fetchWeekComparison } from '@/lib/server/sidebar-d
 import type { ActivityOverview, WeekBar } from '@/types'
 import type { WeekdayKey } from '@/lib/preferences'
 
-const HEATMAP_WEEKS = 13
+const HEATMAP_WEEKS = 53
 const DAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'] as const
 
 // One round-trip for every dashboard insight: heatmap + weekly bars + week-over-week

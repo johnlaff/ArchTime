@@ -108,8 +108,8 @@ function PanelSkeleton() {
 export default function ActivityPanelContent() {
   const { data, loading, error } = useSupabaseQuery('dashboard:activity-overview', fetchOverview)
 
-  // Mês = últimas 12 semanas; Trimestre = as 13 semanas completas.
-  const monthDays = useMemo(() => (data ? data.heatmap.slice(-84) : []), [data])
+  // "6 meses" = últimas ~26 semanas; "Ano" = todo o range buscado (~53 semanas).
+  const halfYearDays = useMemo(() => (data ? data.heatmap.slice(-182) : []), [data])
 
   if (loading && !data) return <PanelSkeleton />
   if (error || !data) {
@@ -121,25 +121,25 @@ export default function ActivityPanelContent() {
   }
 
   return (
-    <div className="space-y-3 animate-fade-in-up">
+    <div className="space-y-3 animate-fade-in-up" data-testid="activity-panel">
       <Panel>
-        <Tabs defaultValue="mes">
+        <Tabs defaultValue="semestre">
           <div className="flex items-center justify-between gap-3 mb-3">
             <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium text-muted-foreground/60">
               <Activity className="h-3 w-3" aria-hidden="true" />
               Atividade
             </p>
             <TabsList>
-              <TabsTrigger value="mes">Mês</TabsTrigger>
-              <TabsTrigger value="trimestre">Trimestre</TabsTrigger>
+              <TabsTrigger value="semestre">6 meses</TabsTrigger>
+              <TabsTrigger value="ano">Ano</TabsTrigger>
               <TabsTrigger value="semana">Semana</TabsTrigger>
             </TabsList>
           </div>
-          <TabsContent value="mes" className="mt-0">
-            <Heatmap days={monthDays} blockSize={12} />
+          <TabsContent value="semestre" className="mt-0">
+            <Heatmap days={halfYearDays} />
           </TabsContent>
-          <TabsContent value="trimestre" className="mt-0">
-            <Heatmap days={data.heatmap} blockSize={10} />
+          <TabsContent value="ano" className="mt-0">
+            <Heatmap days={data.heatmap} />
           </TabsContent>
           <TabsContent value="semana" className="mt-0">
             <WeekBars week={data.week} />

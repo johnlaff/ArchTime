@@ -51,6 +51,16 @@ export function WeekBars({ week }: { week: WeekBar[] }) {
   }))
   const goalMinutes = Math.max(0, ...week.map((day) => day.goalMinutes))
   const maxHours = Math.max(goalMinutes / 60, ...data.map((day) => day.hours), 1)
+  const hasData = week.some((day) => day.totalMinutes > 0)
+
+  if (!hasData) {
+    return (
+      <div className="flex h-[160px] flex-col items-center justify-center gap-1 text-center">
+        <p className="text-sm text-muted-foreground">Nenhum registro nesta semana.</p>
+        <p className="text-xs text-muted-foreground/70">As horas por dia aparecem aqui conforme você bate o ponto.</p>
+      </div>
+    )
+  }
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-[160px] w-full">
