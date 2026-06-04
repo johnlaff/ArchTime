@@ -17,7 +17,8 @@ interface Datum {
 
 function barFill(datum: Datum): string {
   if (datum.minutes === 0) return 'var(--muted)'
-  if (datum.met) return 'var(--emerald-500)' // bateu a meta do dia
+  // Segue a cor de accent (como o heatmap): cheio quando bate a meta, 50% abaixo dela.
+  if (datum.met) return 'var(--primary)' // bateu a meta do dia
   return 'oklch(from var(--primary) l c h / 0.5)' // abaixo da meta / sem meta
 }
 

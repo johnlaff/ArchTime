@@ -51,9 +51,11 @@ export function useModKey(): string {
   return mod
 }
 
-/** Search-style button that opens the palette, with an OS-adapted shortcut hint. */
+/**
+ * Search-style button that opens the palette. The keyboard shortcut hint lives only
+ * in the dedicated "Atalhos de Teclado" card (ShortcutsWidget), not here.
+ */
 export function CommandTrigger({ className }: { className?: string }) {
-  const mod = useModKey()
   return (
     <button
       type="button"
@@ -66,9 +68,6 @@ export function CommandTrigger({ className }: { className?: string }) {
     >
       <Search className="h-4 w-4 shrink-0" />
       <span className="flex-1 text-left">Buscar…</span>
-      <kbd className="pointer-events-none hidden items-center rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
-        {mod === '⌘' ? '⌘K' : 'Ctrl K'}
-      </kbd>
     </button>
   )
 }

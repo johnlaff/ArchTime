@@ -50,7 +50,7 @@ function tooltipText(day: HeatmapDay): string {
  * GitHub-style heatmap that fills the card width: a ResizeObserver measures the
  * container and sizes the cells so `weeks` columns span it (clamped), then the grid
  * is centred when it can't fill and scrolls horizontally when it overflows. Different
- * ranges (e.g. 6 meses vs Ano) therefore get visibly different cell sizes.
+ * ranges (e.g. Semestre vs Ano) therefore get visibly different cell sizes.
  */
 export function Heatmap({ days }: { days: HeatmapDay[] }) {
   const containerRef = useRef<HTMLDivElement>(null)

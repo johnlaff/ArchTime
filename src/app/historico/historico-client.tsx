@@ -433,7 +433,7 @@ export function HistoricoClient({
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar projeto ou nota…"
-              className="pl-8"
+              className="pl-8 bg-card dark:bg-card"
               aria-label="Buscar no histórico"
             />
           </div>
