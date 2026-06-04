@@ -34,14 +34,17 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     trace: 'on-first-retry',
   },
-  // Auto-start the dev server for local runs; reuse one if already running.
-  // Cold webpack compile is slow, so the timeout is generous.
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 180_000,
-  },
+  // Auto-start the dev server for local runs; reuse one if already running. When
+  // PLAYWRIGHT_BASE_URL targets a remote host (preview/prod), don't start a server.
+  webServer:
+    process.env.PLAYWRIGHT_BASE_URL && !process.env.PLAYWRIGHT_BASE_URL.includes('localhost')
+      ? undefined
+      : {
+          command: 'npm run dev',
+          url: 'http://localhost:3000',
+          reuseExistingServer: true,
+          timeout: 180_000,
+        },
   projects: [
     // Mints a real session via the service-role key and saves storageState.
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
