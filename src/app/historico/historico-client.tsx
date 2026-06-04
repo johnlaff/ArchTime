@@ -429,6 +429,9 @@ export function HistoricoClient({
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            {/* `dark:bg-card` NÃO é redundante: sobrescreve o `dark:bg-input/30`
+                translúcido do <Input> base — sem ele a busca volta a ficar transparente
+                no escuro. Opaca como os cards de ponto/atividade nos dois temas. */}
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}

@@ -15,7 +15,7 @@ async function fetchOverview(): Promise<ActivityOverview> {
 }
 
 // Pílula ativa em superfície neutra (--card) nos dois temas, sobrepondo o
-// `bg-input/30` translúcido do default — que somia sobre o track tingido pelo accent.
+// `bg-input/30` translúcido do default — que sumia sobre o track tingido pelo accent.
 const TAB_TRIGGER = 'data-[state=active]:bg-card dark:data-[state=active]:bg-card'
 
 function Panel({ children }: { children: React.ReactNode }) {
