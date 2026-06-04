@@ -58,7 +58,12 @@ async function mintSession() {
 }
 
 /** Serialize a session into the exact @supabase/ssr cookie(s) via the lib's own writer. */
-async function supabaseSessionCookies(url: string, anonKey: string, session: { access_token: string; refresh_token: string }) {
+async function supabaseSessionCookies(
+  url: string,
+  anonKey: string,
+  session: { access_token: string; refresh_token: string },
+  target: URL
+) {
   const jar: Array<{ name: string; value: string }> = []
   const client = createServerClient(url, anonKey, {
     cookies: {
@@ -87,18 +92,19 @@ async function supabaseSessionCookies(url: string, anonKey: string, session: { a
   return jar.map((c) => ({
     name: c.name,
     value: c.value,
-    domain: 'localhost',
+    domain: target.hostname,
     path: '/',
     httpOnly: false,
-    secure: false,
+    secure: target.protocol === 'https:',
     sameSite: 'Lax' as const,
     expires: -1,
   }))
 }
 
-setup('authenticate', async ({ page, context }) => {
+setup('authenticate', async ({ page, context, baseURL }) => {
+  const target = new URL(baseURL ?? 'http://localhost:3000')
   const { url, anonKey, session } = await mintSession()
-  const cookies = await supabaseSessionCookies(url, anonKey, session)
+  const cookies = await supabaseSessionCookies(url, anonKey, session, target)
   expect(cookies.length, 'nenhum cookie de sessão gerado').toBeGreaterThan(0)
   await context.addCookies(cookies)
 

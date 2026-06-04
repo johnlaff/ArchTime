@@ -3,22 +3,19 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'motion/react'
-import { Clock, History, FolderOpen, Settings, BarChart2, CreditCard } from 'lucide-react'
+import { Clock, History, FolderOpen, Settings } from 'lucide-react'
 
 interface NavItem {
   href: string
   label: string
   icon: React.ElementType
-  disabled?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard',     label: 'Ponto',         icon: Clock       },
-  { href: '/historico',     label: 'Histórico',     icon: History     },
-  { href: '/projetos',      label: 'Projetos',      icon: FolderOpen  },
-  { href: '/configuracoes', label: 'Configurações', icon: Settings    },
-  { href: '/relatorios',    label: 'Relatórios',    icon: BarChart2,   disabled: true },
-  { href: '/faturamento',   label: 'Faturamento',   icon: CreditCard,  disabled: true },
+  { href: '/dashboard',     label: 'Ponto',         icon: Clock      },
+  { href: '/historico',     label: 'Histórico',     icon: History    },
+  { href: '/projetos',      label: 'Projetos',      icon: FolderOpen },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings   },
 ]
 
 export function SidebarNav() {
@@ -26,25 +23,20 @@ export function SidebarNav() {
 
   return (
     <nav className="flex flex-col gap-0.5">
-      {NAV_ITEMS.map(({ href, label, icon: Icon, disabled }) => {
+      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         const isActive = pathname === href || pathname.startsWith(`${href}/`)
         return (
           <Link
             key={href}
-            href={disabled ? '#' : href}
-            aria-disabled={disabled}
-            tabIndex={disabled ? -1 : undefined}
-            onClick={(e) => { if (disabled) e.preventDefault() }}
+            href={href}
             className={[
               'relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors select-none',
-              disabled
-                ? 'pointer-events-none opacity-40 text-muted-foreground cursor-not-allowed'
-                : isActive
+              isActive
                 ? 'text-accent-foreground font-medium'
                 : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
             ].join(' ')}
           >
-            {isActive && !disabled && (
+            {isActive && (
               <motion.span
                 layoutId="nav-indicator"
                 className="absolute inset-0 rounded-lg bg-accent pointer-events-none"

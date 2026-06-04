@@ -14,6 +14,10 @@ async function fetchOverview(): Promise<ActivityOverview> {
   return res.json() as Promise<ActivityOverview>
 }
 
+// Pílula ativa em superfície neutra (--card) nos dois temas, sobrepondo o
+// `bg-input/30` translúcido do default — que sumia sobre o track tingido pelo accent.
+const TAB_TRIGGER = 'data-[state=active]:bg-card dark:data-[state=active]:bg-card'
+
 function Panel({ children }: { children: React.ReactNode }) {
   return <div className="rounded-2xl border border-border bg-card p-4">{children}</div>
 }
@@ -108,7 +112,7 @@ function PanelSkeleton() {
 export default function ActivityPanelContent() {
   const { data, loading, error } = useSupabaseQuery('dashboard:activity-overview', fetchOverview)
 
-  // "6 meses" = últimas ~26 semanas; "Ano" = todo o range buscado (~53 semanas).
+  // "Semestre" = últimas ~26 semanas; "Ano" = todo o range buscado (~53 semanas).
   const halfYearDays = useMemo(() => (data ? data.heatmap.slice(-182) : []), [data])
 
   if (loading && !data) return <PanelSkeleton />
@@ -129,10 +133,12 @@ export default function ActivityPanelContent() {
               <Activity className="h-3 w-3" aria-hidden="true" />
               Atividade
             </p>
-            <TabsList>
-              <TabsTrigger value="semana">Semana</TabsTrigger>
-              <TabsTrigger value="semestre">6 meses</TabsTrigger>
-              <TabsTrigger value="ano">Ano</TabsTrigger>
+            {/* Track e pílula ativa em tokens neutros (secondary/card): o seletor não
+                herda o tint do accent — fica legível no escuro com qualquer cor custom. */}
+            <TabsList className="bg-secondary">
+              <TabsTrigger value="semana" className={TAB_TRIGGER}>Semana</TabsTrigger>
+              <TabsTrigger value="semestre" className={TAB_TRIGGER}>Semestre</TabsTrigger>
+              <TabsTrigger value="ano" className={TAB_TRIGGER}>Ano</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="semana" className="mt-0">

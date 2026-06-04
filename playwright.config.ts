@@ -22,6 +22,17 @@ try {
   // .env.local optional (e.g. CI provides env directly)
 }
 
+/** True when no base URL is set or it points at a loopback host (so we auto-start dev). */
+function isLocalBaseURL(baseURL: string | undefined): boolean {
+  if (!baseURL) return true
+  try {
+    const host = new URL(baseURL).hostname.replace(/^\[|\]$/g, '')
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0'
+  } catch {
+    return true
+  }
+}
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -34,14 +45,17 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     trace: 'on-first-retry',
   },
-  // Auto-start the dev server for local runs; reuse one if already running.
-  // Cold webpack compile is slow, so the timeout is generous.
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 180_000,
-  },
+  // Auto-start the dev server for local runs; reuse one if already running. When
+  // PLAYWRIGHT_BASE_URL targets a remote host (preview/prod), don't start a server.
+  // "Local" = unset, or a loopback host (localhost / 127.0.0.1 / ::1 / 0.0.0.0).
+  webServer: isLocalBaseURL(process.env.PLAYWRIGHT_BASE_URL)
+    ? {
+        command: 'npm run dev',
+        url: 'http://localhost:3000',
+        reuseExistingServer: true,
+        timeout: 180_000,
+      }
+    : undefined,
   projects: [
     // Mints a real session via the service-role key and saves storageState.
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
