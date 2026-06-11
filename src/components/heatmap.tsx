@@ -2,30 +2,34 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ActivityCalendar, type Activity } from 'react-activity-calendar'
+import { useTheme } from 'next-themes'
 import 'react-activity-calendar/tooltips.css'
 import { formatMinutes } from '@/lib/dates'
 import type { HeatmapDay } from '@/types'
 
-// Tint with the accent token (`--primary`) via relative color syntax. The CSS vars
-// already flip with `.dark`, so we force colorScheme="light" and let the vars carry
-// the theme — sidesteps the lib's prefers-color-scheme detection (we use a class).
-// The lib has no color-parsing dependency, so var()/oklch() pass straight to SVG fill.
-const HEAT_THEME = {
-  light: [
-    'var(--muted)',
-    'oklch(from var(--primary) l c h / 0.28)',
-    'oklch(from var(--primary) l c h / 0.5)',
-    'oklch(from var(--primary) l c h / 0.75)',
-    'var(--primary)',
-  ],
-  dark: [
-    'var(--muted)',
-    'oklch(from var(--primary) l c h / 0.32)',
-    'oklch(from var(--primary) l c h / 0.55)',
-    'oklch(from var(--primary) l c h / 0.78)',
-    'var(--primary)',
-  ],
+// Escala opaca e monotônica com color-mix: mistura progressivamente --primary sobre
+// --card. As vars CSS resolvem no runtime e já alternam com .dark — o mesmo array
+// serve para os dois temas. Nível 0 é neutro (superfície), níveis 1-4 crescem em
+// intensidade. Sem transparência → "menos" nunca parece mais forte que "mais",
+// mesmo com accent custom forte (rosa, fúcsia etc.) no tema escuro.
+function heatColor(level: 0 | 1 | 2 | 3 | 4): string {
+  switch (level) {
+    case 0:
+      return 'color-mix(in oklab, var(--card) 94%, var(--foreground))'
+    case 1:
+      return 'color-mix(in oklab, var(--primary) 18%, var(--card))'
+    case 2:
+      return 'color-mix(in oklab, var(--primary) 42%, var(--card))'
+    case 3:
+      return 'color-mix(in oklab, var(--primary) 66%, var(--card))'
+    case 4:
+      return 'color-mix(in oklab, var(--primary) 92%, var(--card))'
+  }
 }
+
+const LEVELS = [0, 1, 2, 3, 4] as const
+const HEAT_COLORS = LEVELS.map(heatColor)
+const HEAT_THEME = { light: HEAT_COLORS, dark: HEAT_COLORS }
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MONTH_LABELS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -56,6 +60,7 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const weeks = Math.max(1, Math.ceil(days.length / 7))
   const [blockSize, setBlockSize] = useState(13)
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
     const el = containerRef.current
@@ -74,6 +79,7 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
 
   const data = days.map((day) => ({ date: day.date, count: day.totalMinutes, level: day.level }))
   const byDate = new Map(days.map((day) => [day.date, day]))
+  const colorScheme = resolvedTheme === 'dark' ? 'dark' : 'light'
 
   return (
     <div ref={containerRef} className="w-full">
@@ -82,7 +88,7 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
           <ActivityCalendar
             data={data}
             theme={HEAT_THEME}
-            colorScheme="light"
+            colorScheme={colorScheme}
             maxLevel={4}
             blockSize={blockSize}
             blockMargin={BLOCK_MARGIN}
@@ -104,7 +110,7 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
       {/* Custom legend (centred, never clipped unlike the lib's right-aligned one). */}
       <div className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
         <span>menos</span>
-        {HEAT_THEME.light.map((color, i) => (
+        {HEAT_COLORS.map((color, i) => (
           <span
             key={i}
             className="inline-block rounded-[3px]"

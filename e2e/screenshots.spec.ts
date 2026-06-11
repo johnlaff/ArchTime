@@ -50,6 +50,8 @@ test('dashboard desktop (dark)', async ({ page }) => {
   await setDark(page, true)
   await gotoDashboard(page)
   await page.screenshot({ path: `${DIR}/dashboard-desktop-dark.png`, fullPage: true })
+  await page.getByRole('tab', { name: 'Mês' }).click()
+  await page.waitForTimeout(600)
   await page.getByTestId('activity-panel').screenshot({ path: `${DIR}/panel-mes-dark.png` })
 })
 

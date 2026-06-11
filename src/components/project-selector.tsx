@@ -25,7 +25,7 @@ export function ProjectSelector({ projects, value, onChange, disabled }: Project
       onValueChange={(v) => onChange(v === 'none' ? null : v)}
       disabled={disabled}
     >
-      <SelectTrigger className="w-full bg-background">
+      <SelectTrigger className="w-full bg-card dark:bg-card">
         <SelectValue placeholder="Selecionar projeto (opcional)" />
       </SelectTrigger>
       <SelectContent position="popper">

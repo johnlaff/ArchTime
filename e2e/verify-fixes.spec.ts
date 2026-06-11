@@ -65,7 +65,19 @@ test('bug 3 + 5: aba "Semestre" e seletor neutro legível (dark + rosa custom)',
   console.log(`[bug5] pílula ativa bg (dark+rosa): ${activeBg} (alpha=${alpha(activeBg)})`)
   expect(alpha(activeBg)).toBeGreaterThan(0.5)
 
+  const projectSelector = page.getByRole('combobox').first()
+  if (await projectSelector.count()) {
+    const selectorBg = await projectSelector.evaluate((el) => getComputedStyle(el).backgroundColor)
+    // eslint-disable-next-line no-console
+    console.log(`[bug projeto] seletor bg (dark+rosa): ${selectorBg} (alpha=${alpha(selectorBg)})`)
+    expect(alpha(selectorBg), 'seletor de projeto deve ser opaco').toBeGreaterThan(0.5)
+  }
+
   await page.getByTestId('activity-panel').screenshot({ path: `${DIR}/verify-panel-semestre-pinkdark.png` })
+
+  await page.getByRole('tab', { name: 'Mês' }).click()
+  await page.waitForTimeout(700)
+  await page.getByTestId('activity-panel').screenshot({ path: `${DIR}/verify-panel-mes-pinkdark.png` })
 
   // bug 2: barras da semana seguem o accent (rosa), não verde
   await page.getByRole('tab', { name: 'Semana' }).click()
