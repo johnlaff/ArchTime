@@ -1,29 +1,9 @@
-import { test, expect, type Page } from '@playwright/test'
-
-function alpha(color: string): number {
-  const rgba = color.match(/rgba?\([^)]*?(?:,\s*([\d.]+))?\)$/)
-  if (rgba && rgba[1] !== undefined) return Number(rgba[1])
-  const slash = color.match(/\/\s*([\d.]+)(%?)\s*\)/)
-  if (slash) return slash[2] === '%' ? Number(slash[1]) / 100 : Number(slash[1])
-  return 1
-}
-
-async function applyDarkPinkBlueprint(page: Page) {
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem('theme', 'dark')
-      localStorage.setItem('archtime-blueprint', 'true')
-      localStorage.removeItem('archtime-preset')
-      localStorage.setItem('archtime-accent', 'custom')
-      localStorage.setItem('archtime-accent-custom', '#ec4899')
-      localStorage.setItem('archtime-preferences-updated-at', String(Date.now()))
-    } catch {}
-  })
-}
+import { test, expect } from '@playwright/test'
+import { alpha, applyAppearance } from './helpers/appearance'
 
 test('heatmap mensal fica legível no escuro com rosa custom', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
-  await applyDarkPinkBlueprint(page)
+  await applyAppearance(page, { dark: true, pink: true, blueprint: true })
   await page.goto('/dashboard')
 
   await expect(page.getByRole('heading', { name: 'Ponto' })).toBeVisible({ timeout: 30_000 })
@@ -31,7 +11,7 @@ test('heatmap mensal fica legível no escuro com rosa custom', async ({ page }) 
 
   await page.getByRole('tab', { name: 'Mês' }).click()
   const panel = page.getByTestId('activity-panel')
-  await expect(panel.getByText('Total:')).toBeVisible()
+  await expect(panel.getByText('Total:')).toBeVisible({ timeout: 10_000 })
   await expect(panel.getByText('Dias ativos:')).toBeVisible()
 
   await expect.poll(async () => {
@@ -50,7 +30,7 @@ test('heatmap mensal fica legível no escuro com rosa custom', async ({ page }) 
 
 test('seletor de projeto fica opaco sobre blueprint no escuro', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
-  await applyDarkPinkBlueprint(page)
+  await applyAppearance(page, { dark: true, pink: true, blueprint: true })
   await page.route('**/rest/v1/clock_entries**', async (route) => {
     const url = route.request().url()
     if (url.includes('clock_out=is.null') && url.includes('deleted_at=is.null')) {
@@ -70,7 +50,7 @@ test('seletor de projeto fica opaco sobre blueprint no escuro', async ({ page })
 
 test('busca do histórico continua opaca sobre blueprint no escuro', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
-  await applyDarkPinkBlueprint(page)
+  await applyAppearance(page, { dark: true, pink: true, blueprint: true })
   await page.goto('/historico')
   await expect(page.getByRole('heading', { name: 'Histórico' })).toBeVisible({ timeout: 30_000 })
 

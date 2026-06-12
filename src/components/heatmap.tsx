@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ActivityCalendar, type Activity } from 'react-activity-calendar'
 import { useTheme } from 'next-themes'
 import 'react-activity-calendar/tooltips.css'
-import { formatMinutes } from '@/lib/dates'
+import { formatMinutes, getDayOfWeek } from '@/lib/dates'
 import type { HeatmapDay } from '@/types'
 
 // Escala opaca e monotônica com color-mix: mistura progressivamente --primary sobre
@@ -37,6 +37,7 @@ const MONTH_LABELS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 's
 const BLOCK_MARGIN = 3
 const MIN_BLOCK = 8
 const MAX_BLOCK = 22
+const WEEK_START = 1 // segunda
 
 function dateLabel(date: string): string {
   const [, m, d] = date.split('-')
@@ -58,7 +59,11 @@ function tooltipText(day: HeatmapDay): string {
  */
 export function Heatmap({ days }: { days: HeatmapDay[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const weeks = Math.max(1, Math.ceil(days.length / 7))
+  // A lib preenche a primeira semana até o WEEK_START anterior; sem contar esse
+  // padding, ranges que não começam na segunda renderizam uma coluna a mais do
+  // que o blockSize foi dimensionado para caber (overflow + scroll horizontal).
+  const leadingPad = days.length > 0 ? (getDayOfWeek(days[0].date) - WEEK_START + 7) % 7 : 0
+  const weeks = Math.max(1, Math.ceil((leadingPad + days.length) / 7))
   const [blockSize, setBlockSize] = useState(13)
   const { resolvedTheme } = useTheme()
 
@@ -79,6 +84,8 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
 
   const data = days.map((day) => ({ date: day.date, count: day.totalMinutes, level: day.level }))
   const byDate = new Map(days.map((day) => [day.date, day]))
+  // Mesmo com HEAT_THEME idêntico nos dois temas, colorScheme é load-bearing:
+  // controla o contraste do tooltip via [data-color-scheme] em tooltips.css.
   const colorScheme = resolvedTheme === 'dark' ? 'dark' : 'light'
 
   return (
@@ -93,7 +100,7 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
             blockSize={blockSize}
             blockMargin={BLOCK_MARGIN}
             blockRadius={Math.min(4, Math.round(blockSize / 4))}
-            weekStart={1}
+            weekStart={WEEK_START}
             fontSize={11}
             showTotalCount={false}
             showColorLegend={false}

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSupabaseQuery } from '@/hooks/use-supabase-query'
 import { Heatmap } from './heatmap'
 import { WeekBars } from './week-bars'
-import { formatMinutes } from '@/lib/dates'
+import { formatBRT, formatMinutes, getLocalDateBRT } from '@/lib/dates'
 import type { ActivityOverview, DistributionItem, TrendInsight } from '@/types'
 
 async function fetchOverview(): Promise<ActivityOverview> {
@@ -109,8 +109,12 @@ function PanelSkeleton() {
 export default function ActivityPanelContent() {
   const { data, loading, error } = useSupabaseQuery('dashboard:activity-overview', fetchOverview)
 
-  // Ranges rolantes: mantêm a aba Mês útil mesmo no início do mês calendário.
-  const monthDays = useMemo(() => (data ? data.heatmap.slice(-31) : []), [data])
+  // Mês = mês calendário corrente em BRT (dia 1 → hoje), como os demais relatórios.
+  const monthDays = useMemo(() => {
+    if (!data) return []
+    const monthStart = `${getLocalDateBRT().slice(0, 7)}-01`
+    return data.heatmap.filter((d) => d.date >= monthStart)
+  }, [data])
   const halfYearDays = useMemo(() => (data ? data.heatmap.slice(-182) : []), [data])
   const monthSummary = useMemo(() => {
     if (monthDays.length === 0) return null
@@ -153,29 +157,27 @@ export default function ActivityPanelContent() {
             <WeekBars week={data.week} />
           </TabsContent>
           <TabsContent value="mes" className="mt-0">
-            {monthDays.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic py-2">Sem dados este mês.</p>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-center text-[11px] text-muted-foreground/70">Últimos 31 dias</p>
-                <Heatmap days={monthDays} />
-                {monthSummary && (
-                  <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+            <div className="space-y-2">
+              <p className="text-center text-[11px] text-muted-foreground/70 first-letter:uppercase">
+                {formatBRT(new Date(), "MMMM 'de' yyyy")}
+              </p>
+              <Heatmap days={monthDays} />
+              {monthSummary && (
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                  <span>
+                    Total: <span className="tabular-nums font-medium text-foreground/80">{formatMinutes(monthSummary.totalMinutes)}</span>
+                  </span>
+                  <span>
+                    Dias ativos: <span className="tabular-nums font-medium text-foreground/80">{monthSummary.activeCount} de {monthSummary.totalDays}</span>
+                  </span>
+                  {monthSummary.bestDay && (
                     <span>
-                      Total: <span className="tabular-nums font-medium text-foreground/80">{formatMinutes(monthSummary.totalMinutes)}</span>
+                      Melhor dia: <span className="tabular-nums font-medium text-foreground/80">{formatMinutes(monthSummary.bestDay.totalMinutes)}</span>
                     </span>
-                    <span>
-                      Dias ativos: <span className="tabular-nums font-medium text-foreground/80">{monthSummary.activeCount} de {monthSummary.totalDays}</span>
-                    </span>
-                    {monthSummary.bestDay && (
-                      <span>
-                        Melhor dia: <span className="tabular-nums font-medium text-foreground/80">{formatMinutes(monthSummary.bestDay.totalMinutes)}</span>
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </TabsContent>
           <TabsContent value="semestre" className="mt-0">
             <Heatmap days={halfYearDays} />

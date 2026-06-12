@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { alpha, applyAppearance } from './helpers/appearance'
 
 // Verificação visual + determinística das correções desta branch (fix/ui-consistency-pass).
 // Sob demanda (SHOTS=1) — não polui a suíte de asserções funcionais.
@@ -10,29 +11,6 @@ test.beforeEach(() => {
   test.skip(!process.env.SHOTS, 'Verificação sob demanda: rode com SHOTS=1')
 })
 
-/**
- * Injeta tema + accent ANTES do load. O script anti-flash do layout lê o localStorage,
- * e o marcador `...preferences-updated-at` impede que o PreferencesHydrator sobrescreva
- * a aparência injetada com as prefs salvas do servidor (a conta de teste tem preset/tema
- * próprios). Sem preset → o custom accent rosa não é vencido por um data-preset.
- */
-async function applyAppearance(page: Page, opts: { dark: boolean; pink?: boolean }) {
-  await page.addInitScript((o) => {
-    try {
-      localStorage.setItem('theme', o.dark ? 'dark' : 'light')
-      localStorage.removeItem('archtime-preset')
-      if (o.pink) {
-        localStorage.setItem('archtime-accent', 'custom')
-        localStorage.setItem('archtime-accent-custom', '#ec4899') // rosa saturado
-      } else {
-        localStorage.setItem('archtime-accent', 'indigo')
-        localStorage.removeItem('archtime-accent-custom')
-      }
-      localStorage.setItem('archtime-preferences-updated-at', String(Date.now()))
-    } catch {}
-  }, opts)
-}
-
 async function gotoDashboard(page: Page) {
   await page.goto('/dashboard')
   await expect(page.getByRole('heading', { name: 'Ponto' })).toBeVisible({ timeout: 30_000 })
@@ -40,19 +18,19 @@ async function gotoDashboard(page: Page) {
   await page.waitForTimeout(900) // chart/heatmap settle
 }
 
-function alpha(color: string): number {
-  const m = color.match(/rgba?\([^)]*?(?:,\s*([\d.]+))?\)$/)
-  if (m && m[1] !== undefined) return Number(m[1])
-  if (/\/\s*([\d.]+%?)\s*\)/.test(color)) {
-    const v = color.match(/\/\s*([\d.]+)(%?)\s*\)/)
-    if (v) return v[2] === '%' ? Number(v[1]) / 100 : Number(v[1])
-  }
-  return 1 // rgb()/oklch() sem alpha = opaco
-}
-
 test('bug 3 + 5: aba "Semestre" e seletor neutro legível (dark + rosa custom)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await applyAppearance(page, { dark: true, pink: true })
+  // Sem sessão aberta → o card de ponto mostra o seletor de projeto (a conta de
+  // teste pode ter sessão ativa; o guard if(count) antigo só mascarava isso).
+  await page.route('**/rest/v1/clock_entries**', async (route) => {
+    const url = route.request().url()
+    if (url.includes('clock_out=is.null') && url.includes('deleted_at=is.null')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      return
+    }
+    await route.continue()
+  })
   await gotoDashboard(page)
 
   // accent custom de fato aplicado
@@ -66,17 +44,16 @@ test('bug 3 + 5: aba "Semestre" e seletor neutro legível (dark + rosa custom)',
   expect(alpha(activeBg)).toBeGreaterThan(0.5)
 
   const projectSelector = page.getByRole('combobox').first()
-  if (await projectSelector.count()) {
-    const selectorBg = await projectSelector.evaluate((el) => getComputedStyle(el).backgroundColor)
-    // eslint-disable-next-line no-console
-    console.log(`[bug projeto] seletor bg (dark+rosa): ${selectorBg} (alpha=${alpha(selectorBg)})`)
-    expect(alpha(selectorBg), 'seletor de projeto deve ser opaco').toBeGreaterThan(0.5)
-  }
+  await expect(projectSelector).toBeVisible()
+  const selectorBg = await projectSelector.evaluate((el) => getComputedStyle(el).backgroundColor)
+  // eslint-disable-next-line no-console
+  console.log(`[bug projeto] seletor bg (dark+rosa): ${selectorBg} (alpha=${alpha(selectorBg)})`)
+  expect(alpha(selectorBg), 'seletor de projeto deve ser opaco').toBeGreaterThan(0.5)
 
   await page.getByTestId('activity-panel').screenshot({ path: `${DIR}/verify-panel-semestre-pinkdark.png` })
 
   await page.getByRole('tab', { name: 'Mês' }).click()
-  await page.waitForTimeout(700)
+  await expect(page.getByTestId('activity-panel').getByText('Total:')).toBeVisible({ timeout: 10_000 })
   await page.getByTestId('activity-panel').screenshot({ path: `${DIR}/verify-panel-mes-pinkdark.png` })
 
   // bug 2: barras da semana seguem o accent (rosa), não verde
