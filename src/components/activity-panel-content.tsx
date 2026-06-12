@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSupabaseQuery } from '@/hooks/use-supabase-query'
 import { Heatmap } from './heatmap'
 import { WeekBars } from './week-bars'
+import { formatBRT, formatMinutes, getLocalDateBRT } from '@/lib/dates'
 import type { ActivityOverview, DistributionItem, TrendInsight } from '@/types'
 
 async function fetchOverview(): Promise<ActivityOverview> {
@@ -13,10 +14,6 @@ async function fetchOverview(): Promise<ActivityOverview> {
   if (!res.ok) throw new Error('Erro ao carregar atividade')
   return res.json() as Promise<ActivityOverview>
 }
-
-// Pílula ativa em superfície neutra (--card) nos dois temas, sobrepondo o
-// `bg-input/30` translúcido do default — que sumia sobre o track tingido pelo accent.
-const TAB_TRIGGER = 'data-[state=active]:bg-card dark:data-[state=active]:bg-card'
 
 function Panel({ children }: { children: React.ReactNode }) {
   return <div className="rounded-2xl border border-border bg-card p-4">{children}</div>
@@ -112,8 +109,22 @@ function PanelSkeleton() {
 export default function ActivityPanelContent() {
   const { data, loading, error } = useSupabaseQuery('dashboard:activity-overview', fetchOverview)
 
-  // "Semestre" = últimas ~26 semanas; "Ano" = todo o range buscado (~53 semanas).
+  // Mês = mês calendário corrente em BRT (dia 1 → hoje), como os demais relatórios.
+  const monthDays = useMemo(() => {
+    if (!data) return []
+    const monthStart = `${getLocalDateBRT().slice(0, 7)}-01`
+    return data.heatmap.filter((d) => d.date >= monthStart)
+  }, [data])
   const halfYearDays = useMemo(() => (data ? data.heatmap.slice(-182) : []), [data])
+  const monthSummary = useMemo(() => {
+    if (monthDays.length === 0) return null
+    const activeDays = monthDays.filter(d => d.totalMinutes > 0)
+    const totalMinutes = activeDays.reduce((sum, d) => sum + d.totalMinutes, 0)
+    const bestDay = activeDays.length > 0
+      ? activeDays.reduce((best, d) => (d.totalMinutes > best.totalMinutes ? d : best), activeDays[0])
+      : null
+    return { totalMinutes, activeCount: activeDays.length, totalDays: monthDays.length, bestDay }
+  }, [monthDays])
 
   if (loading && !data) return <PanelSkeleton />
   if (error || !data) {
@@ -128,7 +139,7 @@ export default function ActivityPanelContent() {
     <div className="space-y-3 animate-fade-in-up" data-testid="activity-panel">
       <Panel>
         <Tabs defaultValue="semestre">
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium text-muted-foreground/60">
               <Activity className="h-3 w-3" aria-hidden="true" />
               Atividade
@@ -136,13 +147,37 @@ export default function ActivityPanelContent() {
             {/* Track e pílula ativa em tokens neutros (secondary/card): o seletor não
                 herda o tint do accent — fica legível no escuro com qualquer cor custom. */}
             <TabsList className="bg-secondary">
-              <TabsTrigger value="semana" className={TAB_TRIGGER}>Semana</TabsTrigger>
-              <TabsTrigger value="semestre" className={TAB_TRIGGER}>Semestre</TabsTrigger>
-              <TabsTrigger value="ano" className={TAB_TRIGGER}>Ano</TabsTrigger>
+              <TabsTrigger value="semana">Semana</TabsTrigger>
+              <TabsTrigger value="mes">Mês</TabsTrigger>
+              <TabsTrigger value="semestre">Semestre</TabsTrigger>
+              <TabsTrigger value="ano">Ano</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="semana" className="mt-0">
             <WeekBars week={data.week} />
+          </TabsContent>
+          <TabsContent value="mes" className="mt-0">
+            <div className="space-y-2">
+              <p className="text-center text-[11px] text-muted-foreground/70 first-letter:uppercase">
+                {formatBRT(new Date(), "MMMM 'de' yyyy")}
+              </p>
+              <Heatmap days={monthDays} />
+              {monthSummary && (
+                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                  <span>
+                    Total: <span className="tabular-nums font-medium text-foreground/80">{formatMinutes(monthSummary.totalMinutes)}</span>
+                  </span>
+                  <span>
+                    Dias ativos: <span className="tabular-nums font-medium text-foreground/80">{monthSummary.activeCount} de {monthSummary.totalDays}</span>
+                  </span>
+                  {monthSummary.bestDay && (
+                    <span>
+                      Melhor dia: <span className="tabular-nums font-medium text-foreground/80">{formatMinutes(monthSummary.bestDay.totalMinutes)}</span>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </TabsContent>
           <TabsContent value="semestre" className="mt-0">
             <Heatmap days={halfYearDays} />

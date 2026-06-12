@@ -866,4 +866,3 @@ html.dark[data-blueprint="true"] body {
   .print-body  { font-size: var(--print-font-body); line-height: var(--print-line-height); }
   .print-small { font-size: var(--print-font-small); color: var(--print-color-muted); }
 }
-
