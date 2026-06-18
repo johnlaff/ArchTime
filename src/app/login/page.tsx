@@ -7,19 +7,19 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getOAuthRedirectTo } from '@/lib/oauth-redirect'
 
+async function handleGoogleLogin() {
+  const supabase = createClient()
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: getOAuthRedirectTo(window.location.origin),
+    },
+  })
+}
+
 function LoginContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-
-  async function handleGoogleLogin() {
-    const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: getOAuthRedirectTo(window.location.origin),
-      },
-    })
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

@@ -27,6 +27,7 @@ export function OrphanSessionBanner({ session, onResolved }: OrphanSessionBanner
   const [saving, setSaving] = useState(false)
   const [open, setOpen] = useState(false)
   const [clockOutAt, setClockOutAt] = useState(() => formatBRT(new Date(), "yyyy-MM-dd'T'HH:mm"))
+  const [maxClockOut] = useState(() => formatBRT(new Date(), "yyyy-MM-dd'T'HH:mm"))
 
   // Só exibe se a sessão é de um dia anterior no fuso oficial do produto.
   const sessionDate = getLocalDateBRT(new Date(session.clockIn))
@@ -86,7 +87,7 @@ export function OrphanSessionBanner({ session, onResolved }: OrphanSessionBanner
               type="datetime-local"
               value={clockOutAt}
               min={formatBRT(session.clockIn, "yyyy-MM-dd'T'HH:mm")}
-              max={formatBRT(new Date(), "yyyy-MM-dd'T'HH:mm")}
+              max={maxClockOut}
               onChange={(e) => setClockOutAt(e.target.value)}
             />
           </div>

@@ -6,7 +6,6 @@ export function isAllowedEmail(email: string | undefined | null): boolean {
   if (!email) return false
   const allowed = (process.env.ALLOWED_EMAILS ?? '')
     .split(',')
-    .map((e) => e.trim())
-    .filter(Boolean)
+    .flatMap((e) => { const t = e.trim(); return t ? [t] : [] })
   return allowed.includes(email)
 }

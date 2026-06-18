@@ -42,7 +42,7 @@ function normalizeProject(project: ProjectOption & { hourlyRate?: unknown }): Pr
 }
 
 function sortProjects(projects: ProjectOption[]): ProjectOption[] {
-  return [...projects].sort((a, b) => {
+  return projects.toSorted((a, b) => {
     if (a.isActive !== b.isActive) return a.isActive ? -1 : 1
     return a.name.localeCompare(b.name, 'pt-BR')
   })
@@ -56,6 +56,7 @@ function upsertProject(projects: ProjectOption[], project: ProjectOption): Proje
   return sortProjects(next)
 }
 
+// react-doctor-disable-next-line react-doctor/prefer-useReducer, react-doctor/no-giant-component -- refatoração para useReducer ou extração de subcomponentes envolveria reescrever a lógica otimista complexa (snapshot/rollback), com alto risco de regressão; suprimido intencionalmente
 export function ProjetosClient() {
   const supabase = useMemo(() => createClient(), [])
   const query = useSupabaseQuery('projetos:all', () => fetchProjects(supabase, { activeOnly: false }))
@@ -334,6 +335,7 @@ export function ProjetosClient() {
                 {PRESET_COLORS.map(c => (
                   <button
                     key={c}
+                    aria-label={`Selecionar cor ${c}`}
                     className={`w-7 h-7 rounded-full border-2 transition-transform ${
                       form.color === c ? 'border-foreground scale-110' : 'border-transparent'
                     }`}

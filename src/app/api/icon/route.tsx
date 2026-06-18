@@ -19,20 +19,23 @@ export async function GET(req: NextRequest) {
   const size = Math.min(Math.max(Number(searchParams.get('size') ?? '192'), 32), 512)
   const outlineWidth = Math.max(1, Math.round(size * 0.035))
 
+  // ImageResponse (next/og) só suporta estilos inline; extrair o objeto para uma
+  // const evita o objeto inline no JSX (no-inline-exhaustive-style) sem precisar de
+  // CSS classes/Tailwind, que não funcionam neste contexto de geração de imagem.
+  const containerStyle = {
+    width: size,
+    height: size,
+    background: bg,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Math.round(size * 0.22),
+    boxShadow: outline === 'transparent' ? 'none' : `inset 0 0 0 ${outlineWidth}px ${outline}`,
+  } as const
+
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: size,
-          height: size,
-          background: bg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: Math.round(size * 0.22),
-          boxShadow: outline === 'transparent' ? 'none' : `inset 0 0 0 ${outlineWidth}px ${outline}`,
-        }}
-      >
+      <div style={containerStyle}>
         <svg
           width={size * 0.62}
           height={size * 0.62}

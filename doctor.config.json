@@ -1,0 +1,11 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "ignore": {
+    // @netlify/plugin-nextjs e uma devDependency usada pelo netlify.toml (instalacao
+    // file-based recomendada pela Netlify). O React Doctor nao varre arquivos .toml,
+    // entao o dead-code a reporta como unused-dev-dependency (falso positivo). As regras
+    // de dependency nao sao supressiveis individualmente, entao ignoramos a analise de
+    // dead-code apenas do package.json; o restante (unused files/exports, circular) segue ativo.
+    "files": ["package.json"]
+  }
+}

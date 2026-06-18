@@ -27,6 +27,7 @@ interface ActivitySelectorProps {
  */
 export function ActivitySelector({ value, onChange, disabled, keys = ACTIVITY_TYPE_KEYS }: ActivitySelectorProps) {
   return (
+    // react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- não há tag HTML semântica para um grupo de botões toggle; role="group" + aria-label é o padrão ARIA correto
     <div className="flex flex-wrap gap-1.5" role="group" aria-label="Tipo de atividade">
       {keys.map((key) => {
         const Icon = ACTIVITY_ICONS[key]

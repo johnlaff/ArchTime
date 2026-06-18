@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, m } from 'motion/react'
 import { ClockButton } from '@/components/clock-button'
 import { CurrentSession } from '@/components/current-session'
 import { DailySummaryCard } from '@/components/daily-summary'
@@ -42,19 +42,25 @@ export function DashboardClient() {
   const { session, setSession, clockIn, clockOut, loading } = useClock(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null)
-  const seededRef = useRef(false)
+  // react-doctor-disable-next-line react-doctor/rerender-state-only-in-handlers -- `seeded` controla o render via `shellLoading` (sai do skeleton); precisa ser state para forçar o re-render quando os dados chegam, inclusive quando a sessão é null (setSession(null) sofre bail-out por Object.is e não re-renderiza sozinho).
   const [seeded, setSeeded] = useState(false)
 
   // Seed the optimistic clock state once from the first server read; after that,
   // clockIn/clockOut own the session locally. Revalidations update the cache only.
+  // After seeding, consume any pending clock toggle that was deferred from another route.
   useEffect(() => {
-    if (!seededRef.current && !sessionQuery.loading) {
-      seededRef.current = true
-      setSession(sessionQuery.data ?? null)
-      setSelectedProjectId(sessionQuery.data?.projectId ?? null)
+    // react-doctor-disable-next-line react-doctor/no-event-handler -- seed único de inicialização (não é event handler disfarçado): semeia o estado otimista do relógio a partir do 1º read assíncrono do servidor; não há evento de usuário que possa hospedar essa lógica.
+    if (!seeded && !sessionQuery.loading) {
+      // react-doctor-disable-next-line react-doctor/no-chain-state-updates -- seed atômico que inicializa estados de fontes distintas (seeded local, session do hook useClock, selectedProjectId local); o React agrupa estes updates num único re-render.
       setSeeded(true)
+      setSession(sessionQuery.data ?? null)
+      // react-doctor-disable-next-line react-doctor/no-chain-state-updates, react-doctor/no-derived-state -- selectedProjectId é inicializado uma vez do servidor e depois controlado pelo usuário (ProjectSelector); calcular no render sobrescreveria a seleção do usuário a cada revalidação.
+      setSelectedProjectId(sessionQuery.data?.projectId ?? null)
+      // Consume toggle pendente aqui (no mesmo efeito que marca seeded=true) para
+      // evitar um estado extra e um re-render desnecessário.
+      if (consumePendingClockToggle()) toggleRef.current()
     }
-  }, [sessionQuery.loading, sessionQuery.data, setSession])
+  }, [seeded, sessionQuery.loading, sessionQuery.data, setSession])
 
   useEffect(() => {
     const onSync = () => {
@@ -92,7 +98,7 @@ export function DashboardClient() {
     // Toggled before the optimistic session is seeded (brief skeleton window):
     // defer so we don't clock IN over an already-open server session. The
     // post-seed effect below consumes the pending toggle once ready.
-    if (!seededRef.current) {
+    if (!seeded) {
       setPendingClockToggle()
       return
     }
@@ -107,16 +113,9 @@ export function DashboardClient() {
     return () => window.removeEventListener(CLOCK_TOGGLE_EVENT, onToggle)
   }, [])
 
-  // Consume a toggle requested from another route (we just navigated here), but only
-  // after seeding so we never act on a stale/empty session.
-  useEffect(() => {
-    if (seeded && consumePendingClockToggle()) toggleRef.current()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seeded])
-
   // Show the full skeleton (matching final dimensions) until session+projects are
   // ready AND the clock state is seeded — holds CLS < 0.1 and avoids a session flash.
-  const shellLoading = projectsQuery.loading || sessionQuery.loading || !seededRef.current
+  const shellLoading = projectsQuery.loading || sessionQuery.loading || !seeded
   if (shellLoading) return <DashboardLoading />
 
   const projects = projectsQuery.data ?? []
@@ -143,7 +142,7 @@ export function DashboardClient() {
 
       <AnimatePresence initial={false}>
         {session && !isOrphan && (
-          <motion.div
+          <m.div
             key="current-session"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -151,7 +150,7 @@ export function DashboardClient() {
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
             <CurrentSession session={session} />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

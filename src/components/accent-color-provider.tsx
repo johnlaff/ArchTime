@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, use, useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { markLocalPreferenceChange, persistAppearanceSettings, type AppearancePatch } from '@/lib/appearance'
 import {
@@ -22,6 +22,7 @@ import {
   syncBrowserAccentColor,
 } from '@/lib/browser-accent'
 
+// react-doctor-disable-next-line react-doctor/only-export-components -- ACCENTS e constante de modulo co-localizada com o Provider; mover quebraria imports em todo o app
 export const ACCENTS = Object.fromEntries(
   Object.entries(ACCENT_PRESETS).map(([key, preset]) => [key, preset.color])
 ) as Record<AccentPreset, string>
@@ -90,6 +91,12 @@ function clearCustomAccentProperties() {
   }
 }
 
+function persist(patch: AppearancePatch) {
+  persistAppearanceSettings(patch).catch((error) => {
+    toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
+  })
+}
+
 export function AccentColorProvider({ children }: { children: React.ReactNode }) {
   const [accent, setAccentState] = useState<AccentPreset | 'custom'>('indigo')
   const [customColor, setCustomColorState] = useState<string | null>(null)
@@ -106,17 +113,21 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
       initialAccent = 'custom'
       const savedCustom = getColorInputValue(localStorage.getItem(CUSTOM_COLOR_KEY))
       initialCustomColor = savedCustom
+      // react-doctor-disable-next-line react-doctor/no-initialize-state -- localStorage e indisponivel no SSR; lazy initializer causaria hydration mismatch
       setAccentState('custom')
+      // react-doctor-disable-next-line react-doctor/no-initialize-state -- localStorage e indisponivel no SSR; lazy initializer causaria hydration mismatch
       setCustomColorState(savedCustom)
       applyCustomAccentProperties(savedCustom)
     } else if (savedAccent && Object.hasOwn(ACCENT_PRESETS, savedAccent)) {
       initialAccent = savedAccent as AccentPreset
+      // react-doctor-disable-next-line react-doctor/no-initialize-state -- localStorage e indisponivel no SSR; lazy initializer causaria hydration mismatch
       setAccentState(initialAccent)
     }
 
     const savedPreset = localStorage.getItem(PRESET_KEY)
     if (savedPreset && isArchitecturalPreset(savedPreset)) {
       initialPreset = savedPreset
+      // react-doctor-disable-next-line react-doctor/no-initialize-state -- localStorage e indisponivel no SSR; lazy initializer causaria hydration mismatch
       setArchitecturalPresetState(initialPreset)
     }
 
@@ -129,14 +140,9 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     )
 
     const savedDensity = localStorage.getItem(DENSITY_KEY)
+    // react-doctor-disable-next-line react-doctor/no-initialize-state -- localStorage e indisponivel no SSR; lazy initializer causaria hydration mismatch
     if (savedDensity && isDensityPreset(savedDensity)) setDensityState(savedDensity)
   }, [])
-
-  function persist(patch: AppearancePatch) {
-    persistAppearanceSettings(patch).catch((error) => {
-      toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
-    })
-  }
 
   function setAccent(newAccent: AccentPreset) {
     markLocalPreferenceChange()
@@ -266,15 +272,20 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
     )
   }
 
+  const contextValue = useMemo(
+    () => ({ accent, setAccent, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity, syncAppearanceFromRemote }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- setters e syncAppearanceFromRemote são estáveis; memoizar o value apenas pelos 4 valores de estado é intencional para não recriar o contexto a cada render.
+    [accent, customColor, architecturalPreset, density]
+  )
+
   return (
-    <AccentColorContext.Provider
-      value={{ accent, setAccent, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity, syncAppearanceFromRemote }}
-    >
+    <AccentColorContext.Provider value={contextValue}>
       {children}
     </AccentColorContext.Provider>
   )
 }
 
 export function useAccentColor() {
-  return useContext(AccentColorContext)
+  return use(AccentColorContext)
 }

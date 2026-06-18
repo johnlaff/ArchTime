@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion } from 'motion/react'
+import { m } from 'motion/react'
 import { Clock, History, FolderOpen, Settings } from 'lucide-react'
 
 interface NavItem {
@@ -37,7 +37,7 @@ export function SidebarNav() {
             ].join(' ')}
           >
             {isActive && (
-              <motion.span
+              <m.span
                 layoutId="nav-indicator"
                 className="absolute inset-0 rounded-lg bg-accent pointer-events-none"
                 transition={{ type: 'spring', stiffness: 400, damping: 35 }}

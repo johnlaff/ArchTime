@@ -50,6 +50,7 @@ async function moveToFailedEntry(
   status: number,
   error: string
 ): Promise<void> {
+  // react-doctor-disable-next-line react-doctor/async-parallel -- a ordem é obrigatória: o put no FAILED_STORE precede o delete do STORE. Como db.put/db.delete do idb abrem transações separadas, paralelizar com Promise.all poderia commitar o delete antes do put e perder a entry num crash entre as duas operações.
   const db = await getDB()
   await db.put(FAILED_STORE, {
     ...entry,

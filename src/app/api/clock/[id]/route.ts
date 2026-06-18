@@ -116,6 +116,7 @@ export async function PUT(
   const oldData = serializeOldData(entry)
 
   const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // react-doctor-disable-next-line react-doctor/async-parallel -- awaits dentro de uma transação Prisma interativa: paralelizar com Promise.all quebraria o isolamento transacional (Prisma usa uma conexão serial por tx)
     const updatedEntry = await tx.clockEntry.update({
       where: { id },
       data: { clockOut, totalMinutes, hash },

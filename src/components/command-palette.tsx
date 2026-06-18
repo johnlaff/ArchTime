@@ -46,6 +46,7 @@ function isMacPlatform(): boolean {
 export function useModKey(): string {
   const [mod, setMod] = useState('Ctrl')
   useEffect(() => {
+    // react-doctor-disable-next-line react-doctor/no-initialize-state -- valor depende de navigator (indisponível no SSR); iniciar com 'Ctrl' garante que servidor e 1º render do cliente concordem (sem hydration mismatch); a atualização ocorre após o mount, padrão recomendado para APIs de browser.
     if (isMacPlatform()) setMod('⌘')
   }, [])
   return mod

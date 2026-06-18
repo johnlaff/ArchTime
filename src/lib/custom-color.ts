@@ -1,5 +1,5 @@
 const HEX_COLOR_RE = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
-export const DEFAULT_CUSTOM_ACCENT = '#6366f1'
+const DEFAULT_CUSTOM_ACCENT = '#6366f1'
 export const CUSTOM_FOREGROUND_DARK = '#111827'
 export const CUSTOM_FOREGROUND_LIGHT = '#ffffff'
 

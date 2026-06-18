@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'motion/react'
+import { m, AnimatePresence } from 'motion/react'
 import { LogIn, LogOut, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -10,7 +10,7 @@ interface ClockButtonProps {
   loading: boolean
 }
 
-const MotionButton = motion.create(Button)
+const MotionButton = m.create(Button)
 
 export function ClockButton({ isClockedIn, onClick, loading }: ClockButtonProps) {
   return (
@@ -31,7 +31,7 @@ export function ClockButton({ isClockedIn, onClick, loading }: ClockButtonProps)
     >
       <AnimatePresence mode="wait" initial={false}>
         {loading ? (
-          <motion.span
+          <m.span
             key="loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -39,9 +39,9 @@ export function ClockButton({ isClockedIn, onClick, loading }: ClockButtonProps)
             transition={{ duration: 0.15 }}
           >
             <Loader2 className="h-6 w-6 animate-spin" />
-          </motion.span>
+          </m.span>
         ) : isClockedIn ? (
-          <motion.span
+          <m.span
             key="out"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -50,9 +50,9 @@ export function ClockButton({ isClockedIn, onClick, loading }: ClockButtonProps)
             className="flex items-center gap-3"
           >
             <LogOut className="h-6 w-6" /> SAÍDA
-          </motion.span>
+          </m.span>
         ) : (
-          <motion.span
+          <m.span
             key="in"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -61,7 +61,7 @@ export function ClockButton({ isClockedIn, onClick, loading }: ClockButtonProps)
             className="flex items-center gap-3"
           >
             <LogIn className="h-6 w-6" /> ENTRADA
-          </motion.span>
+          </m.span>
         )}
       </AnimatePresence>
     </MotionButton>

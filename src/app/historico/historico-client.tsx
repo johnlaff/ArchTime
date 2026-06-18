@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useTransition } from 'react'
+import { useEffect, useState, useCallback, useRef, useTransition, useEffectEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Trash2, Pencil, Search, CalendarRange, SlidersHorizontal, X } from 'lucide-react'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns'
@@ -194,12 +194,14 @@ function FilterControls({
   )
 }
 
+// react-doctor-disable-next-line react-doctor/no-giant-component -- componente grande por design (dashboard de histórico com múltiplos dialogs); extração agressiva criaria risco de regressão sem ganho claro
 export function HistoricoClient({
   initialMonth = getLocalDateBRT().slice(0, 7),
   initialBundle,
 }: {
   initialMonth?: string
   initialBundle?: HistoryBundle
+  // react-doctor-disable-next-line react-doctor/prefer-useReducer -- 14 useState é um limite aceitável aqui; migrar para useReducer exigiria reescrever toda a lógica async (load/delete/edit) com alto risco de regressão.
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => monthToDate(initialMonth))
   const [data, setData] = useState<HistoryData | null>(initialBundle?.history ?? null)
@@ -271,9 +273,11 @@ export function HistoricoClient({
   useEffect(() => {
     if (!didMount.current) {
       didMount.current = true
+      // react-doctor-disable-next-line react-doctor/no-derived-state -- loadingMore/monthLoading são estados de UI imperativos definidos dentro de load() (async), não valores deriváveis no render.
       load(currentMonth, 1, false, { silent: !!initialBundle, fresh: true })
       return
     }
+    // react-doctor-disable-next-line react-doctor/no-derived-state -- idem: load() gerencia loadingMore/monthLoading imperativamente.
     load(currentMonth)
   }, [currentMonth, initialBundle, load])
 
@@ -295,15 +299,19 @@ export function HistoricoClient({
       filtersMounted.current = true
       return
     }
+    // react-doctor-disable-next-line react-doctor/no-derived-state -- load() gerencia loadingMore/monthLoading imperativamente (async), não é estado derivável.
     load(currentMonth, 1, false, { silent: true, fresh: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // react-doctor-disable-next-line react-doctor/exhaustive-deps -- currentMonth/load omitidos de propósito: o efeito de mês acima já recarrega ao mudar de mês; incluí-los aqui causaria requisição dupla.
   }, [filters])
 
+  const onSettingsChanged = useEffectEvent(() => {
+    load(currentMonth, 1, false, { silent: true, fresh: true })
+  })
+
   useEffect(() => {
-    const onSettingsChanged = () => load(currentMonth, 1, false, { silent: true, fresh: true })
     window.addEventListener('archtime:settings-changed', onSettingsChanged)
     return () => window.removeEventListener('archtime:settings-changed', onSettingsChanged)
-  }, [currentMonth, load])
+  }, [])
 
   function prevMonth() {
     startTransition(() => {
@@ -689,6 +697,7 @@ export function HistoricoClient({
               <Label htmlFor="edit-notes">Nota</Label>
               <textarea
                 id="edit-notes"
+                aria-label="Nota do registro"
                 rows={2}
                 maxLength={1000}
                 value={editForm.notes}

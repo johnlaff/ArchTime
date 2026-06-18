@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ACCENTS } from '@/components/accent-color-provider'
@@ -34,13 +34,20 @@ export function AccentColorPicker({
   const colorAreaRef = useRef<HTMLDivElement>(null)
   const currentColor = getColorInputValue(customColor)
   const currentHsl = hexToHsl(currentColor)
+  // Rastreia o ultimo currentColor confirmado para detectar mudanca externa durante render
   const [draftHex, setDraftHex] = useState(currentColor)
+  // react-doctor-disable-next-line react-doctor/rerender-state-only-in-handlers -- committedColor é lido no render (comparação abaixo) como "prev value" do padrão de ajuste de estado durante o render; precisa ser state (não ref) para o React reagir a uma mudança externa de currentColor.
+  const [committedColor, setCommittedColor] = useState(currentColor)
+
+  // Resetar draft durante render quando currentColor mudar externamente,
+  // sem useEffect (evita no-derived-state-effect / no-reset-all-state-on-prop-change)
+  if (committedColor !== currentColor) {
+    setCommittedColor(currentColor)
+    setDraftHex(currentColor)
+  }
+
   const normalizedDraft = normalizeHexColor(draftHex)
   const hueColor = hslToHex({ h: currentHsl.h, s: 100, l: 50 })
-
-  useEffect(() => {
-    setDraftHex(currentColor)
-  }, [currentColor])
 
   function commitCustomColor(value: string) {
     const normalized = normalizeHexColor(value)

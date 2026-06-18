@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import { use } from "react"
+// react-doctor-disable-next-line react-doctor/prefer-dynamic-import -- recharts é usado em múltiplos gráficos síncronos (heatmap, barras, sparklines) renderizados juntos; lazy import quebraria o ResponsiveContainer compartilhado e não há ganho significativo pois o bundle já é carregado via "use client"
 import * as RechartsPrimitive from "recharts"
 import type { TooltipValueType } from "recharts"
 
@@ -30,7 +32,7 @@ type ChartContextProps = {
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
 function useChart() {
-  const context = React.useContext(ChartContext)
+  const context = use(ChartContext)
 
   if (!context) {
     throw new Error("useChart must be used within a <ChartContainer />")
@@ -58,9 +60,10 @@ function ChartContainer({
 }) {
   const uniqueId = React.useId()
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
+  const contextValue = React.useMemo(() => ({ config }), [config])
 
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={contextValue}>
       <div
         data-slot="chart"
         data-chart={chartId}
@@ -91,6 +94,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   }
 
   return (
+    // react-doctor-disable-next-line react-doctor/no-danger -- o HTML injetado é CSS gerado pelo próprio app a partir de ChartConfig (sem input de usuário); não há risco de XSS
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
@@ -146,6 +150,7 @@ function ChartTooltipContent({
   >) {
   const { config } = useChart()
 
+  // react-doctor-disable-next-line react-doctor/rerender-memo-before-early-return -- extrair subcomponente quebraria a lógica de nestLabel que lê tooltipLabel em dois pontos distintos do render; refatoração grande e arriscada neste componente shadcn/ui
   const tooltipLabel = React.useMemo(() => {
     if (hideLabel || !payload?.length) {
       return null
@@ -197,23 +202,22 @@ function ChartTooltipContent({
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload
-          .filter((item) => item.type !== "none")
-          .map((item, index) => {
+        {payload.reduce<React.ReactNode[]>((acc, item) => {
+            if (item.type === "none") return acc
             const key = `${nameKey ?? item.name ?? item.dataKey ?? "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
             const indicatorColor = color ?? item.payload?.fill ?? item.color
 
-            return (
+            acc.push(
               <div
-                key={index}
+                key={key}
                 className={cn(
                   "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                   indicator === "dot" && "items-center"
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
-                  formatter(item.value, item.name, item, index, item.payload)
+                  formatter(item.value, item.name, item, acc.length, item.payload)
                 ) : (
                   <>
                     {itemConfig?.icon ? (
@@ -264,7 +268,8 @@ function ChartTooltipContent({
                 )}
               </div>
             )
-          })}
+            return acc
+          }, [])}
       </div>
     </div>
   )
@@ -296,15 +301,14 @@ function ChartLegendContent({
         className
       )}
     >
-      {payload
-        .filter((item) => item.type !== "none")
-        .map((item, index) => {
+      {payload.reduce<React.ReactNode[]>((acc, item) => {
+          if (item.type === "none") return acc
           const key = `${nameKey ?? item.dataKey ?? "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
-          return (
+          acc.push(
             <div
-              key={index}
+              key={key}
               className={cn(
                 "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground"
               )}
@@ -322,7 +326,8 @@ function ChartLegendContent({
               {itemConfig?.label}
             </div>
           )
-        })}
+          return acc
+        }, [])}
     </div>
   )
 }
