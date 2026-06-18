@@ -1,6 +1,6 @@
 import { calcDurationMinutes, getLocalDateBRT, parseBRTDateTimeLocal } from '@/lib/dates'
 
-export const MAX_SESSION_MINUTES = 24 * 60
+const MAX_SESSION_MINUTES = 24 * 60
 export const NOTES_MAX_LENGTH = 1000
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/

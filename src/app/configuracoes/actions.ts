@@ -21,6 +21,7 @@ export type SaveSettingsResult =
  * A client-side router.refresh() only clears the current route, which left other
  * modules stale until a manual reload.
  */
+// react-doctor-disable-next-line react-doctor/server-auth-actions -- getAuthenticatedUser() valida o JWT (getClaims + isAllowedEmail) e retorna cedo se não autenticado, antes de qualquer escrita; ver src/lib/server/auth.ts
 export async function saveSettings(input: SerializedUserSettings): Promise<SaveSettingsResult> {
   const user = await getAuthenticatedUser()
   if (!user) return { error: 'Não autenticado' }

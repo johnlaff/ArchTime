@@ -56,6 +56,7 @@ export function useKeyboardShortcuts({
           fireClockToggle()
         } else {
           setPendingClockToggle()
+          // react-doctor-disable-next-line react-doctor/nextjs-no-client-side-redirect -- navegacao imperativa legítima disparada por atalho de teclado (handler de evento, não redirect no mount)
           router.push('/dashboard')
         }
         return
@@ -63,6 +64,7 @@ export function useKeyboardShortcuts({
 
       const href = ROUTES[key as keyof typeof ROUTES]
       if (!href || pathname === href) return
+      // react-doctor-disable-next-line react-doctor/nextjs-no-client-side-redirect -- navegacao imperativa legítima disparada por atalho de teclado (handler de evento, não redirect no mount)
       router.push(href)
     }
 

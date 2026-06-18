@@ -23,12 +23,13 @@ export function isStaleRefreshTokenError(error: unknown): boolean {
     message?.includes('Refresh Token Not Found') === true
 }
 
-export function isSupabaseAuthCookieName(name: string): boolean {
+function isSupabaseAuthCookieName(name: string): boolean {
   return SUPABASE_AUTH_COOKIE_RE.test(name)
 }
 
 export function getSupabaseAuthCookieNames(cookies: NamedCookie[]): string[] {
-  return cookies
-    .map((cookie) => cookie.name)
-    .filter(isSupabaseAuthCookieName)
+  return cookies.reduce<string[]>((acc, cookie) => {
+    if (isSupabaseAuthCookieName(cookie.name)) acc.push(cookie.name)
+    return acc
+  }, [])
 }

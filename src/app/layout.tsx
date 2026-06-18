@@ -58,8 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Anti-flash: applies data-accent, data-preset, data-density before React hydration.
           Reads localStorage and sets HTML attributes synchronously (same pattern as next-themes).
         */}
-        <script
-          dangerouslySetInnerHTML={{
+        {/* react-doctor-disable-next-line react-doctor/nextjs-no-native-script, react-doctor/no-danger -- script anti-flash precisa rodar de forma síncrona ANTES da hidratação (next/script com qualquer strategy executa tarde demais e causaria flash de tema); conteúdo 100% controlado pelo app (IIFE lê localStorage e define atributos no documentElement), sem entrada de usuário interpolada → sem risco de XSS */}
+        <script dangerouslySetInnerHTML={{
             __html: `(function(){
               function norm(v){
                 var m=String(v||'').trim().match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);

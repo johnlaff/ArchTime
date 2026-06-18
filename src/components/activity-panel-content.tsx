@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Activity } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSupabaseQuery } from '@/hooks/use-supabase-query'
@@ -109,6 +109,15 @@ function PanelSkeleton() {
 export default function ActivityPanelContent() {
   const { data, loading, error } = useSupabaseQuery('dashboard:activity-overview', fetchOverview)
 
+  // Calculado só no cliente: este componente retorna <PanelSkeleton/> enquanto a query
+  // carrega, então o label nunca é renderizado no SSR (não há o que conflitar na hidratação).
+  const [currentMonthLabel, setCurrentMonthLabel] = useState<string | null>(null)
+  // react-doctor-disable-next-line react-doctor/rendering-hydration-no-flicker -- conteúdo client-only (skeleton no SSR); o label aparece junto com os dados da query, sem flicker perceptível.
+  useEffect(() => {
+    // react-doctor-disable-next-line react-doctor/no-initialize-state -- new Date() depende do cliente; computar no SSR causaria mismatch. Definido após o mount, junto com os dados da query.
+    setCurrentMonthLabel(formatBRT(new Date(), "MMMM 'de' yyyy"))
+  }, [])
+
   // Mês = mês calendário corrente em BRT (dia 1 → hoje), como os demais relatórios.
   const monthDays = useMemo(() => {
     if (!data) return []
@@ -159,7 +168,7 @@ export default function ActivityPanelContent() {
           <TabsContent value="mes" className="mt-0">
             <div className="space-y-2">
               <p className="text-center text-[11px] text-muted-foreground/70 first-letter:uppercase">
-                {formatBRT(new Date(), "MMMM 'de' yyyy")}
+                {currentMonthLabel}
               </p>
               <Heatmap days={monthDays} />
               {monthSummary && (

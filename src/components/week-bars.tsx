@@ -1,5 +1,6 @@
 'use client'
 
+// react-doctor-disable-next-line react-doctor/prefer-dynamic-import -- recharts é usado via múltiplos named imports inline no JSX; extrair para next/dynamic exigiria criar um segundo arquivo (fora do escopo desta edição)
 import { Bar, BarChart, Cell, ReferenceLine, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart'
 import { formatMinutes } from '@/lib/dates'
@@ -73,8 +74,8 @@ export function WeekBars({ week }: { week: WeekBar[] }) {
         )}
         <ChartTooltip cursor={{ fill: 'var(--muted)', opacity: 0.4 }} content={<WeekTooltip />} />
         <Bar dataKey="hours" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-          {data.map((datum, index) => (
-            <Cell key={index} fill={barFill(datum)} />
+          {data.map((datum) => (
+            <Cell key={datum.day} fill={barFill(datum)} />
           ))}
         </Bar>
       </BarChart>

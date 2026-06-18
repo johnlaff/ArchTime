@@ -28,7 +28,7 @@ function SidebarBrand() {
   )
 }
 
-export function ProjectsSkeleton() {
+function ProjectsSkeleton() {
   return (
     <div className="flex flex-col gap-1 animate-pulse" aria-hidden="true">
       {[70, 85, 55].map((w) => (

@@ -55,3 +55,6 @@ next-env.d.ts
 .worktrees/
 .superpowers/
 public/sw.js
+
+# Claude Code local settings / scratch
+.claude/

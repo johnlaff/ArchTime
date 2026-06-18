@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { MotionConfig } from 'motion/react'
+import { LazyMotion, domMax, MotionConfig } from 'motion/react'
 import { ThemeProvider, useTheme } from 'next-themes'
 import { SyncProvider } from './sync-provider'
 import { Toaster } from '@/components/ui/sonner'
@@ -28,6 +28,7 @@ function PreferencesHydrator() {
   const isAuthRoute = pathname === '/login' || pathname.startsWith('/auth/')
   useKeyboardShortcuts({ onThemeToggle: handleThemeToggle, disabled: isAuthRoute })
 
+  // react-doctor-disable-next-line react-doctor/no-fetch-in-effect -- sincronização pós-mount de preferências visuais (tema/cor): depende de estado cliente (useTheme, useAccentColor) e já tem flag de cancelamento; não é data fetching para render, não pode ser movido para RSC
   useEffect(() => {
     if (isAuthRoute) return
 
@@ -68,14 +69,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       {/* reducedMotion="never": animations are part of the product experience and
           play regardless of the OS prefers-reduced-motion setting (deliberate choice). */}
-      <MotionConfig reducedMotion="never">
-        <SyncProvider>
-          <PreferencesHydrator />
-          {children}
-          <CommandPalette />
-          <Toaster richColors position="bottom-center" closeButton />
-        </SyncProvider>
-      </MotionConfig>
+      {/* LazyMotion + componente `m` (em vez de `motion`): carrega o conjunto de
+          features uma única vez e mantém os bundles dos componentes enxutos.
+          domMax inclui layout animations (layoutId no SidebarNav) e gestos. */}
+      <LazyMotion features={domMax}>
+        <MotionConfig reducedMotion="never">
+          <SyncProvider>
+            <PreferencesHydrator />
+            {children}
+            <CommandPalette />
+            <Toaster richColors position="bottom-center" closeButton />
+          </SyncProvider>
+        </MotionConfig>
+      </LazyMotion>
     </ThemeProvider>
   )
 }

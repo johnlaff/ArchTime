@@ -120,6 +120,7 @@ export function calculateExpectedMinutes({
   let date = startDate
   let total = 0
   const holidaysByYear = new Map<number, Set<string>>()
+  const workDaysSet = new Set(workDays)
 
   while (date <= endDate) {
     const year = Number(date.slice(0, 4))
@@ -130,7 +131,7 @@ export function calculateExpectedMinutes({
     if (!holidaysByYear.get(year)!.has(date)) {
       if (workMinutesByWeekday) {
         total += workMinutesByWeekday[String(dayOfWeek) as keyof WorkMinutesByWeekday]
-      } else if (workDays.includes(dayOfWeek)) {
+      } else if (workDaysSet.has(dayOfWeek)) {
         total += Math.round(defaultWorkHours * 60)
       }
     }

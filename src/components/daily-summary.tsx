@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'motion/react'
+import { m } from 'motion/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ActivityTag } from '@/components/activity-selector'
 import { formatBRT, formatMinutes } from '@/lib/dates'
@@ -51,14 +51,14 @@ export function DailySummaryCard({ summary }: DailySummaryProps) {
               : undefined as number | undefined,
           },
         ].map(({ title, balance, cumulative }, i) => (
-          <motion.div
+          <m.div
             key={title}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
             <BalanceCard title={title} balance={balance} cumulativeBalance={cumulative} />
-          </motion.div>
+          </m.div>
         ))}
       </div>
 
