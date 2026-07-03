@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { generateEntryHash } from '@/lib/hash'
 import { calcDurationMinutes, getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
@@ -224,6 +225,9 @@ export async function POST(req: NextRequest) {
 
     await recalculateHourBankForInterval(user.id, clockEntry.clockIn, clockOut)
   }
+
+  revalidateTag(`sidebar-${user.id}`, { expire: 0 })
+  revalidateTag(`history-${user.id}`, { expire: 0 })
 
   return NextResponse.json({ ok: true })
 }
