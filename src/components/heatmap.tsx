@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ActivityCalendar, type Activity } from 'react-activity-calendar'
 import { useTheme } from 'next-themes'
 import 'react-activity-calendar/tooltips.css'
-import { formatMinutes, getDayOfWeek } from '@/lib/dates'
+import { formatMinutes, getDayOfWeek, getLocalDateBRT } from '@/lib/dates'
 import type { HeatmapDay } from '@/types'
 
 // Escala opaca e monotônica com color-mix: mistura progressivamente --primary sobre
@@ -44,7 +44,10 @@ function dateLabel(date: string): string {
   return `${Number(d)} ${MONTH_LABELS[Number(m) - 1]}`
 }
 
-function tooltipText(day: HeatmapDay): string {
+function tooltipText(day: HeatmapDay, today: string): string {
+  // Dias futuros (padding até o fim do mês) mostram só a data — "sem registro"
+  // soaria como falha em um dia que ainda não aconteceu.
+  if (day.date > today) return dateLabel(day.date)
   if (day.totalMinutes < 1) return `${dateLabel(day.date)} · sem registro`
   const sessions = `${day.sessionCount} ${day.sessionCount === 1 ? 'sessão' : 'sessões'}`
   const project = day.topProject ? ` · ${day.topProject}` : ''
@@ -107,8 +110,11 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
             labels={{ weekdays: WEEKDAY_LABELS, months: MONTH_LABELS }}
             tooltips={{
               activity: {
+                // getLocalDateBRT() roda no hover (event-time), nunca no render.
                 text: (activity: Activity) =>
-                  byDate.has(activity.date) ? tooltipText(byDate.get(activity.date)!) : dateLabel(activity.date),
+                  byDate.has(activity.date)
+                    ? tooltipText(byDate.get(activity.date)!, getLocalDateBRT())
+                    : dateLabel(activity.date),
               },
             }}
           />

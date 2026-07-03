@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSupabaseQuery } from '@/hooks/use-supabase-query'
 import { Heatmap } from './heatmap'
 import { WeekBars } from './week-bars'
-import { formatBRT, formatMinutes, getLocalDateBRT } from '@/lib/dates'
+import { addDaysToDateString, formatBRT, formatMinutes, getLocalDateBRT, getMonthRangeBRT } from '@/lib/dates'
+import { padHeatmapToMonthEnd } from '@/lib/heatmap'
 import type { ActivityOverview, DistributionItem, TrendInsight } from '@/types'
 
 async function fetchOverview(): Promise<ActivityOverview> {
@@ -118,13 +119,24 @@ export default function ActivityPanelContent() {
     setCurrentMonthLabel(formatBRT(new Date(), "MMMM 'de' yyyy"))
   }, [])
 
-  // Mês = mês calendário corrente em BRT (dia 1 → hoje), como os demais relatórios.
+  // O servidor devolve dias até "hoje"; o padding completa o mês corrente com dias
+  // vazios para a aba Mês mostrar o mês inteiro e o label do mês novo aparecer no eixo.
+  const heatmapDays = useMemo(
+    () => (data ? padHeatmapToMonthEnd(data.heatmap, getLocalDateBRT()) : []),
+    [data]
+  )
+  // Mês = mês calendário corrente em BRT (dia 1 → último dia), como os demais relatórios.
+  // O limite superior importa: com skew de relógio na virada de mês o padding pode se
+  // estender ao mês seguinte, e sem o clamp a aba mostraria dois meses sob um label só.
   const monthDays = useMemo(() => {
-    if (!data) return []
-    const monthStart = `${getLocalDateBRT().slice(0, 7)}-01`
-    return data.heatmap.filter((d) => d.date >= monthStart)
-  }, [data])
-  const halfYearDays = useMemo(() => (data ? data.heatmap.slice(-182) : []), [data])
+    const { startDate, endDate } = getMonthRangeBRT(getLocalDateBRT().slice(0, 7))
+    return heatmapDays.filter((d) => d.date >= startDate && d.date <= endDate)
+  }, [heatmapDays])
+  // 182 dias para trás a partir de hoje (o padding do fim do mês vem junto).
+  const halfYearDays = useMemo(() => {
+    const cutoff = addDaysToDateString(getLocalDateBRT(), -181)
+    return heatmapDays.filter((d) => d.date >= cutoff)
+  }, [heatmapDays])
   const monthSummary = useMemo(() => {
     if (monthDays.length === 0) return null
     const activeDays = monthDays.filter(d => d.totalMinutes > 0)
@@ -192,7 +204,7 @@ export default function ActivityPanelContent() {
             <Heatmap days={halfYearDays} />
           </TabsContent>
           <TabsContent value="ano" className="mt-0">
-            <Heatmap days={data.heatmap} />
+            <Heatmap days={heatmapDays} />
           </TabsContent>
         </Tabs>
       </Panel>

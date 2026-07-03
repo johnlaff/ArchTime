@@ -70,7 +70,9 @@ export async function GET(req: NextRequest) {
       width: size,
       height: size,
       headers: {
-        'Cache-Control': 'no-store, max-age=0',
+        // Com `color` na URL a resposta é determinística (size+color) e pode ser
+        // cacheada; sem o param ela depende do cookie de accent e não pode.
+        'Cache-Control': requestedColor ? 'public, max-age=86400' : 'no-store, max-age=0',
       },
     }
   )

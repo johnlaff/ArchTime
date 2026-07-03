@@ -46,4 +46,15 @@ describe('browser accent color sync', () => {
     expect(icons[0].getAttribute('href')).toContain('%232d7a4f')
     expect(document.head.innerHTML).not.toContain('%23f43f5e')
   })
+
+  it('owns a single manifest link whose href carries the accent color', () => {
+    syncBrowserAccentColor('#f43f5e')
+    syncBrowserAccentColor('#2d7a4f')
+
+    vi.runAllTimers()
+
+    const manifests = Array.from(document.head.querySelectorAll('link[rel="manifest"]'))
+    expect(manifests).toHaveLength(1)
+    expect(manifests[0].getAttribute('href')).toBe('/manifest.json?color=%232d7a4f')
+  })
 })
