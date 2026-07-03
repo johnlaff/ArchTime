@@ -22,12 +22,12 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archtime.netlify.app'
 export const metadata: Metadata = {
   title: 'ArchTime',
   description: 'Time tracking para freelancers e profissionais independentes',
-  manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'ArchTime' },
-  // Favicon / apple-touch-icon / theme-color are owned at runtime by
-  // browser-accent.ts so they track the user's accent color. They are deliberately
-  // NOT declared here (metadata) nor in `viewport`: if React renders & owns these
-  // <head> nodes and browser-accent removes/replaces them, React's <head>
+  // Favicon / apple-touch-icon / theme-color / manifest are owned at runtime by
+  // browser-accent.ts so they track the user's accent color (the manifest link
+  // carries `?color=` because the browser fetches it without credentials). They are
+  // deliberately NOT declared here (metadata) nor in `viewport`: if React renders &
+  // owns these <head> nodes and browser-accent removes/replaces them, React's <head>
   // reconciliation on every client navigation throws "Cannot read properties of
   // null (reading 'removeChild')" and the page swap freezes (URL changes, UI does
   // not). Keeping a single owner (browser-accent) eliminates that conflict.

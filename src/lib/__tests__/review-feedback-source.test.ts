@@ -67,7 +67,9 @@ describe('review feedback regressions', () => {
     expect(source).toContain('clearBrowserAccentTimers')
     expect(source).toContain('activeBrowserAccentColor === color')
     expect(source).toContain("querySelector('meta[name=\"theme-color\"]')")
-    expect(iconRoute).toContain("'Cache-Control': 'no-store, max-age=0'")
+    // Sem `color` explícito a resposta depende do cookie de accent → não pode ser
+    // cacheada; com `color` na URL ela é determinística e pode.
+    expect(iconRoute).toContain("requestedColor ? 'public, max-age=86400' : 'no-store, max-age=0'")
     expect(layout).not.toContain('/favicon.ico')
     expect(existsSync(join(process.cwd(), 'src/app/favicon.ico'))).toBe(false)
   })
@@ -116,6 +118,8 @@ describe('review feedback regressions', () => {
 
     expect(layout).not.toMatch(/^\s*icons\s*:/m)
     expect(layout).not.toMatch(/themeColor\s*:/)
+    // O manifest também é do browser-accent (href carrega ?color= do accent).
+    expect(layout).not.toMatch(/^\s*manifest\s*:/m)
   })
 
   it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {

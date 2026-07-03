@@ -72,6 +72,16 @@ function updateBrowserAccentLinks(color: string) {
   }
   apple.href = getBrowserAccentIconUrl(color, 192)
 
+  // O manifest é buscado pelo browser sem credenciais, então a cor precisa ir na
+  // URL — é ela que define o ícone de instalação e o theme_color do app instalado.
+  let manifest = document.head.querySelector('link[rel="manifest"]') as HTMLLinkElement | null
+  if (!manifest) {
+    manifest = document.createElement('link')
+    manifest.rel = 'manifest'
+    document.head.appendChild(manifest)
+  }
+  manifest.href = `/manifest.json?color=${encodeURIComponent(color)}`
+
   let themeColor = document.head.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
   if (!themeColor) {
     themeColor = document.createElement('meta')
