@@ -16,7 +16,7 @@ inteiro antes de começar, honre as STOP conditions e atualize sua linha ao term
 | 003 | RLS: travar INSERT/UPDATE client-direct | P1 | M | 001 (recomendado) | IN PROGRESS (migration criada; aplicação em produção pendente de autorização do operador) |
 | 004 | Testes das rotas de clock + fila offline | P1 | M | — | DONE |
 | 005 | Guard no recálculo do hour_bank pós-commit | P2 | M | 004 | DONE |
-| 006 | AuditLog em projects + hourlyRate numérico | P2 | S | — | TODO |
+| 006 | AuditLog em projects + hourlyRate numérico | P2 | S | — | DONE |
 | 007 | Teste de paridade do script anti-flash | P2 | S | — | TODO |
 | 009 | Headers de hardening (CSP report-only) | P2 | M | — | TODO |
 | 008 | Verificação do hash de integridade (/api/integrity) | P3 | M | 003 (recomendado) | TODO |
