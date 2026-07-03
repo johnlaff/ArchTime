@@ -20,7 +20,7 @@ inteiro antes de começar, honre as STOP conditions e atualize sua linha ao term
 | 007 | Teste de paridade do script anti-flash | P2 | S | — | DONE |
 | 009 | Headers de hardening (CSP report-only) | P2 | M | — | DONE (sweep autenticado pendente antes de promover CSP a enforce) |
 | 008 | Verificação do hash de integridade (/api/integrity) | P3 | M | 003 (recomendado) | DONE |
-| 010 | Rodapé do Histórico: "registros", não "sessões" | P3 | S | — | TODO |
+| 010 | Rodapé do Histórico: "registros", não "sessões" | P3 | S | — | DONE |
 | 011 | Higiene: README real, SVGs órfãos, Node 22 | P3 | S | 001 | TODO |
 | 012 | Guard de resposta obsoleta no useSupabaseQuery | P3 | S | — | TODO |
 | 013 | Spike de design: faturamento (horas × hourlyRate) | P3 | M | 006 | TODO |
