@@ -3,25 +3,8 @@ import { getMonthRangeBRT, splitIntervalByLocalDay } from '@/lib/dates'
 import { buildHourBankMonth, type ClockEntryInterval, type HourBankMonth } from '@/lib/hour-bank'
 import { getOrCreateUserSettings, type SerializedUserSettings } from '@/lib/user-settings'
 import { hasActiveFilters, matchesFilters } from '@/lib/history-filters'
+import { serializeProject } from '@/lib/server/serialize-project'
 import type { HistoryData, HistoryFilters, ProjectOption } from '@/types'
-
-function serializeProject(project: {
-  id: string
-  name: string
-  clientName: string | null
-  color: string
-  hourlyRate: unknown
-  isActive: boolean
-}): ProjectOption {
-  return {
-    id: project.id,
-    name: project.name,
-    clientName: project.clientName,
-    color: project.color,
-    hourlyRate: project.hourlyRate == null ? null : Number(project.hourlyRate),
-    isActive: project.isActive,
-  }
-}
 
 export interface HistoryBundle {
   history: HistoryData

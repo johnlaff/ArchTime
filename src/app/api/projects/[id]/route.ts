@@ -3,30 +3,7 @@ import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { validateMutationOrigin } from '@/lib/server/security'
-
-function serializeProject(project: {
-  id: string
-  userId: string
-  name: string
-  clientName: string | null
-  hourlyRate: unknown
-  color: string
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
-}) {
-  return {
-    id: project.id,
-    userId: project.userId,
-    name: project.name,
-    clientName: project.clientName,
-    hourlyRate: project.hourlyRate == null ? null : Number(project.hourlyRate),
-    color: project.color,
-    isActive: project.isActive,
-    createdAt: project.createdAt.toISOString(),
-    updatedAt: project.updatedAt.toISOString(),
-  }
-}
+import { serializeProject } from '@/lib/server/serialize-project'
 
 export async function DELETE(
   req: NextRequest,
@@ -91,7 +68,7 @@ export async function DELETE(
         userId: user.id,
         action: 'delete_project',
         entityId: id,
-        oldData: serializeProject(project),
+        oldData: { ...serializeProject(project) },
         newData: { deletedAt: new Date().toISOString(), projectName: project.name },
         userAgent: req.headers.get('user-agent'),
       },
