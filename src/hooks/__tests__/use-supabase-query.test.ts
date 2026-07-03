@@ -51,4 +51,35 @@ describe('useSupabaseQuery', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.error?.message).toBe('boom')
   })
+
+  it('resposta antiga não sobrescreve a mais nova (refetch vence fetch em voo)', async () => {
+    let resolveA!: (v: string) => void
+    const a = new Promise<string>((r) => { resolveA = r })
+    let resolveB!: (v: string) => void
+    const b = new Promise<string>((r) => { resolveB = r })
+
+    const fetcher = vi.fn()
+      .mockImplementationOnce(() => a)
+      .mockImplementationOnce(() => b)
+
+    const { result, unmount } = renderHook(() => useSupabaseQuery('k6', fetcher))
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1)) // fetch A em voo
+
+    act(() => result.current.refetch()) // dispara B enquanto A ainda está pendente
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+
+    resolveB('novo') // B (mais recente) resolve primeiro
+    await waitFor(() => expect(result.current.data).toBe('novo'))
+
+    await act(async () => {
+      resolveA('velho') // A (obsoleto) resolve depois — não pode sobrescrever
+      await a
+    })
+    expect(result.current.data).toBe('novo')
+
+    // Remount com a mesma chave semeia do cache de módulo: também deve ver 'novo'.
+    unmount()
+    const remounted = renderHook(() => useSupabaseQuery('k6', vi.fn(async () => 'novo')))
+    expect(remounted.result.current.data).toBe('novo')
+  })
 })

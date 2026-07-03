@@ -12,8 +12,15 @@ interface Entry<T> {
 // logout via clearClientQueryCache() to avoid leaking one user's reads to another.
 const store = new Map<string, Entry<unknown>>()
 
+// Per-key generation counter: guards against an out-of-order response
+// clobbering a newer one (e.g. a background focus-revalidate still in flight
+// resolves AFTER a refetch() triggered by a mutation — the stale result must
+// not overwrite the fresher one already in the cache).
+const generations = new Map<string, number>()
+
 export function clearClientQueryCache(): void {
   store.clear()
+  generations.clear()
 }
 
 export interface UseSupabaseQueryResult<T> {
@@ -46,11 +53,17 @@ export function useSupabaseQuery<T>(
   const load = useCallback(() => {
     const entry = (store.get(key) as Entry<T> | undefined) ?? {}
     if (entry.data === undefined) setLoading(true) // skeleton only when nothing to show
+    // Claim a new generation: only the latest request may write. A response
+    // landing out of order (e.g. a focus-revalidate still in flight when a
+    // post-mutation refetch() resolves first) must not overwrite newer data.
+    const gen = (generations.get(key) ?? 0) + 1
+    generations.set(key, gen)
     const promise = entry.inflight ?? fetcherRef.current()
     store.set(key, { ...entry, inflight: promise })
 
     promise.then(
       (result) => {
+        if (generations.get(key) !== gen) return // stale response; a newer request owns the cache
         store.set(key, { data: result })
         if (mountedRef.current) {
           setData(result)
@@ -59,6 +72,7 @@ export function useSupabaseQuery<T>(
         }
       },
       (err: unknown) => {
+        if (generations.get(key) !== gen) return // stale failure; a newer request owns the cache
         const normalized = err instanceof Error ? err : new Error(String(err))
         const current = (store.get(key) as Entry<T> | undefined) ?? {}
         store.set(key, { ...current, inflight: undefined, error: normalized })
