@@ -20,7 +20,7 @@ vi.mock('@/lib/server/security', () => ({
 }))
 
 vi.mock('@/lib/hour-bank', () => ({
-  recalculateHourBankForInterval: vi.fn(),
+  safeRecalculateHourBankForInterval: vi.fn(),
 }))
 
 vi.mock('@/lib/hash', () => ({

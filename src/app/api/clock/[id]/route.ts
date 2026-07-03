@@ -20,7 +20,7 @@ import {
   validateClosedRange,
 } from '@/lib/server/validation'
 import { parseActivityType } from '@/lib/activity-types'
-import { recalculateHourBankForInterval } from '@/lib/hour-bank'
+import { safeRecalculateHourBankForInterval } from '@/lib/hour-bank'
 
 type EntryWithAllocations = Awaited<ReturnType<typeof getEntry>>
 
@@ -146,7 +146,7 @@ export async function PUT(
     return updatedEntry
   })
 
-  await recalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
+  await safeRecalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })
   revalidateTag(`history-${user.id}`, { expire: 0 })
@@ -198,7 +198,7 @@ export async function DELETE(
     })
   })
 
-  await recalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut)
+  await safeRecalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut)
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })
   revalidateTag(`history-${user.id}`, { expire: 0 })
@@ -361,8 +361,8 @@ export async function PATCH(
   })
 
   await Promise.all([
-    recalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut),
-    recalculateHourBankForInterval(user.id, newClockIn, newClockOut),
+    safeRecalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut),
+    safeRecalculateHourBankForInterval(user.id, newClockIn, newClockOut),
   ])
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })

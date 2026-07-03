@@ -3,7 +3,7 @@ import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { generateEntryHash } from '@/lib/hash'
 import { calcDurationMinutes, getLocalDateBRT, toDateOnlyUTC } from '@/lib/dates'
-import { recalculateHourBankForInterval } from '@/lib/hour-bank'
+import { safeRecalculateHourBankForInterval } from '@/lib/hour-bank'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { validateMutationOrigin } from '@/lib/server/security'
 import {
@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
       }),
     ])
 
-    await recalculateHourBankForInterval(user.id, clockEntry.clockIn, clockOut)
+    await safeRecalculateHourBankForInterval(user.id, clockEntry.clockIn, clockOut)
   }
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })
