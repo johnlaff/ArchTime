@@ -621,7 +621,7 @@ export function HistoricoClient({
               <span className="tabular-nums font-medium">
                 {formatMinutes(data?.totalMinutes ?? 0)}&nbsp;·&nbsp;
                 {data?.sessionCount ?? 0}{' '}
-                {data?.sessionCount === 1 ? 'sessão' : 'sessões'}
+                {data?.sessionCount === 1 ? 'registro' : 'registros'}
               </span>
             </div>
 
