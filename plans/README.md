@@ -23,7 +23,7 @@ inteiro antes de começar, honre as STOP conditions e atualize sua linha ao term
 | 010 | Rodapé do Histórico: "registros", não "sessões" | P3 | S | — | DONE |
 | 011 | Higiene: README real, SVGs órfãos, Node 22 | P3 | S | 001 | DONE |
 | 012 | Guard de resposta obsoleta no useSupabaseQuery | P3 | S | — | DONE |
-| 013 | Spike de design: faturamento (horas × hourlyRate) | P3 | M | 006 | TODO |
+| 013 | Spike de design: faturamento (horas × hourlyRate) | P3 | M | 006 | DONE (design em docs/plans/2026-07-03-faturamento-design.md; 6 questões abertas aguardando o mantenedor) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (com motivo em uma linha) | REJECTED (com justificativa em uma linha)
 
