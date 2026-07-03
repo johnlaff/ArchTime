@@ -13,7 +13,7 @@ inteiro antes de começar, honre as STOP conditions e atualize sua linha ao term
 |------|-------|----------|--------|------------|--------|
 | 001 | CI no GitHub Actions (tsc + testes + build em PR) | P1 | S | — | DONE |
 | 002 | /api/sync invalida cache tags do dashboard | P1 | S | — | DONE |
-| 003 | RLS: travar INSERT/UPDATE client-direct | P1 | M | 001 (recomendado) | IN PROGRESS (migration criada; aplicação em produção pendente de autorização do operador) |
+| 003 | RLS: travar INSERT/UPDATE client-direct | P1 | M | 001 (recomendado) | DONE (migration 0006 aplicada em produção em 2026-07-03; pg_policies confirma só SELECT nas 4 tabelas) |
 | 004 | Testes das rotas de clock + fila offline | P1 | M | — | DONE |
 | 005 | Guard no recálculo do hour_bank pós-commit | P2 | M | 004 | DONE |
 | 006 | AuditLog em projects + hourlyRate numérico | P2 | S | — | DONE |
