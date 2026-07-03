@@ -18,7 +18,7 @@ vi.mock('@/lib/server/security', () => ({
 }))
 
 vi.mock('@/lib/hour-bank', () => ({
-  recalculateHourBankForInterval: vi.fn(),
+  safeRecalculateHourBankForInterval: vi.fn(),
 }))
 
 vi.mock('@/lib/hash', () => ({
@@ -31,7 +31,7 @@ vi.mock('next/cache', () => ({
 
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
-import { recalculateHourBankForInterval } from '@/lib/hour-bank'
+import { safeRecalculateHourBankForInterval } from '@/lib/hour-bank'
 import { generateEntryHash } from '@/lib/hash'
 import { revalidateTag } from 'next/cache'
 import { DELETE, PATCH, PUT } from './route'
@@ -40,7 +40,7 @@ const getAuthenticatedUserMock = getAuthenticatedUser as unknown as Mock
 const clockEntryFindFirstMock = prisma.clockEntry.findFirst as unknown as Mock
 const projectFindFirstMock = prisma.project.findFirst as unknown as Mock
 const transactionMock = prisma.$transaction as unknown as Mock
-const recalculateHourBankForIntervalMock = recalculateHourBankForInterval as unknown as Mock
+const safeRecalculateHourBankForIntervalMock = safeRecalculateHourBankForInterval as unknown as Mock
 const generateEntryHashMock = generateEntryHash as unknown as Mock
 const revalidateTagMock = revalidateTag as unknown as Mock
 
@@ -156,7 +156,7 @@ describe('/api/clock/[id]', () => {
       expect(txMock.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ action: 'clock_out' }) })
       )
-      expect(recalculateHourBankForIntervalMock).toHaveBeenCalledWith('user-1', entry.clockIn, clockOut)
+      expect(safeRecalculateHourBankForIntervalMock).toHaveBeenCalledWith('user-1', entry.clockIn, clockOut)
       expect(revalidateTagMock).toHaveBeenCalledWith('sidebar-user-1', { expire: 0 })
       expect(revalidateTagMock).toHaveBeenCalledWith('history-user-1', { expire: 0 })
       expect(revalidateTagMock).toHaveBeenCalledTimes(2)
@@ -201,7 +201,7 @@ describe('/api/clock/[id]', () => {
       expect(txMock.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ action: 'delete_entry' }) })
       )
-      expect(recalculateHourBankForIntervalMock).toHaveBeenCalledWith('user-1', entry.clockIn, entry.clockOut)
+      expect(safeRecalculateHourBankForIntervalMock).toHaveBeenCalledWith('user-1', entry.clockIn, entry.clockOut)
     })
   })
 
@@ -241,8 +241,8 @@ describe('/api/clock/[id]', () => {
       expect(txMock.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ action: 'edit_entry' }) })
       )
-      expect(recalculateHourBankForIntervalMock).toHaveBeenCalledTimes(2)
-      expect(recalculateHourBankForIntervalMock).toHaveBeenCalledWith('user-1', entry.clockIn, entry.clockOut)
+      expect(safeRecalculateHourBankForIntervalMock).toHaveBeenCalledTimes(2)
+      expect(safeRecalculateHourBankForIntervalMock).toHaveBeenCalledWith('user-1', entry.clockIn, entry.clockOut)
       expect(revalidateTagMock).toHaveBeenCalledTimes(2)
     })
   })

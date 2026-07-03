@@ -275,3 +275,27 @@ export async function recalculateHourBankForInterval(
     )
   )
 }
+
+/**
+ * Versão fail-safe do recálculo: o hour_bank é cache derivado (AGENTS.md) e
+ * roda DEPOIS do commit da mutação primária — uma falha transitória aqui não
+ * pode virar 500 para uma escrita que já persistiu (o cliente reverteria a UI
+ * para um estado que o banco já superou). O erro é logado e engolido; o
+ * próximo recálculo dos mesmos meses se autocorrige.
+ */
+export async function safeRecalculateHourBankForInterval(
+  userId: string,
+  clockIn: Date,
+  clockOut: Date | null
+): Promise<void> {
+  try {
+    await recalculateHourBankForInterval(userId, clockIn, clockOut)
+  } catch (error) {
+    console.error('[hour-bank] recálculo falhou (mutação primária já commitada)', {
+      userId,
+      clockIn: clockIn.toISOString(),
+      clockOut: clockOut?.toISOString() ?? null,
+      error,
+    })
+  }
+}
