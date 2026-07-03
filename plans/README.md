@@ -12,7 +12,7 @@ inteiro antes de começar, honre as STOP conditions e atualize sua linha ao term
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001 | CI no GitHub Actions (tsc + testes + build em PR) | P1 | S | — | DONE |
-| 002 | /api/sync invalida cache tags do dashboard | P1 | S | — | TODO |
+| 002 | /api/sync invalida cache tags do dashboard | P1 | S | — | DONE |
 | 003 | RLS: travar INSERT/UPDATE client-direct | P1 | M | 001 (recomendado) | TODO |
 | 004 | Testes das rotas de clock + fila offline | P1 | M | — | TODO |
 | 005 | Guard no recálculo do hour_bank pós-commit | P2 | M | 004 | TODO |
