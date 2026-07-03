@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { validateMutationOrigin } from '@/lib/server/security'
+import { serializeProject } from '@/lib/server/serialize-project'
 import {
   normalizeHexColor,
   normalizeHourlyRate,
@@ -18,7 +19,7 @@ export async function GET() {
     orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
   })
 
-  return NextResponse.json(projects)
+  return NextResponse.json(projects.map(serializeProject))
 }
 
 export async function POST(req: NextRequest) {
@@ -48,20 +49,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Cor inválida' }, { status: 400 })
   }
 
-  const project = await prisma.project.create({
-    data: {
-      userId: user.id,
-      name: name.trim(),
-      clientName: typeof clientName === 'string' && clientName.trim()
-        ? clientName.trim()
-        : null,
-      hourlyRate: normalizedRate,
-      color: normalizedColor,
-    },
+  const project = await prisma.$transaction(async (tx) => {
+    const created = await tx.project.create({
+      data: {
+        userId: user.id,
+        name: name.trim(),
+        clientName: typeof clientName === 'string' && clientName.trim()
+          ? clientName.trim()
+          : null,
+        hourlyRate: normalizedRate,
+        color: normalizedColor,
+      },
+    })
+
+    await tx.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'create_project',
+        entityId: created.id,
+        newData: { ...serializeProject(created) },
+        userAgent: req.headers.get('user-agent'),
+      },
+    })
+
+    return created
   })
 
   revalidateTag(`projects-${user.id}`, { expire: 0 })
-  return NextResponse.json(project, { status: 201 })
+  return NextResponse.json(serializeProject(project), { status: 201 })
 }
 
 export async function PUT(req: NextRequest) {
@@ -97,19 +112,34 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Cor inválida' }, { status: 400 })
   }
 
-  const updated = await prisma.project.update({
-    where: { id },
-    data: {
-      name: typeof name === 'string' && name.trim() ? name.trim() : project.name,
-      clientName: typeof clientName === 'string'
-        ? clientName.trim() || null
-        : project.clientName,
-      hourlyRate: hourlyRate === undefined ? project.hourlyRate : normalizedRate,
-      color: normalizedColor,
-      isActive: typeof isActive === 'boolean' ? isActive : project.isActive,
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const next = await tx.project.update({
+      where: { id },
+      data: {
+        name: typeof name === 'string' && name.trim() ? name.trim() : project.name,
+        clientName: typeof clientName === 'string'
+          ? clientName.trim() || null
+          : project.clientName,
+        hourlyRate: hourlyRate === undefined ? project.hourlyRate : normalizedRate,
+        color: normalizedColor,
+        isActive: typeof isActive === 'boolean' ? isActive : project.isActive,
+      },
+    })
+
+    await tx.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'update_project',
+        entityId: id,
+        oldData: { ...serializeProject(project) },
+        newData: { ...serializeProject(next) },
+        userAgent: req.headers.get('user-agent'),
+      },
+    })
+
+    return next
   })
 
   revalidateTag(`projects-${user.id}`, { expire: 0 })
-  return NextResponse.json(updated)
+  return NextResponse.json(serializeProject(updated))
 }
