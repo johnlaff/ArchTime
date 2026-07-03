@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20   # espelha NODE_VERSION do netlify.toml (plano 011 sobe para 22)
+          node-version: 22   # espelha NODE_VERSION do netlify.toml
           cache: npm
       - run: npm ci
       - run: npx prisma generate
