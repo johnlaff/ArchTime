@@ -2,23 +2,16 @@ import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import {
   addDaysToDateString,
+  addMonthsToMonthKey,
   endExclusiveOfLocalDayBRT,
   getDayOfWeek,
   getLocalDateBRT,
+  getMonthRangeBRT,
   getWeekRangeBRT,
   splitIntervalByLocalDay,
   startOfLocalDayBRT,
 } from '@/lib/dates'
-import type { HeatmapDay } from '@/types'
-
-/** Heatmap intensity from worked minutes in a local day (spec thresholds). */
-function heatLevel(minutes: number): HeatmapDay['level'] {
-  if (minutes < 1) return 0
-  if (minutes < 180) return 1 // < 3h
-  if (minutes < 360) return 2 // 3–6h
-  if (minutes < 540) return 3 // 6–9h
-  return 4 // 9h+
-}
+import type { HeatmapRawDay } from '@/lib/heatmap'
 
 function topProjectOf(projects: Map<string, number>): string | null {
   let best: string | null = null
@@ -33,17 +26,19 @@ function topProjectOf(projects: Map<string, number>): string | null {
 }
 
 /**
- * Per-local-day worked minutes for the last `weeks` weeks (contiguous, including
- * zero days), split by BRT day so sessions crossing midnight land on the right day
- * — same `splitIntervalByLocalDay` the history uses, keeping totals consistent.
+ * Minutos trabalhados por dia local do dia 1 do mês 12 meses atrás até hoje (contíguo,
+ * incluindo dias zerados), fatiado por dia BRT (mesmo `splitIntervalByLocalDay` do
+ * histórico, mantendo os totais consistentes). A janela cobre a maior aba (Ano = do
+ * mesmo mês do ano anterior até o mês atual); a meta e o nível são aplicados depois,
+ * por request, em `applyHeatmapLevels` — assim mudar a jornada recolore na hora.
  */
-export async function fetchHeatmapDays(userId: string, weeks: number): Promise<HeatmapDay[]> {
+export async function fetchHeatmapDays(userId: string): Promise<HeatmapRawDay[]> {
   'use cache'
   cacheLife({ stale: 60, revalidate: 60, expire: 3600 })
   cacheTag(`sidebar-${userId}`)
 
   const todayDate = getLocalDateBRT()
-  const startDate = addDaysToDateString(todayDate, -(weeks * 7 - 1))
+  const startDate = getMonthRangeBRT(addMonthsToMonthKey(todayDate.slice(0, 7), -12)).startDate
   const rangeStart = startOfLocalDayBRT(startDate)
   const rangeEnd = endExclusiveOfLocalDayBRT(todayDate)
 
@@ -81,17 +76,15 @@ export async function fetchHeatmapDays(userId: string, weeks: number): Promise<H
     for (const date of daysHit) byDate.get(date)!.sessions += 1
   }
 
-  const days: HeatmapDay[] = []
+  const days: HeatmapRawDay[] = []
   let cursor = startDate
   while (cursor <= todayDate) {
     const bucket = byDate.get(cursor)
-    const minutes = bucket?.minutes ?? 0
     days.push({
       date: cursor,
-      totalMinutes: minutes,
+      totalMinutes: bucket?.minutes ?? 0,
       sessionCount: bucket?.sessions ?? 0,
       topProject: bucket ? topProjectOf(bucket.projects) : null,
-      level: heatLevel(minutes),
     })
     cursor = addDaysToDateString(cursor, 1)
   }

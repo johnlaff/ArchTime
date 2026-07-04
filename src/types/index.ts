@@ -96,7 +96,8 @@ export interface HeatmapDay {
   totalMinutes: number
   sessionCount: number
   topProject: string | null
-  level: 0 | 1 | 2 | 3 | 4
+  goalMinutes: number // meta prevista do dia (0 em feriado, fim de semana ou sem jornada)
+  level: 0 | 1 | 2 | 3 // 0 sem registro · 1 abaixo · 2 dentro · 3 acima da jornada
 }
 
 export interface WeekBar {

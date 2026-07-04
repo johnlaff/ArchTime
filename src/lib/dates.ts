@@ -186,6 +186,12 @@ export function parseBRTDateTimeLocal(value: string): Date | null {
   return Number.isFinite(parsed.getTime()) ? parsed : null
 }
 
+/** Desloca uma chave de mês "YYYY-MM" por `delta` meses (aceita negativo). */
+export function addMonthsToMonthKey(month: string, delta: number): string {
+  const [year, monthNumber] = month.split('-').map(Number)
+  return new Date(Date.UTC(year, monthNumber - 1 + delta, 1)).toISOString().slice(0, 7)
+}
+
 export function getMonthRangeBRT(month: string): {
   start: Date
   end: Date

@@ -6,9 +6,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSupabaseQuery } from '@/hooks/use-supabase-query'
 import { Heatmap } from './heatmap'
 import { WeekBars } from './week-bars'
-import { addDaysToDateString, formatBRT, formatMinutes, getLocalDateBRT, getMonthRangeBRT } from '@/lib/dates'
-import { padHeatmapToMonthEnd } from '@/lib/heatmap'
-import type { ActivityOverview, DistributionItem, TrendInsight } from '@/types'
+import { addMonthsToMonthKey, formatBRT, formatMinutes, getLocalDateBRT, getMonthRangeBRT } from '@/lib/dates'
+import { buildHeatmapRange } from '@/lib/heatmap'
+import type { ActivityOverview, DistributionItem, HeatmapDay, TrendInsight } from '@/types'
+
+const MES_ABBR = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const EMPTY_DAYS: HeatmapDay[] = []
+
+function monthKeyLabel(key: string): string {
+  const [year, month] = key.split('-').map(Number)
+  return `${MES_ABBR[month - 1]} ${year}`
+}
 
 async function fetchOverview(): Promise<ActivityOverview> {
   const res = await fetch('/api/activity/overview')
@@ -119,24 +127,36 @@ export default function ActivityPanelContent() {
     setCurrentMonthLabel(formatBRT(new Date(), "MMMM 'de' yyyy"))
   }, [])
 
-  // O servidor devolve dias até "hoje"; o padding completa o mês corrente com dias
-  // vazios para a aba Mês mostrar o mês inteiro e o label do mês novo aparecer no eixo.
-  const heatmapDays = useMemo(
-    () => (data ? padHeatmapToMonthEnd(data.heatmap, getLocalDateBRT()) : []),
-    [data]
-  )
-  // Mês = mês calendário corrente em BRT (dia 1 → último dia), como os demais relatórios.
-  // O limite superior importa: com skew de relógio na virada de mês o padding pode se
-  // estender ao mês seguinte, e sem o clamp a aba mostraria dois meses sob um label só.
-  const monthDays = useMemo(() => {
-    const { startDate, endDate } = getMonthRangeBRT(getLocalDateBRT().slice(0, 7))
-    return heatmapDays.filter((d) => d.date >= startDate && d.date <= endDate)
-  }, [heatmapDays])
-  // 182 dias para trás a partir de hoje (o padding do fim do mês vem junto).
-  const halfYearDays = useMemo(() => {
-    const cutoff = addDaysToDateString(getLocalDateBRT(), -181)
-    return heatmapDays.filter((d) => d.date >= cutoff)
-  }, [heatmapDays])
+  // Ranges de cada aba a partir dos dias do servidor + preenchimento do período à
+  // frente. O servidor devolve dias até "hoje"; buildHeatmapRange completa dias/meses
+  // futuros com células neutras (Mês fecha o mês corrente; Semestre e Ano exibem o
+  // período por inteiro, com os meses ainda por vir em nível 0).
+  const ranges = useMemo(() => {
+    if (!data) return null
+    const today = getLocalDateBRT()
+    const monthKey = today.slice(0, 7)
+    const year = Number(today.slice(0, 4))
+    const month = Number(today.slice(5, 7))
+    const monthRange = getMonthRangeBRT(monthKey)
+
+    // Semestre-calendário: H1 jan–jun, H2 jul–dez do ano corrente.
+    const semStart = getMonthRangeBRT(`${year}-${month <= 6 ? '01' : '07'}`).startDate
+    const semEnd = getMonthRangeBRT(`${year}-${month <= 6 ? '06' : '12'}`).endDate
+
+    // Ano = do dia 1 do mesmo mês de 12 meses atrás até o fim do mês corrente
+    // (ex.: jul/2025 → jul/2026): um ano de fato, terminando no mês vigente.
+    const anoStartKey = addMonthsToMonthKey(monthKey, -12)
+    const anoStart = getMonthRangeBRT(anoStartKey).startDate
+
+    return {
+      monthDays: buildHeatmapRange(data.heatmap, monthRange.startDate, monthRange.endDate),
+      semesterDays: buildHeatmapRange(data.heatmap, semStart, semEnd),
+      anoDays: buildHeatmapRange(data.heatmap, anoStart, monthRange.endDate),
+      semesterLabel: `${month <= 6 ? '1º' : '2º'} semestre de ${year}`,
+      anoRangeLabel: `${monthKeyLabel(anoStartKey)} – ${monthKeyLabel(monthKey)}`,
+    }
+  }, [data])
+  const monthDays = ranges?.monthDays ?? EMPTY_DAYS
   const monthSummary = useMemo(() => {
     if (monthDays.length === 0) return null
     const activeDays = monthDays.filter(d => d.totalMinutes > 0)
@@ -201,10 +221,20 @@ export default function ActivityPanelContent() {
             </div>
           </TabsContent>
           <TabsContent value="semestre" className="mt-0">
-            <Heatmap days={halfYearDays} />
+            <div className="space-y-2">
+              <p className="text-center text-[11px] text-muted-foreground/70 first-letter:uppercase">
+                {ranges?.semesterLabel}
+              </p>
+              <Heatmap days={ranges?.semesterDays ?? EMPTY_DAYS} />
+            </div>
           </TabsContent>
           <TabsContent value="ano" className="mt-0">
-            <Heatmap days={heatmapDays} />
+            <div className="space-y-2">
+              <p className="text-center text-[11px] text-muted-foreground/70">
+                {ranges?.anoRangeLabel}
+              </p>
+              <Heatmap days={ranges?.anoDays ?? EMPTY_DAYS} />
+            </div>
           </TabsContent>
         </Tabs>
       </Panel>
