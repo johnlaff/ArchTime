@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   absoluteHeatLevel,
   applyHeatmapLevels,
+  applyWeekLevels,
   buildHeatmapRange,
   goalHeatLevel,
   hasExpectedSchedule,
+  heatLevelColor,
+  heatLevelLabel,
+  resolveWorkGoal,
   type HeatmapRawDay,
 } from '../heatmap'
 import { addMonthsToMonthKey } from '../dates'
@@ -114,6 +118,56 @@ describe('buildHeatmapRange', () => {
 
   it('retorna vazio quando o fim é anterior ao início', () => {
     expect(buildHeatmapRange([], '2026-07-10', '2026-07-01')).toEqual([])
+  })
+})
+
+describe('applyWeekLevels (barras semanais, mesma escala do heatmap)', () => {
+  const wm = (date: string, weekday: number, totalMinutes: number) => ({ date, weekday, totalMinutes })
+
+  it('nível relativo à jornada; feriado numa segunda zera a meta e vira "acima"', () => {
+    const [seg, feriado] = applyWeekLevels(
+      [wm('2026-06-29', 1, 480), wm('2026-09-07', 1, 300)], // segunda comum · Independência (segunda)
+      FULL_TIME
+    )
+    expect(seg.goalMinutes).toBe(480)
+    expect(seg.level).toBe(2) // dentro
+    expect(feriado.goalMinutes).toBe(0)
+    expect(feriado.level).toBe(3) // fora da jornada
+  })
+
+  it('fallback absoluto quando não há jornada prevista (meta 0 em todos, nível por horas)', () => {
+    const days = applyWeekLevels(
+      [wm('2026-06-29', 1, 120), wm('2026-06-30', 2, 300), wm('2026-07-01', 3, 540)],
+      NO_SCHEDULE
+    )
+    expect(days.map((d) => d.level)).toEqual([1, 2, 3]) // <4h · 4–8h · 8h+
+    expect(days.every((d) => d.goalMinutes === 0)).toBe(true)
+  })
+})
+
+describe('resolveWorkGoal (meta do dia, com feriado)', () => {
+  const cache = () => new Map<number, Set<string>>()
+  it('retorna a meta do dia da semana em dia útil comum (2026-07-01, quarta)', () => {
+    expect(resolveWorkGoal('2026-07-01', FULL_TIME, cache())).toBe(480)
+  })
+  it('zera em feriado nacional (2026-09-07, Independência, cai numa segunda)', () => {
+    expect(resolveWorkGoal('2026-09-07', FULL_TIME, cache())).toBe(0)
+  })
+  it('zera no fim de semana (sábado, meta 0 no template)', () => {
+    expect(resolveWorkGoal('2026-07-04', FULL_TIME, cache())).toBe(0)
+  })
+})
+
+describe('heatLevelColor / heatLevelLabel (escala compartilhada)', () => {
+  it('4 níveis distintos, todos via color-mix sobre tokens de tema', () => {
+    const colors = ([0, 1, 2, 3] as const).map((l) => heatLevelColor(l))
+    expect(new Set(colors).size).toBe(4)
+    expect(colors.every((c) => c.includes('color-mix'))).toBe(true)
+  })
+  it('rótulos das 3 categorias com registro', () => {
+    expect(heatLevelLabel(1)).toBe('abaixo da jornada')
+    expect(heatLevelLabel(2)).toBe('dentro da jornada')
+    expect(heatLevelLabel(3)).toBe('acima da jornada')
   })
 })
 

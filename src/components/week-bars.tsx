@@ -4,6 +4,7 @@
 import { Bar, BarChart, Cell, ReferenceLine, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart'
 import { formatMinutes } from '@/lib/dates'
+import { heatLevelColor, heatLevelLabel } from '@/lib/heatmap'
 import type { WeekBar } from '@/types'
 
 const chartConfig = { hours: { label: 'Horas' } } satisfies ChartConfig
@@ -13,14 +14,8 @@ interface Datum {
   minutes: number
   hours: number
   goal: number
-  met: boolean
-}
-
-function barFill(datum: Datum): string {
-  if (datum.minutes === 0) return 'var(--muted)'
-  // Segue a cor de accent (como o heatmap): cheio quando bate a meta, 50% abaixo dela.
-  if (datum.met) return 'var(--primary)' // bateu a meta do dia
-  return 'oklch(from var(--primary) l c h / 0.5)' // abaixo da meta / sem meta
+  // Mesma escala relativa à jornada do heatmap: 0 sem registro · 1 abaixo · 2 dentro · 3 acima.
+  level: 0 | 1 | 2 | 3
 }
 
 function WeekTooltip({
@@ -39,6 +34,12 @@ function WeekTooltip({
         {datum.minutes > 0 ? formatMinutes(datum.minutes) : 'sem registro'}
         {datum.goal > 0 ? ` · meta ${formatMinutes(datum.goal)}` : ''}
       </p>
+      {/* level > 0 ⟺ minutes ≥ 1 (mesmo predicado de goalHeatLevel) — garante o cast 1|2|3. */}
+      {datum.level > 0 && (
+        <p className="text-muted-foreground">
+          {datum.goal <= 0 ? 'fora da jornada prevista' : heatLevelLabel(datum.level as 1 | 2 | 3)}
+        </p>
+      )}
     </div>
   )
 }
@@ -49,7 +50,7 @@ export function WeekBars({ week }: { week: WeekBar[] }) {
     minutes: day.totalMinutes,
     hours: Number((day.totalMinutes / 60).toFixed(2)),
     goal: day.goalMinutes,
-    met: day.goalMinutes > 0 && day.totalMinutes >= day.goalMinutes,
+    level: day.level,
   }))
   const goalMinutes = Math.max(0, ...week.map((day) => day.goalMinutes))
   const maxHours = Math.max(goalMinutes / 60, ...data.map((day) => day.hours), 1)
@@ -75,7 +76,7 @@ export function WeekBars({ week }: { week: WeekBar[] }) {
         <ChartTooltip cursor={{ fill: 'var(--muted)', opacity: 0.4 }} content={<WeekTooltip />} />
         <Bar dataKey="hours" radius={[4, 4, 0, 0]} isAnimationActive={false}>
           {data.map((datum) => (
-            <Cell key={datum.day} fill={barFill(datum)} />
+            <Cell key={datum.day} fill={heatLevelColor(datum.level)} />
           ))}
         </Bar>
       </BarChart>

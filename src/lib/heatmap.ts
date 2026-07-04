@@ -11,6 +11,29 @@ export interface HeatmapRawDay {
 }
 
 /**
+ * Cor de fundo de cada nível: rampa sequencial de um único matiz (o accent) sobre
+ * --card via color-mix. Fonte ÚNICA da escala — compartilhada pelo heatmap e pelas
+ * barras semanais, para as duas visões falarem exatamente a mesma língua de cor.
+ */
+export function heatLevelColor(level: HeatmapDay['level']): string {
+  switch (level) {
+    case 0:
+      return 'color-mix(in oklab, var(--card) 94%, var(--foreground))'
+    case 1:
+      return 'color-mix(in oklab, var(--primary) 28%, var(--card))'
+    case 2:
+      return 'color-mix(in oklab, var(--primary) 62%, var(--card))'
+    case 3:
+      return 'color-mix(in oklab, var(--primary) 90%, var(--card))'
+  }
+}
+
+/** Rótulo curto da categoria (para tooltips). Nível 0 é tratado como "sem registro" à parte. */
+export function heatLevelLabel(level: 1 | 2 | 3): string {
+  return level === 1 ? 'abaixo da jornada' : level === 2 ? 'dentro da jornada' : 'acima da jornada'
+}
+
+/**
  * Tolerância de "jornada cumprida": bater a meta e ir até +10% ainda conta como
  * "dentro"; acima disso é "acima da jornada". Ancorada no padrão de tolerância de
  * KPI/RAG. Sem folga para baixo de 100% (bater a meta exige atingi-la de fato).
@@ -47,6 +70,26 @@ export function absoluteHeatLevel(minutes: number): HeatmapDay['level'] {
 }
 
 /**
+ * Meta prevista do dia, já com feriado nacional aplicado (feriado → 0). Fonte única de
+ * "qual era a meta deste dia" para o heatmap e para as barras semanais. `holidaysByYear`
+ * é um cache passado pelo chamador para não reconstruir o Set de feriados a cada dia.
+ */
+export function resolveWorkGoal(
+  date: string,
+  schedule: WorkMinutesByWeekday,
+  holidaysByYear: Map<number, Set<string>>
+): number {
+  const year = Number(date.slice(0, 4))
+  let holidays = holidaysByYear.get(year)
+  if (!holidays) {
+    holidays = getBrazilNationalHolidays(year)
+    holidaysByYear.set(year, holidays)
+  }
+  if (holidays.has(date)) return 0
+  return schedule[String(getDayOfWeek(date)) as WeekdayKey] ?? 0
+}
+
+/**
  * Aplica meta e nível a cada dia. Barato e dependente da jornada atual → roda a cada
  * request (não no cache por userId de fetchHeatmapDays), então mudar a jornada recolore
  * o histórico na hora. Feriados nacionais zeram a meta do dia (getBrazilNationalHolidays).
@@ -59,15 +102,34 @@ export function applyHeatmapLevels(
   const holidaysByYear = new Map<number, Set<string>>()
 
   return days.map((day) => {
-    const year = Number(day.date.slice(0, 4))
-    let holidays = holidaysByYear.get(year)
-    if (!holidays) {
-      holidays = getBrazilNationalHolidays(year)
-      holidaysByYear.set(year, holidays)
-    }
-    const goalMinutes = holidays.has(day.date)
-      ? 0
-      : schedule[String(getDayOfWeek(day.date)) as WeekdayKey] ?? 0
+    const goalMinutes = resolveWorkGoal(day.date, schedule, holidaysByYear)
+    const level = useGoal
+      ? goalHeatLevel(day.totalMinutes, goalMinutes)
+      : absoluteHeatLevel(day.totalMinutes)
+    return { ...day, goalMinutes, level }
+  })
+}
+
+/** Dias da semana crus (antes de meta/nível), como os retorna fetchWeekMinutes. */
+export interface WeekMinutes {
+  date: string
+  weekday: number
+  totalMinutes: number
+}
+
+/**
+ * Enriquece os 7 dias da semana com meta (feriado aplicado) e nível — MESMA escala do
+ * heatmap (goalHeatLevel, ou absoluteHeatLevel quando não há jornada prevista). Extraído
+ * do route para não duplicar a composição inline e poder ser testado isoladamente.
+ */
+export function applyWeekLevels<T extends WeekMinutes>(
+  days: T[],
+  schedule: WorkMinutesByWeekday
+): Array<T & { goalMinutes: number; level: HeatmapDay['level'] }> {
+  const useGoal = hasExpectedSchedule(schedule)
+  const holidaysByYear = new Map<number, Set<string>>()
+  return days.map((day) => {
+    const goalMinutes = resolveWorkGoal(day.date, schedule, holidaysByYear)
     const level = useGoal
       ? goalHeatLevel(day.totalMinutes, goalMinutes)
       : absoluteHeatLevel(day.totalMinutes)

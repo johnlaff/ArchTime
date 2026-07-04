@@ -5,36 +5,18 @@ import { ActivityCalendar, type Activity } from 'react-activity-calendar'
 import { useTheme } from 'next-themes'
 import 'react-activity-calendar/tooltips.css'
 import { formatMinutes, getDayOfWeek, getLocalDateBRT } from '@/lib/dates'
+import { heatLevelColor, heatLevelLabel } from '@/lib/heatmap'
 import type { HeatmapDay } from '@/types'
 
-// Rampa sequencial de um único matiz (o accent do usuário) sobre --card, via color-mix.
-// As vars CSS resolvem no runtime e já alternam com .dark — o mesmo array serve para
-// os dois temas. Agora os 4 níveis são RELATIVOS à jornada prevista do dia: 0 sem
-// registro (neutro), 1 abaixo, 2 dentro (bateu a meta), 3 acima. Escala sequencial de
-// um matiz é daltônico-safe pela luminosidade; a distinção dentro↔acima é o degrau de
-// intensidade + o tooltip (sem marcador dentro da célula).
-function heatColor(level: 0 | 1 | 2 | 3): string {
-  switch (level) {
-    case 0:
-      return 'color-mix(in oklab, var(--card) 94%, var(--foreground))'
-    case 1:
-      return 'color-mix(in oklab, var(--primary) 28%, var(--card))'
-    case 2:
-      return 'color-mix(in oklab, var(--primary) 62%, var(--card))'
-    case 3:
-      return 'color-mix(in oklab, var(--primary) 90%, var(--card))'
-  }
-}
-
+// Rampa sequencial de um único matiz (o accent) sobre --card via color-mix — heatLevelColor,
+// compartilhada com as barras semanais (fonte única). As vars CSS resolvem no runtime e já
+// alternam com .dark, então o mesmo array serve para os dois temas. Os 4 níveis são RELATIVOS
+// à jornada prevista do dia: 0 sem registro (neutro), 1 abaixo, 2 dentro (bateu a meta), 3
+// acima. Escala sequencial de um matiz é daltônico-safe pela luminosidade; a distinção
+// dentro↔acima é o degrau de intensidade + o tooltip (sem marcador dentro da célula).
 const LEVELS = [0, 1, 2, 3] as const
-const HEAT_COLORS = LEVELS.map(heatColor)
+const HEAT_COLORS = LEVELS.map(heatLevelColor)
 const HEAT_THEME = { light: HEAT_COLORS, dark: HEAT_COLORS }
-
-const LEVEL_LABEL: Record<1 | 2 | 3, string> = {
-  1: 'abaixo da jornada',
-  2: 'dentro da jornada',
-  3: 'acima da jornada',
-}
 
 const LEGEND: { level: 0 | 1 | 2 | 3; label: string; tip: string }[] = [
   { level: 0, label: 'Sem registro', tip: 'Nenhum tempo registrado no dia.' },
@@ -70,7 +52,7 @@ function tooltipText(day: HeatmapDay, today: string): string {
   const category =
     day.goalMinutes <= 0
       ? ' · fora da jornada prevista'
-      : ` · meta ${formatMinutes(day.goalMinutes)} · ${LEVEL_LABEL[day.level as 1 | 2 | 3]}`
+      : ` · meta ${formatMinutes(day.goalMinutes)} · ${heatLevelLabel(day.level as 1 | 2 | 3)}`
   return `${dateLabel(day.date)} · ${formatMinutes(day.totalMinutes)}${category} · ${sessions}${project}`
 }
 

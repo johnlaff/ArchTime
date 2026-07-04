@@ -3,9 +3,8 @@ import { getAuthenticatedUser } from '@/lib/server/auth'
 import { getOrCreateUserSettings } from '@/lib/user-settings'
 import { fetchHeatmapDays, fetchWeekMinutes } from '@/lib/server/activity-data'
 import { fetchActiveProjects, fetchWeekComparison } from '@/lib/server/sidebar-data'
-import { applyHeatmapLevels } from '@/lib/heatmap'
+import { applyHeatmapLevels, applyWeekLevels } from '@/lib/heatmap'
 import type { ActivityOverview, WeekBar } from '@/types'
-import type { WeekdayKey } from '@/lib/preferences'
 
 const DAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'] as const
 
@@ -30,12 +29,15 @@ export async function GET() {
   // recolore o histórico na hora, sem esperar revalidação do cache.
   const heatmap = applyHeatmapLevels(rawHeatmap, settings.workMinutesByWeekday)
 
-  const week: WeekBar[] = weekMinutes.map((day) => ({
+  // Mesma escala do heatmap para as barras semanais: meta com feriado aplicado + nível
+  // relativo (ou fallback absoluto quando não há jornada prevista) — via applyWeekLevels.
+  const week: WeekBar[] = applyWeekLevels(weekMinutes, settings.workMinutesByWeekday).map((day) => ({
     date: day.date,
     weekday: day.weekday,
     dayLabel: DAY_LABELS[day.weekday],
     totalMinutes: day.totalMinutes,
-    goalMinutes: settings.workMinutesByWeekday[String(day.weekday) as WeekdayKey] ?? 0,
+    goalMinutes: day.goalMinutes,
+    level: day.level,
   }))
 
   const overview: ActivityOverview = {

@@ -105,7 +105,8 @@ export interface WeekBar {
   dayLabel: string // 'seg' … 'dom'
   weekday: number // 0=dom … 6=sáb
   totalMinutes: number
-  goalMinutes: number
+  goalMinutes: number // meta do dia (0 em feriado, fim de semana ou sem jornada)
+  level: 0 | 1 | 2 | 3 // mesma escala do heatmap: sem registro · abaixo · dentro · acima
 }
 
 export interface TrendInsight {
