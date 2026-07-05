@@ -25,14 +25,14 @@ describe('goalHeatLevel', () => {
   it('abaixo da meta → 1', () => {
     expect(goalHeatLevel(300, 480)).toBe(1)
   })
-  it('na meta → "dentro" (2)', () => {
+  it('na meta exata → "dentro" (2)', () => {
     expect(goalHeatLevel(480, 480)).toBe(2)
   })
-  it('até +10% da meta ainda é "dentro" (2)', () => {
-    expect(goalHeatLevel(528, 480)).toBe(2) // 480 × 1,10 = 528
+  it('1 minuto acima da meta já é "acima" (3) — sem tolerância', () => {
+    expect(goalHeatLevel(481, 480)).toBe(3)
   })
-  it('mais de +10% vira "acima" (3)', () => {
-    expect(goalHeatLevel(529, 480)).toBe(3)
+  it('bem acima da meta → "acima" (3)', () => {
+    expect(goalHeatLevel(600, 480)).toBe(3)
   })
   it('meta 0 e trabalhou → "acima" (3)', () => {
     expect(goalHeatLevel(120, 0)).toBe(3)

@@ -21,11 +21,11 @@ const HEAT_THEME = { light: HEAT_COLORS, dark: HEAT_COLORS }
 const LEGEND: { level: 0 | 1 | 2 | 3; label: string; tip: string }[] = [
   { level: 0, label: 'Sem registro', tip: 'Nenhum tempo registrado no dia.' },
   { level: 1, label: 'Abaixo da jornada', tip: 'Trabalhou, mas menos que a meta do dia.' },
-  { level: 2, label: 'Dentro da jornada', tip: 'Bateu a meta do dia (até 10% acima).' },
+  { level: 2, label: 'Dentro da jornada', tip: 'Bateu exatamente a meta do dia.' },
   {
     level: 3,
     label: 'Acima da jornada',
-    tip: 'Mais de 10% além da meta — ou trabalho num dia sem jornada prevista.',
+    tip: 'Passou da meta do dia — ou trabalho num dia sem jornada prevista.',
   },
 ]
 

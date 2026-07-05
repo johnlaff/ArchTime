@@ -26,11 +26,11 @@ function topProjectOf(projects: Map<string, number>): string | null {
 }
 
 /**
- * Minutos trabalhados por dia local do dia 1 do mês 12 meses atrás até hoje (contíguo,
+ * Minutos trabalhados por dia local do dia 1 do mês 11 meses atrás até hoje (contíguo,
  * incluindo dias zerados), fatiado por dia BRT (mesmo `splitIntervalByLocalDay` do
- * histórico, mantendo os totais consistentes). A janela cobre a maior aba (Ano = do
- * mesmo mês do ano anterior até o mês atual); a meta e o nível são aplicados depois,
- * por request, em `applyHeatmapLevels` — assim mudar a jornada recolore na hora.
+ * histórico, mantendo os totais consistentes). A janela cobre a maior aba (Ano = 12 meses
+ * terminando no mês vigente); a meta e o nível são aplicados depois, por request, em
+ * `applyHeatmapLevels` — assim mudar a jornada recolore na hora.
  */
 export async function fetchHeatmapDays(userId: string): Promise<HeatmapRawDay[]> {
   'use cache'
@@ -38,7 +38,7 @@ export async function fetchHeatmapDays(userId: string): Promise<HeatmapRawDay[]>
   cacheTag(`sidebar-${userId}`)
 
   const todayDate = getLocalDateBRT()
-  const startDate = getMonthRangeBRT(addMonthsToMonthKey(todayDate.slice(0, 7), -12)).startDate
+  const startDate = getMonthRangeBRT(addMonthsToMonthKey(todayDate.slice(0, 7), -11)).startDate
   const rangeStart = startOfLocalDayBRT(startDate)
   const rangeEnd = endExclusiveOfLocalDayBRT(todayDate)
 

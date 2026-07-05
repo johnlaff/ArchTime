@@ -33,13 +33,6 @@ export function heatLevelLabel(level: 1 | 2 | 3): string {
   return level === 1 ? 'abaixo da jornada' : level === 2 ? 'dentro da jornada' : 'acima da jornada'
 }
 
-/**
- * Tolerância de "jornada cumprida": bater a meta e ir até +10% ainda conta como
- * "dentro"; acima disso é "acima da jornada". Ancorada no padrão de tolerância de
- * KPI/RAG. Sem folga para baixo de 100% (bater a meta exige atingi-la de fato).
- */
-export const MET_TOLERANCE = 1.1
-
 /** true se o usuário tem qualquer meta > 0 na semana (senão, cai no fallback absoluto). */
 export function hasExpectedSchedule(schedule: WorkMinutesByWeekday): boolean {
   return WEEKDAY_KEYS.some((key) => (schedule[key] ?? 0) > 0)
@@ -47,15 +40,16 @@ export function hasExpectedSchedule(schedule: WorkMinutesByWeekday): boolean {
 
 /**
  * Nível relativo à jornada prevista do dia (4 categorias):
- * 0 sem registro · 1 abaixo · 2 dentro (meta … meta×1,10) · 3 acima.
- * Dia sem meta (feriado/fim de semana/sem jornada) trabalhado cai em "acima".
+ * 0 sem registro · 1 abaixo · 2 dentro (bateu exatamente a meta) · 3 acima.
+ * SEM tolerância: 1 minuto acima da jornada já conta como "acima". Dia sem meta
+ * (feriado/fim de semana/sem jornada) trabalhado cai em "acima".
  */
 export function goalHeatLevel(minutes: number, goalMinutes: number): HeatmapDay['level'] {
   if (minutes < 1) return 0
   if (goalMinutes <= 0) return 3
   if (minutes < goalMinutes) return 1
-  if (minutes <= Math.round(goalMinutes * MET_TOLERANCE)) return 2
-  return 3
+  if (minutes > goalMinutes) return 3
+  return 2 // minutes === goalMinutes → cumpriu exatamente a jornada prevista
 }
 
 /**

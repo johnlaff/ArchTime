@@ -143,9 +143,9 @@ export default function ActivityPanelContent() {
     const semStart = getMonthRangeBRT(`${year}-${month <= 6 ? '01' : '07'}`).startDate
     const semEnd = getMonthRangeBRT(`${year}-${month <= 6 ? '06' : '12'}`).endDate
 
-    // Ano = do dia 1 do mesmo mês de 12 meses atrás até o fim do mês corrente
-    // (ex.: jul/2025 → jul/2026): um ano de fato, terminando no mês vigente.
-    const anoStartKey = addMonthsToMonthKey(monthKey, -12)
+    // Ano = 12 meses terminando no mês vigente (ex.: ago/2025 → jul/2026): do dia 1 do
+    // mês 11 meses atrás até o fim do mês corrente.
+    const anoStartKey = addMonthsToMonthKey(monthKey, -11)
     const anoStart = getMonthRangeBRT(anoStartKey).startDate
 
     return {
