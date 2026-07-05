@@ -19,10 +19,11 @@ test('heatmap mensal fica legível no escuro com rosa custom', async ({ page }) 
     return alpha(bg)
   }, { message: 'aba ativa deve ficar opaca após a transição' }).toBeGreaterThan(0.95)
 
+  // Legenda relativa à jornada: 4 categorias (sem registro / abaixo / dentro / acima).
   const swatches = panel.locator('span[aria-hidden="true"]')
-  await expect(swatches).toHaveCount(5)
+  await expect(swatches).toHaveCount(4)
   const colors = await swatches.evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor))
-  expect(colors[0], 'nível 0 e nível 4 não podem colapsar na mesma cor').not.toBe(colors[4])
+  expect(colors[0], 'nível 0 e nível 3 não podem colapsar na mesma cor').not.toBe(colors[3])
   for (const color of colors) {
     expect(alpha(color), `swatch deve ser opaco: ${color}`).toBeGreaterThan(0.95)
   }
