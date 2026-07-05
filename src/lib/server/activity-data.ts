@@ -2,7 +2,7 @@ import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import {
   addDaysToDateString,
-  addMonthsToMonthKey,
+  anoWindowStartKey,
   endExclusiveOfLocalDayBRT,
   getDayOfWeek,
   getLocalDateBRT,
@@ -38,7 +38,7 @@ export async function fetchHeatmapDays(userId: string): Promise<HeatmapRawDay[]>
   cacheTag(`sidebar-${userId}`)
 
   const todayDate = getLocalDateBRT()
-  const startDate = getMonthRangeBRT(addMonthsToMonthKey(todayDate.slice(0, 7), -11)).startDate
+  const startDate = getMonthRangeBRT(anoWindowStartKey(todayDate.slice(0, 7))).startDate
   const rangeStart = startOfLocalDayBRT(startDate)
   const rangeEnd = endExclusiveOfLocalDayBRT(todayDate)
 

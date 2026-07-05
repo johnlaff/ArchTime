@@ -11,7 +11,7 @@ import {
   resolveWorkGoal,
   type HeatmapRawDay,
 } from '../heatmap'
-import { addMonthsToMonthKey } from '../dates'
+import { addMonthsToMonthKey, anoWindowStartKey, HEATMAP_YEAR_MONTHS } from '../dates'
 import type { WorkMinutesByWeekday } from '../preferences'
 import type { HeatmapDay } from '@/types'
 
@@ -168,6 +168,16 @@ describe('heatLevelColor / heatLevelLabel (escala compartilhada)', () => {
     expect(heatLevelLabel(1)).toBe('abaixo da jornada')
     expect(heatLevelLabel(2)).toBe('dentro da jornada')
     expect(heatLevelLabel(3)).toBe('acima da jornada')
+  })
+})
+
+describe('anoWindowStartKey (aba Ano = 12 meses terminando no mês vigente)', () => {
+  it('exibe 12 meses: começa 11 meses antes do mês vigente', () => {
+    expect(HEATMAP_YEAR_MONTHS).toBe(12)
+    expect(anoWindowStartKey('2026-07')).toBe('2025-08') // ago/2025 … jul/2026 = 12 meses
+  })
+  it('atravessa a virada de ano', () => {
+    expect(anoWindowStartKey('2026-01')).toBe('2025-02') // fev/2025 … jan/2026 = 12 meses
   })
 })
 
