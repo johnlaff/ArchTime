@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSupabaseQuery } from '@/hooks/use-supabase-query'
 import { Heatmap } from './heatmap'
 import { WeekBars } from './week-bars'
-import { addMonthsToMonthKey, formatBRT, formatMinutes, getLocalDateBRT, getMonthRangeBRT } from '@/lib/dates'
+import { anoWindowStartKey, formatBRT, formatMinutes, getLocalDateBRT, getMonthRangeBRT } from '@/lib/dates'
 import { buildHeatmapRange } from '@/lib/heatmap'
 import type { ActivityOverview, DistributionItem, HeatmapDay, TrendInsight } from '@/types'
 
@@ -143,9 +143,8 @@ export default function ActivityPanelContent() {
     const semStart = getMonthRangeBRT(`${year}-${month <= 6 ? '01' : '07'}`).startDate
     const semEnd = getMonthRangeBRT(`${year}-${month <= 6 ? '06' : '12'}`).endDate
 
-    // Ano = do dia 1 do mesmo mês de 12 meses atrás até o fim do mês corrente
-    // (ex.: jul/2025 → jul/2026): um ano de fato, terminando no mês vigente.
-    const anoStartKey = addMonthsToMonthKey(monthKey, -12)
+    // Ano = 12 meses terminando no mês vigente (ex.: ago/2025 → jul/2026).
+    const anoStartKey = anoWindowStartKey(monthKey)
     const anoStart = getMonthRangeBRT(anoStartKey).startDate
 
     return {

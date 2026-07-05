@@ -192,6 +192,18 @@ export function addMonthsToMonthKey(month: string, delta: number): string {
   return new Date(Date.UTC(year, monthNumber - 1 + delta, 1)).toISOString().slice(0, 7)
 }
 
+/** Nº de meses que a aba "Ano" do heatmap exibe (terminando no mês vigente). */
+export const HEATMAP_YEAR_MONTHS = 12
+
+/**
+ * Chave de mês em que a janela do Ano começa: HEATMAP_YEAR_MONTHS-1 meses antes do mês
+ * dado (ex.: jul/2026 → ago/2025), para a aba mostrar exatamente 12 meses terminando no
+ * mês vigente. Fonte ÚNICA do offset — usada pelo cliente e pelo server (não duplicar).
+ */
+export function anoWindowStartKey(monthKey: string): string {
+  return addMonthsToMonthKey(monthKey, -(HEATMAP_YEAR_MONTHS - 1))
+}
+
 export function getMonthRangeBRT(month: string): {
   start: Date
   end: Date

@@ -11,7 +11,7 @@ import {
   resolveWorkGoal,
   type HeatmapRawDay,
 } from '../heatmap'
-import { addMonthsToMonthKey } from '../dates'
+import { addMonthsToMonthKey, anoWindowStartKey, HEATMAP_YEAR_MONTHS } from '../dates'
 import type { WorkMinutesByWeekday } from '../preferences'
 import type { HeatmapDay } from '@/types'
 
@@ -25,14 +25,14 @@ describe('goalHeatLevel', () => {
   it('abaixo da meta → 1', () => {
     expect(goalHeatLevel(300, 480)).toBe(1)
   })
-  it('na meta → "dentro" (2)', () => {
+  it('na meta exata → "dentro" (2)', () => {
     expect(goalHeatLevel(480, 480)).toBe(2)
   })
-  it('até +10% da meta ainda é "dentro" (2)', () => {
-    expect(goalHeatLevel(528, 480)).toBe(2) // 480 × 1,10 = 528
+  it('1 minuto acima da meta já é "acima" (3) — sem tolerância', () => {
+    expect(goalHeatLevel(481, 480)).toBe(3)
   })
-  it('mais de +10% vira "acima" (3)', () => {
-    expect(goalHeatLevel(529, 480)).toBe(3)
+  it('bem acima da meta → "acima" (3)', () => {
+    expect(goalHeatLevel(600, 480)).toBe(3)
   })
   it('meta 0 e trabalhou → "acima" (3)', () => {
     expect(goalHeatLevel(120, 0)).toBe(3)
@@ -168,6 +168,16 @@ describe('heatLevelColor / heatLevelLabel (escala compartilhada)', () => {
     expect(heatLevelLabel(1)).toBe('abaixo da jornada')
     expect(heatLevelLabel(2)).toBe('dentro da jornada')
     expect(heatLevelLabel(3)).toBe('acima da jornada')
+  })
+})
+
+describe('anoWindowStartKey (aba Ano = 12 meses terminando no mês vigente)', () => {
+  it('exibe 12 meses: começa 11 meses antes do mês vigente', () => {
+    expect(HEATMAP_YEAR_MONTHS).toBe(12)
+    expect(anoWindowStartKey('2026-07')).toBe('2025-08') // ago/2025 … jul/2026 = 12 meses
+  })
+  it('atravessa a virada de ano', () => {
+    expect(anoWindowStartKey('2026-01')).toBe('2025-02') // fev/2025 … jan/2026 = 12 meses
   })
 })
 
