@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import {
+  addMonthsToMonthKey,
   calculateExpectedMinutes,
   getLocalDateBRT,
   getMonthRangeBRT,
@@ -9,8 +10,7 @@ import {
   endExclusiveOfLocalDayBRT,
   toDateOnlyUTC,
 } from '@/lib/dates'
-import { DEFAULT_WORK_HOURS } from '@/lib/constants'
-import { DEFAULT_WORK_MINUTES_BY_WEEKDAY, type WorkMinutesByWeekday } from '@/lib/preferences'
+import type { WorkMinutesByWeekday } from '@/lib/preferences'
 import { getOrCreateUserSettings, type SerializedUserSettings } from '@/lib/user-settings'
 
 export interface ClockEntryInterval {
@@ -38,22 +38,6 @@ export interface HourBankMonth extends PeriodBalance {
 function workMinutesFromDefaultHours(defaultWorkHours: number): WorkMinutesByWeekday {
   const minutes = Math.round(defaultWorkHours * 60)
   return { '0': 0, '1': minutes, '2': minutes, '3': minutes, '4': minutes, '5': minutes, '6': 0 }
-}
-
-async function getWorkMinutesByWeekday(
-  userId: string,
-  defaultWorkHours?: number,
-  settings?: SerializedUserSettings
-): Promise<WorkMinutesByWeekday> {
-  if (settings) return settings.workMinutesByWeekday
-  if (defaultWorkHours != null) return workMinutesFromDefaultHours(defaultWorkHours)
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { defaultWorkHours: true },
-  })
-  if (!user) return DEFAULT_WORK_MINUTES_BY_WEEKDAY
-  return workMinutesFromDefaultHours(user.defaultWorkHours ?? DEFAULT_WORK_HOURS)
 }
 
 function getActualMinutesForPeriod(
@@ -109,32 +93,6 @@ async function fetchClosedEntries(
   })
 }
 
-export async function buildPeriodBalance(
-  userId: string,
-  startDate: string,
-  endDate: string,
-  defaultWorkHours?: number,
-  options: { settings?: SerializedUserSettings; entries?: ClockEntryInterval[] } = {}
-): Promise<PeriodBalance> {
-  const workMinutesByWeekday = await getWorkMinutesByWeekday(
-    userId,
-    defaultWorkHours,
-    options.settings
-  )
-  const entries = options.entries ?? await fetchClosedEntries(
-    userId,
-    startOfLocalDayBRT(startDate),
-    endExclusiveOfLocalDayBRT(endDate)
-  )
-
-  return buildPeriodBalanceFromEntries(entries, startDate, endDate, workMinutesByWeekday)
-}
-
-function shiftMonth(month: string, offset: number): string {
-  const [year, monthNumber] = month.split('-').map(Number)
-  return new Date(Date.UTC(year, monthNumber - 1 + offset, 1)).toISOString().slice(0, 7)
-}
-
 function laterDate(a: string, b: string): string {
   return a > b ? a : b
 }
@@ -151,13 +109,13 @@ function getCumulativeRange(
       startDate = `${month.slice(0, 4)}-01-01`
       break
     case 'rolling_3_months':
-      startDate = `${shiftMonth(month, -2)}-01`
+      startDate = `${addMonthsToMonthKey(month, -2)}-01`
       break
     case 'rolling_6_months':
-      startDate = `${shiftMonth(month, -5)}-01`
+      startDate = `${addMonthsToMonthKey(month, -5)}-01`
       break
     case 'rolling_12_months':
-      startDate = `${shiftMonth(month, -11)}-01`
+      startDate = `${addMonthsToMonthKey(month, -11)}-01`
       break
     case 'since_start':
     default:

@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   formatBRT,
-  getLocalDate,
-  getWorkingDays,
+  getLocalDateBRT,
   calcDurationMinutes,
   calculateExpectedMinutes,
   formatMinutes,
@@ -20,20 +19,11 @@ describe('formatBRT', () => {
   })
 })
 
-describe('getLocalDate', () => {
+describe('getLocalDateBRT', () => {
   it('returns date string in yyyy-MM-dd format for BRT', () => {
     // Midnight UTC on Feb 23 = Feb 22 in BRT (UTC-3)
-    const result = getLocalDate(new Date('2026-02-23T02:00:00Z'))
+    const result = getLocalDateBRT(new Date('2026-02-23T02:00:00Z'))
     expect(result).toBe('2026-02-22')
-  })
-})
-
-describe('getWorkingDays', () => {
-  it('counts weekdays in a month', () => {
-    // February 2026: 28 days, starts Sunday
-    // Weeks: 2 Mon–Fri + partial = 20 weekdays
-    const result = getWorkingDays(2026, 2)
-    expect(result).toBe(20)
   })
 })
 
