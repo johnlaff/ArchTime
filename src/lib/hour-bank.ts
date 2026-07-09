@@ -97,7 +97,7 @@ function laterDate(a: string, b: string): string {
   return a > b ? a : b
 }
 
-function getCumulativeRange(
+export function getCumulativeRange(
   month: string,
   settings: SerializedUserSettings
 ): { startDate: string; endDate: string } {
@@ -137,6 +137,8 @@ export async function buildHourBankMonth(
     defaultWorkHours?: number
     settings?: SerializedUserSettings
     entries?: ClockEntryInterval[]
+    computeWeeks?: boolean
+    cumulativeEntries?: ClockEntryInterval[]
   } = {}
 ): Promise<HourBankMonth> {
   const settings = options.settings ?? await getOrCreateUserSettings(userId)
@@ -153,20 +155,29 @@ export async function buildHourBankMonth(
     workMinutesByWeekday
   )
   const weekStartDay = settings.weekStartDay === 'sunday' ? 0 : 1
-  const weeks = getWeekRangesForMonth(month, weekStartDay).map((range) =>
-    buildPeriodBalanceFromEntries(monthEntries, range.startDate, range.endDate, workMinutesByWeekday)
-  )
+  // O dashboard não consome `weeks` (só o histórico) — computeWeeks: false evita
+  // filtrar splitIntervalByLocalDay sobre todas as entries 4-5 vezes por load.
+  const computeWeeks = options.computeWeeks !== false
+  const weeks = computeWeeks
+    ? getWeekRangesForMonth(month, weekStartDay).map((range) =>
+        buildPeriodBalanceFromEntries(monthEntries, range.startDate, range.endDate, workMinutesByWeekday)
+      )
+    : []
 
   let cumulativeBalance: number | null = null
   if (settings.showCumulativeBalance) {
     const range = getCumulativeRange(month, settings)
-    const cumulativeEntries = range.startDate === startDate
-      ? monthEntries
-      : await fetchClosedEntries(
-        userId,
-        startOfLocalDayBRT(range.startDate),
-        endExclusiveOfLocalDayBRT(range.endDate)
-      )
+    // Quando o caller já traz as entries do range acumulado (dashboard passa a query
+    // única alargada), reusa-as em vez de disparar um 2º fetch sequencial.
+    const cumulativeEntries = options.cumulativeEntries ?? (
+      range.startDate === startDate
+        ? monthEntries
+        : await fetchClosedEntries(
+          userId,
+          startOfLocalDayBRT(range.startDate),
+          endExclusiveOfLocalDayBRT(range.endDate)
+        )
+    )
     cumulativeBalance = buildPeriodBalanceFromEntries(
       cumulativeEntries,
       range.startDate,
@@ -253,6 +264,50 @@ export async function safeRecalculateHourBankForInterval(
       userId,
       clockIn: clockIn.toISOString(),
       clockOut: clockOut?.toISOString() ?? null,
+      error,
+    })
+  }
+}
+
+/**
+ * Recálculo de múltiplos intervalos deduplicando os meses afetados: uma edição de
+ * ponto no mesmo mês (caso comum) faz `buildHourBankMonth` + `upsert` uma vez por mês
+ * único, não uma vez por intervalo. Evita o trabalho redundante de dois recálculos
+ * sobrepostos no PATCH.
+ */
+export async function recalculateHourBankForIntervals(
+  userId: string,
+  intervals: Array<{ clockIn: Date; clockOut: Date | null }>
+): Promise<void> {
+  const settings = await getOrCreateUserSettings(userId)
+  const months = new Set<string>()
+  for (const { clockIn, clockOut } of intervals) {
+    if (!clockOut) continue
+    for (const segment of splitIntervalByLocalDay(clockIn, clockOut)) {
+      months.add(segment.date.slice(0, 7))
+    }
+  }
+
+  if (settings.showCumulativeBalance) {
+    months.add(getLocalDateBRT().slice(0, 7))
+  }
+
+  await Promise.all(
+    Array.from(months).map((month) =>
+      buildHourBankMonth(userId, month, { persist: true, settings })
+    )
+  )
+}
+
+export async function safeRecalculateHourBankForIntervals(
+  userId: string,
+  intervals: Array<{ clockIn: Date; clockOut: Date | null }>
+): Promise<void> {
+  try {
+    await recalculateHourBankForIntervals(userId, intervals)
+  } catch (error) {
+    console.error('[hour-bank] recálculo falhou (mutação primária já commitada)', {
+      userId,
       error,
     })
   }

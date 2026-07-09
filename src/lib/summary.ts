@@ -10,6 +10,7 @@ import {
 import {
   buildHourBankMonth,
   buildPeriodBalanceFromEntries,
+  getCumulativeRange,
   type ClockEntryInterval,
 } from '@/lib/hour-bank'
 import { getOrCreateUserSettings } from '@/lib/user-settings'
@@ -34,6 +35,17 @@ export async function buildDailySummary(userId: string): Promise<DailySummary> {
   const month = getMonthRangeBRT(todayDate.slice(0, 7))
   const balanceStart = earlierDate(week.start, month.start)
   const balanceEnd = laterDate(week.end, month.end)
+
+  // Quando o saldo acumulado está ligado, o range acumulado pode começar meses atrás.
+  // Alarga a query única (balanceEntries) para cobri-lo em vez de disparar um 2º fetch
+  // sequencial dentro de buildHourBankMonth. Sem acumulado, o range não muda.
+  const cumulativeRange = settings.showCumulativeBalance
+    ? getCumulativeRange(todayDate.slice(0, 7), settings)
+    : null
+  const cumulativeStart = cumulativeRange
+    ? startOfLocalDayBRT(cumulativeRange.startDate)
+    : todayStart
+  const extendedBalanceStart = earlierDate(cumulativeStart, balanceStart)
 
   const todayEntryWhere = {
     userId,
@@ -60,7 +72,7 @@ export async function buildDailySummary(userId: string): Promise<DailySummary> {
       where: {
         userId,
         deletedAt: null,
-        clockOut: { not: null, gt: balanceStart },
+        clockOut: { not: null, gt: extendedBalanceStart },
         clockIn: { lt: balanceEnd },
       },
       select: { clockIn: true, clockOut: true },
@@ -83,6 +95,8 @@ export async function buildDailySummary(userId: string): Promise<DailySummary> {
   const monthBalance = await buildHourBankMonth(userId, todayDate.slice(0, 7), {
     settings,
     entries: intervals,
+    computeWeeks: false,
+    cumulativeEntries: intervals,
   })
 
   return {
