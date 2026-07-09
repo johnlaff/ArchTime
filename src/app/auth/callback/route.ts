@@ -1,13 +1,17 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveAppOrigin } from '@/lib/app-origin'
 import { prisma } from '@/lib/prisma'
 import { isAllowedEmail } from '@/lib/auth'
 
 // react-doctor-disable-next-line react-doctor/nextjs-no-side-effect-in-get-handler -- callback OAuth PKCE: o provedor redireciona via GET; o code é single-use e validado por exchangeCodeForSession (proteção CSRF nativa do PKCE). Padrão oficial @supabase/ssr.
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  // Monta os redirects a partir da URL pública canônica: atrás do proxy do App
+  // Service, requestUrl.origin seria o binding interno do container (0.0.0.0:8080).
+  const origin = resolveAppOrigin(requestUrl.origin)
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)
