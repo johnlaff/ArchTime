@@ -8,10 +8,11 @@ Next.js App Router, React, TypeScript strict, Prisma 7 + Supabase Postgres, Tail
 
 ## Rodando localmente
 
-1. `cp .env.local.example .env.local` e preencha (Supabase URL/keys, DATABASE_URL/DIRECT_URL, ALLOWED_EMAILS, ENTRY_HASH_SECRET)
+1. `cp .env.local.example .env.local` e preencha (Supabase URL/keys, DATABASE_URL/DIRECT_URL, ALLOWED_EMAILS, NEXT_PUBLIC_APP_URL, ENTRY_HASH_SECRET)
 2. `npm ci`
-3. `npx prisma generate`
-4. `npm run dev`
+3. Monte o schema do DB: `npx prisma migrate deploy` (para um Supabase novo, ver `docs/supabase-security-checklist.md` para o baseline das migrations 0000–0001)
+4. `npx prisma generate`
+5. `npm run dev`
 
 ## Verificação
 
