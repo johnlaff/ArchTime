@@ -134,7 +134,7 @@ Regras duras:
 - Antes de comentar em PR, verifique comentários e reviews existentes para não duplicar achados.
 - Reviews automáticos como Copilot podem gerar falsos positivos; confirme contra contexto e histórico completo antes de tratar como bug.
 - Todo PR roda o job `verify` (GitHub Actions: tsc, testes, lint, react-doctor, build) — é o gate obrigatório da branch protection. Monitore-o até concluir e confirme verde antes de dizer que está pronto.
-- Produção (`https://archtime.app`) acompanha `main` via CD (workflow `build-image` → `ghcr.io` → webhook do App Service). Para revisar a UI de um PR antes do merge, use preview local com container (`docker run` da imagem buildada); não confunda o preview local com a produção ao orientar validação.
+- Produção (`https://archtime.app`) acompanha `main` via CD (workflow `build-image` → `ghcr.io` → webhook do App Service). Para revisar a UI de um PR antes do merge, use **`npm run preview`** (builda a imagem do branch e sobe em `http://localhost:8080`, fiel à produção); não confunda o preview local com a produção ao orientar validação. O design do preview hospedado por PR (Azure Container Apps) está em `docs/plans/2026-07-09-preview-deploys.md`, para quando o time crescer.
 
 ## Regras de Git
 
