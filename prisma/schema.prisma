@@ -130,7 +130,6 @@ model AuditLog {
   entityId  String   @map("entity_id")
   oldData   Json?    @map("old_data")
   newData   Json?    @map("new_data")
-  ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
 

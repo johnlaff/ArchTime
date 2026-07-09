@@ -10,7 +10,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 import { prisma } from '@/lib/prisma'
-import { buildHourBankMonth, buildPeriodBalance } from '../hour-bank'
+import { buildHourBankMonth, buildPeriodBalanceFromEntries } from '../hour-bank'
 import type { SerializedUserSettings } from '../user-settings'
 
 const mockedPrisma = vi.mocked(prisma)
@@ -40,7 +40,27 @@ const standardSettings: SerializedUserSettings = {
   customAccentColor: null,
 }
 
-describe('buildPeriodBalance', () => {
+describe('buildPeriodBalanceFromEntries', () => {
+  it('sums more than 10 sessions in the same day', () => {
+    const entries = Array.from({ length: 11 }, (_, i) => ({
+      clockIn: new Date(Date.UTC(2026, 1, 23, 12 + i, 0)),
+      clockOut: new Date(Date.UTC(2026, 1, 23, 13 + i, 0)),
+    }))
+
+    const result = buildPeriodBalanceFromEntries(
+      entries,
+      '2026-02-23',
+      '2026-02-23',
+      standardSettings.workMinutesByWeekday
+    )
+
+    expect(result.actualMinutes).toBe(660)
+    expect(result.expectedMinutes).toBe(480)
+    expect(result.balanceMinutes).toBe(180)
+  })
+})
+
+describe('buildHourBankMonth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     userFindUnique.mockResolvedValue({ defaultWorkHours: 8 })
@@ -59,25 +79,10 @@ describe('buildPeriodBalance', () => {
     })
   })
 
-  it('sums more than 10 sessions in the same day', async () => {
-    clockEntryFindMany.mockResolvedValue(
-      Array.from({ length: 11 }, (_, i) => ({
-        clockIn: new Date(Date.UTC(2026, 1, 23, 12 + i, 0)),
-        clockOut: new Date(Date.UTC(2026, 1, 23, 13 + i, 0)),
-      }))
-    )
-
-    const result = await buildPeriodBalance('user-1', '2026-02-23', '2026-02-23')
-
-    expect(result.actualMinutes).toBe(660)
-    expect(result.expectedMinutes).toBe(480)
-    expect(result.balanceMinutes).toBe(180)
-  })
-
   it('filters soft-deleted entries at the query boundary', async () => {
     clockEntryFindMany.mockResolvedValue([])
 
-    await buildPeriodBalance('user-1', '2026-02-23', '2026-02-23')
+    await buildHourBankMonth('user-1', '2026-02')
 
     expect(clockEntryFindMany).toHaveBeenCalledWith(
       expect.objectContaining({

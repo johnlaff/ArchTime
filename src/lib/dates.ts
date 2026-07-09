@@ -1,10 +1,5 @@
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
-import {
-  differenceInMinutes,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-} from 'date-fns'
+import { differenceInMinutes } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { TIMEZONE, DEFAULT_WORK_DAYS } from './constants'
 import type { WorkMinutesByWeekday } from './preferences'
@@ -26,10 +21,6 @@ export interface ExpectedMinutesPeriod {
 
 export function formatBRT(date: Date | string, fmt = 'HH:mm'): string {
   return formatInTimeZone(new Date(date), TIMEZONE, fmt, { locale: ptBR })
-}
-
-export function getLocalDate(date: Date = new Date()): string {
-  return getLocalDateBRT(date)
 }
 
 export function getLocalDateBRT(date: Date = new Date()): string {
@@ -58,18 +49,6 @@ export function addDaysToDateString(date: string, days: number): string {
 export function getDayOfWeek(date: string): number {
   const [year, month, day] = date.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day)).getUTCDay()
-}
-
-export function getWorkingDays(
-  year: number,
-  month: number,
-  workDays: number[] = DEFAULT_WORK_DAYS
-): number {
-  const start = startOfMonth(new Date(year, month - 1))
-  const end = endOfMonth(start)
-  return eachDayOfInterval({ start, end }).filter((d) =>
-    workDays.includes(d.getDay())
-  ).length
 }
 
 function easterDate(year: number): string {

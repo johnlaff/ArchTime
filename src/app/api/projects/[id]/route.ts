@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { validateMutationOrigin } from '@/lib/server/security'
@@ -53,7 +52,6 @@ export async function DELETE(
       return updated
     })
 
-    revalidateTag(`projects-${user.id}`, { expire: 0 })
     return NextResponse.json({
       ...serializeProject(archived),
       archivedInsteadOfDeleted: true,
@@ -75,6 +73,5 @@ export async function DELETE(
     })
   })
 
-  revalidateTag(`projects-${user.id}`, { expire: 0 })
   return new NextResponse(null, { status: 204 })
 }

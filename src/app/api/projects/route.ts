@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 import { validateMutationOrigin } from '@/lib/server/security'
@@ -75,7 +74,6 @@ export async function POST(req: NextRequest) {
     return created
   })
 
-  revalidateTag(`projects-${user.id}`, { expire: 0 })
   return NextResponse.json(serializeProject(project), { status: 201 })
 }
 
@@ -140,6 +138,5 @@ export async function PUT(req: NextRequest) {
     return next
   })
 
-  revalidateTag(`projects-${user.id}`, { expire: 0 })
   return NextResponse.json(serializeProject(updated))
 }
