@@ -24,6 +24,18 @@ const nextConfig: NextConfig = {
   experimental: {
     staleTimes: { dynamic: 30, static: 180 },
   },
+  async redirects() {
+    // Domínio canônico é a raiz `archtime.app`; `www` redireciona para ela.
+    // `has: host` casa pelo header Host — o App Service encaminha o Host real.
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.archtime.app' }],
+        destination: 'https://archtime.app/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {
