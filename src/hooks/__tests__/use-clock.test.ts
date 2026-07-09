@@ -6,6 +6,9 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: v
 vi.mock('@/lib/offline-queue', () => ({ addPendingEntry: vi.fn() }))
 
 import { toast } from 'sonner'
+import { addPendingEntry } from '@/lib/offline-queue'
+
+const addPendingEntryMock = vi.mocked(addPendingEntry)
 
 interface FetchResult {
   ok: boolean
@@ -98,6 +101,40 @@ describe('useClock', () => {
     expect(result.current.session).toBeNull()
     expect(result.current.loading).toBe(false)
     expect(toast.error).toHaveBeenCalledWith('Erro ao registrar entrada')
+  })
+
+  it('clock-in offline: enfileira a entrada, inicia a sessão e avisa que será sincronizada', async () => {
+    vi.stubGlobal('navigator', { onLine: false })
+    addPendingEntryMock.mockResolvedValueOnce(undefined)
+
+    const { result } = renderHook(() => useClock(null))
+
+    await act(async () => {
+      await result.current.clockIn('project-1', 'modelagem_3d')
+    })
+
+    expect(addPendingEntryMock).toHaveBeenCalledTimes(1)
+    expect(result.current.session?.id).toBe('test-uuid-optimistic')
+    expect(result.current.session?.activityType).toBe('modelagem_3d')
+    expect(toast.warning).toHaveBeenCalledWith('Entrada salva offline. Será sincronizada ao reconectar.')
+  })
+
+  it('clock-in offline: IndexedDB indisponível mostra toast de erro e não inicia a sessão', async () => {
+    vi.stubGlobal('navigator', { onLine: false })
+    addPendingEntryMock.mockRejectedValueOnce(new Error('IndexedDB unavailable'))
+
+    const { result } = renderHook(() => useClock(null))
+
+    // Não deve propagar rejeição não tratada.
+    await act(async () => {
+      await result.current.clockIn('project-1')
+    })
+
+    expect(addPendingEntryMock).toHaveBeenCalledTimes(1)
+    expect(result.current.session).toBeNull()
+    expect(result.current.loading).toBe(false)
+    expect(toast.warning).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('Não foi possível salvar a entrada offline')
   })
 
   it('clock-out: clears session immediately, restores snapshot on API failure', async () => {
