@@ -1,0 +1,17 @@
+# Contexto de build da imagem Azure — mantém só o necessário.
+node_modules
+.next
+.git
+.github
+.claude
+e2e
+test-results
+playwright-report
+docs
+plans
+*.md
+.env*
+npm-debug.log*
+Dockerfile
+.dockerignore
+netlify.toml
