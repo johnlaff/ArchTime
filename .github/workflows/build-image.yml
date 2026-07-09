@@ -61,3 +61,12 @@ jobs:
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
+
+      # Só na main: avisa o App Service para puxar a nova imagem :latest do ghcr.
+      # O webhook é o mecanismo de CD do App Service for Containers (sem service
+      # principal). Passamos por env, não interpolado no comando, por segurança.
+      - name: Disparar deploy no Azure App Service
+        if: github.ref == 'refs/heads/main'
+        env:
+          WEBHOOK: ${{ secrets.AZURE_DEPLOY_WEBHOOK }}
+        run: curl -fsS -X POST "$WEBHOOK" -d ''
