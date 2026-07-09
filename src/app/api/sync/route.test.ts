@@ -50,6 +50,13 @@ const transactionMock = prisma.$transaction as unknown as Mock
 const generateEntryHashMock = generateEntryHash as unknown as Mock
 const revalidateTagMock = revalidateTag as unknown as Mock
 
+// txMock simula o cliente da transação interativa (prisma.$transaction(async (tx) => ...)).
+const txMock = {
+  clockEntry: { updateMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
+  timeAllocation: { updateMany: vi.fn(), create: vi.fn() },
+  auditLog: { create: vi.fn() },
+}
+
 function syncRequest(body: Record<string, unknown>) {
   return new NextRequest('https://archtime-live.netlify.app/api/sync', {
     method: 'POST',
@@ -62,6 +69,9 @@ describe('POST /api/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getAuthenticatedUserMock.mockResolvedValue({ id: 'user-1' })
+    transactionMock.mockImplementation(async (arg: unknown) =>
+      Array.isArray(arg) ? Promise.all(arg) : (arg as (tx: typeof txMock) => unknown)(txMock)
+    )
   })
 
   it('treats an existing offline entry id for the same user as idempotent', async () => {
@@ -106,7 +116,7 @@ describe('POST /api/sync', () => {
       allocations: [],
     })
     generateEntryHashMock.mockResolvedValue('hash-value')
-    transactionMock.mockResolvedValue(undefined)
+    txMock.clockEntry.updateMany.mockResolvedValue({ count: 1 })
 
     const response = await POST(syncRequest({
       type: 'clock_out',
@@ -115,9 +125,38 @@ describe('POST /api/sync', () => {
     }))
 
     await expect(response.json()).resolves.toEqual({ ok: true })
+    expect(txMock.clockEntry.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'entry-1', clockOut: null, deletedAt: null } })
+    )
+    expect(txMock.auditLog.create).toHaveBeenCalledTimes(1)
     expect(revalidateTagMock).toHaveBeenCalledWith('sidebar-user-1', { expire: 0 })
     expect(revalidateTagMock).toHaveBeenCalledWith('history-user-1', { expire: 0 })
     expect(revalidateTagMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('treats a clock_out that lost the close race (updateMany count 0) as idempotent without a duplicate audit log', async () => {
+    clockEntryFindFirstMock.mockResolvedValue({
+      id: 'entry-1',
+      userId: 'user-1',
+      clockIn: new Date('2026-04-20T09:00:00.000Z'),
+      clockOut: null,
+      entryDate: new Date('2026-04-20T00:00:00.000Z'),
+      totalMinutes: null,
+      source: 'offline_sync',
+      allocations: [],
+    })
+    generateEntryHashMock.mockResolvedValue('hash-value')
+    txMock.clockEntry.updateMany.mockResolvedValue({ count: 0 })
+
+    const response = await POST(syncRequest({
+      type: 'clock_out',
+      entryId: 'entry-1',
+      timestamp: '2026-04-20T12:00:00.000Z',
+    }))
+
+    await expect(response.json()).resolves.toEqual({ ok: true })
+    expect(txMock.auditLog.create).not.toHaveBeenCalled()
+    expect(txMock.timeAllocation.updateMany).not.toHaveBeenCalled()
   })
 
   it('does not invalidate the dashboard cache tags for an idempotent clock_out sync', async () => {
