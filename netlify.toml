@@ -1,6 +1,10 @@
 [build]
   command = "npx prisma generate && npm run build"
   publish = ".next"
+  # Pula o build quando o push só mexe em documentação (*.md, docs/, plans/) — economiza
+  # build minutes do free tier. Sai 0 → Netlify PULA o build; sai != 0 → build normal.
+  # A correção de código é validada pelo GitHub Actions (job `verify`), que não gasta cota.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)*.md' ':(exclude)docs' ':(exclude)plans'"
 
 [build.environment]
   NODE_VERSION = "22"
