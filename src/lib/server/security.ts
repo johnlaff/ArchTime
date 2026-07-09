@@ -44,7 +44,19 @@ export function validateMutationOrigin(req: NextRequest): NextResponse | null {
   const allowed = new Set<string>()
   const appOrigin = normalizeOrigin(process.env.NEXT_PUBLIC_APP_URL)
   if (appOrigin) allowed.add(appOrigin)
-  allowed.add(req.nextUrl.origin)
+
+  // req.nextUrl.origin deriva do header Host, que só é confiável quando a infra o
+  // saneia (o edge do Netlify o faz). Só confie nele sozinho quando casa com
+  // NEXT_PUBLIC_APP_URL ou é um origin local (dev) — nunca incondicionalmente, senão
+  // um Host spoofado (Host: evil.com) passaria no check de CSRF. Ver ADR 0004.
+  const nextUrlOrigin = normalizeOrigin(req.nextUrl.origin)
+  if (nextUrlOrigin) {
+    if (appOrigin && nextUrlOrigin === appOrigin) {
+      allowed.add(nextUrlOrigin)
+    } else if (process.env.NODE_ENV !== 'production' && isLocalOrigin(nextUrlOrigin)) {
+      allowed.add(nextUrlOrigin)
+    }
+  }
 
   if (requestOrigin && allowed.has(requestOrigin)) return null
   if (requestOrigin && isSameNetlifySitePreview(requestOrigin, appOrigin)) return null
