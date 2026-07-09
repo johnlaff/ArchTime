@@ -19,6 +19,7 @@ vi.mock('@/lib/server/security', () => ({
 
 vi.mock('@/lib/hour-bank', () => ({
   safeRecalculateHourBankForInterval: vi.fn(),
+  safeRecalculateHourBankForIntervals: vi.fn(),
 }))
 
 vi.mock('@/lib/hash', () => ({
@@ -31,7 +32,10 @@ vi.mock('next/cache', () => ({
 
 import { prisma } from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/server/auth'
-import { safeRecalculateHourBankForInterval } from '@/lib/hour-bank'
+import {
+  safeRecalculateHourBankForInterval,
+  safeRecalculateHourBankForIntervals,
+} from '@/lib/hour-bank'
 import { generateEntryHash } from '@/lib/hash'
 import { revalidateTag } from 'next/cache'
 import { DELETE, PATCH, PUT } from './route'
@@ -41,6 +45,7 @@ const clockEntryFindFirstMock = prisma.clockEntry.findFirst as unknown as Mock
 const projectFindFirstMock = prisma.project.findFirst as unknown as Mock
 const transactionMock = prisma.$transaction as unknown as Mock
 const safeRecalculateHourBankForIntervalMock = safeRecalculateHourBankForInterval as unknown as Mock
+const safeRecalculateHourBankForIntervalsMock = safeRecalculateHourBankForIntervals as unknown as Mock
 const generateEntryHashMock = generateEntryHash as unknown as Mock
 const revalidateTagMock = revalidateTag as unknown as Mock
 
@@ -281,8 +286,11 @@ describe('/api/clock/[id]', () => {
       expect(txMock.auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ action: 'edit_entry' }) })
       )
-      expect(safeRecalculateHourBankForIntervalMock).toHaveBeenCalledTimes(2)
-      expect(safeRecalculateHourBankForIntervalMock).toHaveBeenCalledWith('user-1', entry.clockIn, entry.clockOut)
+      expect(safeRecalculateHourBankForIntervalsMock).toHaveBeenCalledTimes(1)
+      expect(safeRecalculateHourBankForIntervalsMock).toHaveBeenCalledWith('user-1', [
+        { clockIn: entry.clockIn, clockOut: entry.clockOut },
+        { clockIn: expect.any(Date), clockOut: expect.any(Date) },
+      ])
       expect(revalidateTagMock).toHaveBeenCalledTimes(2)
     })
   })

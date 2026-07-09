@@ -20,7 +20,10 @@ import {
   validateClosedRange,
 } from '@/lib/server/validation'
 import { parseActivityType } from '@/lib/activity-types'
-import { safeRecalculateHourBankForInterval } from '@/lib/hour-bank'
+import {
+  safeRecalculateHourBankForInterval,
+  safeRecalculateHourBankForIntervals,
+} from '@/lib/hour-bank'
 
 type EntryWithAllocations = Awaited<ReturnType<typeof getEntry>>
 
@@ -407,9 +410,9 @@ export async function PATCH(
     return updatedEntry
   })
 
-  await Promise.all([
-    safeRecalculateHourBankForInterval(user.id, entry.clockIn, entry.clockOut),
-    safeRecalculateHourBankForInterval(user.id, newClockIn, newClockOut),
+  await safeRecalculateHourBankForIntervals(user.id, [
+    { clockIn: entry.clockIn, clockOut: entry.clockOut },
+    { clockIn: newClockIn, clockOut: newClockOut },
   ])
 
   revalidateTag(`sidebar-${user.id}`, { expire: 0 })

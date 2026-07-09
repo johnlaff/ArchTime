@@ -143,4 +143,35 @@ describe('buildHourBankMonth', () => {
       })
     )
   })
+
+  it('skips week computation when computeWeeks is false', async () => {
+    clockEntryFindMany.mockResolvedValue([])
+
+    const result = await buildHourBankMonth('user-1', '2026-02', { computeWeeks: false })
+
+    expect(result.weeks).toEqual([])
+  })
+
+  it('uses provided cumulativeEntries instead of a second query', async () => {
+    userSettingsFindUnique.mockResolvedValue({
+      id: 'settings-1',
+      userId: 'user-1',
+      workMinutesByWeekday: standardSettings.workMinutesByWeekday,
+      workScheduleTemplate: standardSettings.workScheduleTemplate,
+      showCumulativeBalance: true,
+      cumulativeBalanceScope: 'rolling_3_months',
+      cumulativeStartDate: new Date('2026-01-01T00:00:00.000Z'),
+      accentPreset: standardSettings.accentPreset,
+      themeMode: standardSettings.themeMode,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    })
+    clockEntryFindMany.mockResolvedValue([])
+
+    const result = await buildHourBankMonth('user-1', '2026-04', { cumulativeEntries: [] })
+
+    expect(result.cumulativeBalance).not.toBeNull()
+    // Só a query do mês roda; o acumulado usa as entries fornecidas (sem 2º fetch).
+    expect(clockEntryFindMany).toHaveBeenCalledTimes(1)
+  })
 })
