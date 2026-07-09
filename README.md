@@ -4,7 +4,7 @@ PWA mobile-first em pt-BR de controle de horas para arquitetos e freelancers, of
 
 ## Stack
 
-Next.js App Router, React, TypeScript strict, Prisma 7 + Supabase Postgres, Tailwind 4 + shadcn/ui, Serwist (PWA), Vitest, Playwright. Deploy: Netlify.
+Next.js App Router, React, TypeScript strict, Prisma 7 + Supabase Postgres, Tailwind 4 + shadcn/ui, Serwist (PWA), Vitest, Playwright. Deploy: Azure App Service (container, Brazil South).
 
 ## Rodando localmente
 
@@ -26,4 +26,4 @@ Next.js App Router, React, TypeScript strict, Prisma 7 + Supabase Postgres, Tail
 
 ## Deploy
 
-Netlify (produção acompanha `main`; previews compartilham o banco — cuidado com dados reais, ver docs/adr/0003)
+Produção em **Azure App Service** (container Linux B1, região Brazil South), servida em **https://archtime.app**. A imagem é publicada no GitHub Container Registry (`ghcr.io/johnlaff/archtime`) pelo workflow `build-image` a cada push na `main`, e o App Service faz o pull automático via webhook de continuous deployment. O banco (Supabase, `sa-east-1`) é compartilhado entre ambientes — cuidado com dados reais ao validar mudanças (ver `docs/adr/0004` para o modelo de confiança de origem e `docs/adr/0003` para o histórico).

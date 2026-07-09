@@ -49,3 +49,25 @@ Netlify o faz no edge). Mudar de plataforma exige revalidar essa premissa.
 Alternativa rejeitada: manter `req.nextUrl.origin` incondicional confiando que o Netlify sempre
 sanea o `Host`. Mais simples, mas acopla a segurança de CSRF à plataforma sem aviso — se o app
 migrar (Vercel, self-host, container), o CSRF enfraquece silenciosamente.
+
+## Atualização (2026-07-09) — migração Netlify → Azure App Service
+
+Este ADR previa: *"Mudar de plataforma exige revalidar essa premissa."* A produção migrou da
+Netlify para **Azure App Service** (container Linux B1, Brazil South), servida em
+`https://archtime.app`. A premissa de que **a infra saneia o `Host`** foi **revalidada
+empiricamente**: o front-end do App Service roteia por hostname e **rejeita `Host`
+não-configurado**. Verificação — request com SNI válido (`archtime.azurewebsites.net`) mas
+`Host: evil.example.com` retorna **HTTP 404** (não chega ao app); com o `Host` correto, **200**.
+Ou seja, o app só recebe requests cujo `Host` ∈ hostnames configurados
+(`archtime.app`, `archtime.azurewebsites.net`) — mesma garantia que o edge da Netlify dava. A
+decisão original permanece válida sem alteração.
+
+Nota sobre previews: `isSameNetlifySitePreview` reconhece o padrão de deploy preview da Netlify,
+que **não existe mais** neste deploy. O matcher fica dormente por ora; quando previews efêmeros
+forem implementados no Azure, o reconhecimento de origem de preview será revisitado (novo padrão de
+URL). Até lá, `NEXT_PUBLIC_APP_URL` por ambiente é o mecanismo primário de confiança de origem.
+
+Relacionado: um bug de plataforma correlato foi corrigido no cutover — no standalone atrás do proxy
+do App Service, `new URL(request.url).origin` em route handlers resolve para o binding interno do
+container (`http://0.0.0.0:8080`); redirects server-side agora usam `NEXT_PUBLIC_APP_URL` via
+`resolveAppOrigin` (ver `src/lib/app-origin.ts`).
