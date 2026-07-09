@@ -115,42 +115,89 @@ export async function PUT(
   })
   const oldData = serializeOldData(entry)
 
-  const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // react-doctor-disable-next-line react-doctor/async-parallel -- awaits dentro de uma transação Prisma interativa: paralelizar com Promise.all quebraria o isolamento transacional (Prisma usa uma conexão serial por tx)
-    const updatedEntry = await tx.clockEntry.update({
-      where: { id },
-      data: { clockOut, totalMinutes, hash },
-    })
+  try {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // react-doctor-disable-next-line react-doctor/async-parallel -- awaits dentro de uma transação Prisma interativa: paralelizar com Promise.all quebraria o isolamento transacional (Prisma usa uma conexão serial por tx)
+      const result = await tx.clockEntry.updateMany({
+        where: { id, clockOut: null, deletedAt: null },
+        data: { clockOut, totalMinutes, hash },
+      })
 
-    await tx.timeAllocation.updateMany({
-      where: { clockEntryId: id },
-      data: { minutes: totalMinutes },
-    })
+      if (result.count === 0) {
+        // Outra requisição (outra aba, ou PUT online correndo contra o sync offline)
+        // fechou a sessão entre o getEntry e o commit. Busca o registro já fechado
+        // para responder de forma idempotente, sem duplicar a trilha de auditoria.
+        const alreadyClosed = await tx.clockEntry.findUnique({
+          where: { id },
+          select: {
+            clockIn: true,
+            clockOut: true,
+            totalMinutes: true,
+            source: true,
+            activityType: true,
+          },
+        })
+        throw Object.assign(new Error('already-closed'), { alreadyClosed })
+      }
 
-    await tx.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'clock_out',
-        entityId: id,
-        oldData,
-        newData: {
-          ...oldData,
-          clockOut: clockOut.toISOString(),
-          totalMinutes,
-          hash,
+      const updatedEntry = await tx.clockEntry.findUnique({ where: { id } })
+
+      await tx.timeAllocation.updateMany({
+        where: { clockEntryId: id },
+        data: { minutes: totalMinutes },
+      })
+
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'clock_out',
+          entityId: id,
+          oldData,
+          newData: {
+            ...oldData,
+            clockOut: clockOut.toISOString(),
+            totalMinutes,
+            hash,
+          },
+          userAgent: req.headers.get('user-agent'),
         },
-        userAgent: req.headers.get('user-agent'),
-      },
+      })
+
+      return updatedEntry
     })
 
-    return updatedEntry
-  })
+    await safeRecalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
 
-  await safeRecalculateHourBankForInterval(user.id, entry.clockIn, clockOut)
-
-  revalidateTag(`sidebar-${user.id}`, { expire: 0 })
-  revalidateTag(`history-${user.id}`, { expire: 0 })
-  return NextResponse.json(updated)
+    revalidateTag(`sidebar-${user.id}`, { expire: 0 })
+    revalidateTag(`history-${user.id}`, { expire: 0 })
+    return NextResponse.json(updated)
+  } catch (error) {
+    const maybeError = error as {
+      message?: string
+      alreadyClosed?: {
+        clockIn: Date
+        clockOut: Date | null
+        totalMinutes: number | null
+        source: string
+        activityType: string | null
+      } | null
+    }
+    const closed = maybeError.alreadyClosed
+    if (maybeError.message === 'already-closed' && closed?.clockOut) {
+      return NextResponse.json({
+        id,
+        clockIn: closed.clockIn.toISOString(),
+        clockOut: closed.clockOut.toISOString(),
+        totalMinutes: closed.totalMinutes,
+        source: closed.source,
+        projectId: entry.allocations[0]?.projectId ?? null,
+        projectName: entry.allocations[0]?.project.name ?? null,
+        projectColor: entry.allocations[0]?.project.color ?? null,
+        activityType: closed.activityType,
+      })
+    }
+    throw error
+  }
 }
 
 export async function DELETE(

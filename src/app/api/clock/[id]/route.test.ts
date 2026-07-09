@@ -47,7 +47,7 @@ const revalidateTagMock = revalidateTag as unknown as Mock
 // txMock simulates the interactive transaction client passed to the callbacks
 // used by PUT/DELETE/PATCH (prisma.$transaction(async (tx) => ...)).
 const txMock = {
-  clockEntry: { update: vi.fn() },
+  clockEntry: { update: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn() },
   timeAllocation: { updateMany: vi.fn(), deleteMany: vi.fn(), create: vi.fn() },
   auditLog: { create: vi.fn() },
 }
@@ -142,11 +142,15 @@ describe('/api/clock/[id]', () => {
       const entry = makeEntry()
       clockEntryFindFirstMock.mockResolvedValue(entry)
       const clockOut = new Date('2026-04-20T12:00:00.000Z')
-      txMock.clockEntry.update.mockResolvedValue({ ...entry, clockOut, totalMinutes: 180, hash: 'hash-value' })
+      txMock.clockEntry.updateMany.mockResolvedValue({ count: 1 })
+      txMock.clockEntry.findUnique.mockResolvedValue({ ...entry, clockOut, totalMinutes: 180, hash: 'hash-value' })
 
       const response = await PUT(req('PUT', { clockOutAt: clockOut.toISOString() }), { params: params() })
 
       expect(response.status).toBe(200)
+      expect(txMock.clockEntry.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'entry-1', clockOut: null, deletedAt: null } })
+      )
       expect(generateEntryHashMock).toHaveBeenCalledWith({
         clockIn: entry.clockIn.toISOString(),
         clockOut: clockOut.toISOString(),
@@ -160,6 +164,42 @@ describe('/api/clock/[id]', () => {
       expect(revalidateTagMock).toHaveBeenCalledWith('sidebar-user-1', { expire: 0 })
       expect(revalidateTagMock).toHaveBeenCalledWith('history-user-1', { expire: 0 })
       expect(revalidateTagMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('is idempotent when a concurrent request closes the entry first (updateMany affects 0 rows) without duplicating the audit log', async () => {
+      const entry = makeEntry({
+        allocations: [{ projectId: 'project-1', project: { id: 'project-1', name: 'Proj', color: '#111111' } }],
+      })
+      clockEntryFindFirstMock.mockResolvedValue(entry)
+      const clockOut = new Date('2026-04-20T12:00:00.000Z')
+      // A sessão ainda estava aberta no getEntry, mas outra requisição a fechou antes do commit.
+      txMock.clockEntry.updateMany.mockResolvedValue({ count: 0 })
+      txMock.clockEntry.findUnique.mockResolvedValue({
+        clockIn: entry.clockIn,
+        clockOut,
+        totalMinutes: 180,
+        source: entry.source,
+        activityType: entry.activityType,
+      })
+
+      const response = await PUT(req('PUT', { clockOutAt: clockOut.toISOString() }), { params: params() })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body).toEqual({
+        id: 'entry-1',
+        clockIn: entry.clockIn.toISOString(),
+        clockOut: clockOut.toISOString(),
+        totalMinutes: 180,
+        source: entry.source,
+        projectId: 'project-1',
+        projectName: 'Proj',
+        projectColor: '#111111',
+        activityType: entry.activityType,
+      })
+      expect(txMock.auditLog.create).not.toHaveBeenCalled()
+      expect(txMock.timeAllocation.updateMany).not.toHaveBeenCalled()
+      expect(safeRecalculateHourBankForIntervalMock).not.toHaveBeenCalled()
     })
 
     it('returns 400 when clockOutAt is before clockIn', async () => {

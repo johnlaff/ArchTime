@@ -152,10 +152,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (entry.type === 'clock_out') {
-    if (!entry.entryId) return permanentError('entryId é obrigatório para clock_out', 400)
+    const entryId = entry.entryId
+    if (!entryId) return permanentError('entryId é obrigatório para clock_out', 400)
 
     const clockEntry = await prisma.clockEntry.findFirst({
-      where: { id: entry.entryId, userId: user.id, deletedAt: null },
+      where: { id: entryId, userId: user.id, deletedAt: null },
       include: { allocations: { take: 1 } },
     })
 
@@ -180,25 +181,33 @@ export async function POST(req: NextRequest) {
       entryDate: clockEntry.entryDate.toISOString().slice(0, 10),
     })
 
-    await prisma.$transaction([
-      prisma.clockEntry.update({
-        where: { id: entry.entryId },
+    await prisma.$transaction(async (tx) => {
+      const result = await tx.clockEntry.updateMany({
+        where: { id: entryId, clockOut: null, deletedAt: null },
         data: {
           clockOut,
           totalMinutes,
           hash,
           source: 'offline_sync',
         },
-      }),
-      prisma.timeAllocation.updateMany({
-        where: { clockEntryId: entry.entryId },
+      })
+
+      if (result.count === 0) {
+        // Já foi fechada por outra requisição (PUT online ou outro sync) entre o
+        // findFirst e o commit. Idempotente — não duplica a trilha de auditoria.
+        return
+      }
+
+      await tx.timeAllocation.updateMany({
+        where: { clockEntryId: entryId },
         data: { minutes: totalMinutes },
-      }),
-      prisma.auditLog.create({
+      })
+
+      await tx.auditLog.create({
         data: {
           userId: user.id,
           action: 'offline_sync',
-          entityId: entry.entryId,
+          entityId: entryId,
           oldData: {
             id: clockEntry.id,
             clockIn: clockEntry.clockIn.toISOString(),
@@ -220,8 +229,8 @@ export async function POST(req: NextRequest) {
           },
           userAgent: req.headers.get('user-agent'),
         },
-      }),
-    ])
+      })
+    })
 
     await safeRecalculateHourBankForInterval(user.id, clockEntry.clockIn, clockOut)
   }
