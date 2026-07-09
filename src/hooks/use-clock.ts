@@ -25,24 +25,28 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
     if (!navigator.onLine) {
       const id = crypto.randomUUID()
       const timestamp = new Date().toISOString()
-      await addPendingEntry({
-        id,
-        entryId: id,
-        type: 'clock_in',
-        timestamp,
-        projectId: projectId ?? undefined,
-        activityType: activityType ?? undefined,
-        createdAt: timestamp,
-      })
-      setSession({
-        id,
-        clockIn: timestamp,
-        projectId,
-        projectName: null,
-        projectColor: null,
-        activityType: activityType ?? null,
-      })
-      toast.warning('Entrada salva offline. Será sincronizada ao reconectar.')
+      try {
+        await addPendingEntry({
+          id,
+          entryId: id,
+          type: 'clock_in',
+          timestamp,
+          projectId: projectId ?? undefined,
+          activityType: activityType ?? undefined,
+          createdAt: timestamp,
+        })
+        setSession({
+          id,
+          clockIn: timestamp,
+          projectId,
+          projectName: null,
+          projectColor: null,
+          activityType: activityType ?? null,
+        })
+        toast.warning('Entrada salva offline. Será sincronizada ao reconectar.')
+      } catch {
+        toast.error('Não foi possível salvar a entrada offline')
+      }
       return
     }
 
