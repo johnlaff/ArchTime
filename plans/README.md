@@ -35,7 +35,7 @@ foi re-despachado; os achados de RLS (#2, #3) e Host (#7) vieram da 2ª.
 | 011 | Higiene: README real, SVGs órfãos, Node 22 | P3 | S | 001 | DONE |
 | 012 | Guard de resposta obsoleta no useSupabaseQuery | P3 | S | — | DONE |
 | 013 | Spike de design: faturamento (horas × hourlyRate) | P3 | M | 006 | DONE (design em docs/plans/2026-07-03-faturamento-design.md; 6 questões abertas aguardando o mantenedor) |
-| 014 | Sincronizar schema Prisma + completar lockdown RLS (migration 0007) | P1 | S | — | TODO |
+| 014 | Sincronizar schema Prisma + completar lockdown RLS (migration 0007) | P1 | S | — | DONE (migration 0007 criada; APLICAÇÃO em produção pendente do operador — ver STOP condition) |
 | 015 | Tratar falha do IndexedDB no clock-in offline | P1 | S | — | TODO |
 | 016 | Guarda condicional no UPDATE de clock-out (race) | P2 | M | — | TODO |
 | 017 | Remover código morto e duplicado (sweep de hygiene) | P3 | S | — | TODO |
