@@ -44,7 +44,7 @@ foi re-despachado; os achados de RLS (#2, #3) e Host (#7) vieram da 2ª.
 | 020 | Adicionar linter (Biome) e remover `eslint-disable` mortos | P3 | M | — | DONE (linter-only: formatter e recommended desligados p/ evitar reformatar 342 linhas / 95 violações de estilo — full recommended fica p/ sweep separado) |
 | 021 | Endurecer `validateMutationOrigin` contra spoofing de Host | P3 | S | — | DONE |
 | 022 | Reduzir round-trips no recálculo do hour-bank e no dashboard | P3 | M | 016 (recomendado) | DONE |
-| 023 | Testes para boundaries de segurança (DELETE projects + isAllowedEmail) | P1 | S | — | TODO |
+| 023 | Testes para boundaries de segurança (DELETE projects + isAllowedEmail) | P1 | S | — | DONE |
 | 024 | Testes para pipelines de agregação (heatmap + histórico) | P2 | M | — | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (com motivo em uma linha) | REJECTED (com justificativa em uma linha)
