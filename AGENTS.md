@@ -97,8 +97,8 @@ Regras duras:
 
 ## Infraestrutura e Performance
 
-- Deploy em Netlify.
-- Banco em Supabase PostgreSQL.
+- Deploy em **Azure App Service** (container Linux B1, região Brazil South); produção em `https://archtime.app`. Imagem em `ghcr.io/johnlaff/archtime`, publicada pelo workflow `build-image` (push na `main`) e puxada pelo App Service via webhook de continuous deployment.
+- Banco em Supabase PostgreSQL (`sa-east-1`/São Paulo — mesma região do App Service, latência app↔banco baixa).
 - Há latência relevante entre funções serverless e banco; evite colocar reads simples no caminho crítico de navegação quando client-direct com RLS for suficiente.
 - Cold starts podem afetar navegação. Prefira cache, lazy loading, code splitting e leituras client-direct quando seguro.
 - Performance de navegação não pode degradar.
@@ -133,8 +133,8 @@ Regras duras:
 
 - Antes de comentar em PR, verifique comentários e reviews existentes para não duplicar achados.
 - Reviews automáticos como Copilot podem gerar falsos positivos; confirme contra contexto e histórico completo antes de tratar como bug.
-- Se atualizar um PR, monitore o deploy preview da Netlify até concluir e confirme ausência de erro antes de dizer que está pronto.
-- Produção acompanha `main`; PR preview usa URL de deploy preview. Não confunda os dois ao orientar validação.
+- Todo PR roda o job `verify` (GitHub Actions: tsc, testes, lint, react-doctor, build) — é o gate obrigatório da branch protection. Monitore-o até concluir e confirme verde antes de dizer que está pronto.
+- Produção (`https://archtime.app`) acompanha `main` via CD (workflow `build-image` → `ghcr.io` → webhook do App Service). Para revisar a UI de um PR antes do merge, use preview local com container (`docker run` da imagem buildada); não confunda o preview local com a produção ao orientar validação.
 
 ## Regras de Git
 
