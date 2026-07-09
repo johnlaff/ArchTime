@@ -110,7 +110,7 @@ function FilterControls({
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant={filters.projectId ? 'secondary' : 'outline'} size="sm" className="gap-1.5">
             {activeProjectName ? <span className="max-w-[120px] truncate">{activeProjectName}</span> : 'Projeto'}
@@ -136,7 +136,7 @@ function FilterControls({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant={filters.activityType ? 'secondary' : 'outline'} size="sm" className="gap-1.5">
             {filters.activityType ? ACTIVITY_TYPES[filters.activityType as ActivityType].label : 'Atividade'}
