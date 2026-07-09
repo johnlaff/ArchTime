@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 import { markLocalPreferenceChange, persistAppearanceSettings, type AppearancePatch } from '@/lib/appearance'
 import {
   ACCENT_PRESETS,
-  ARCHITECTURAL_PRESETS,
   isArchitecturalPreset,
   isDensityPreset,
   type AccentPreset,
@@ -274,7 +273,6 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
 
   const contextValue = useMemo(
     () => ({ accent, setAccent, customColor, setCustomColor, architecturalPreset, setArchitecturalPreset, density, setDensity, syncAppearanceFromRemote }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     // react-doctor-disable-next-line react-doctor/exhaustive-deps -- setters e syncAppearanceFromRemote são estáveis; memoizar o value apenas pelos 4 valores de estado é intencional para não recriar o contexto a cada render.
     [accent, customColor, architecturalPreset, density]
   )

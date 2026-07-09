@@ -39,14 +39,12 @@ test('bug 3 + 5: aba "Semestre" e seletor neutro legível (dark + rosa custom)',
   // bug 5: a pílula ativa precisa estar OPACA (bg-card venceu o bg-input/30 translúcido)
   const activeTab = page.getByRole('tab', { selected: true })
   const activeBg = await activeTab.evaluate((el) => getComputedStyle(el).backgroundColor)
-  // eslint-disable-next-line no-console
   console.log(`[bug5] pílula ativa bg (dark+rosa): ${activeBg} (alpha=${alpha(activeBg)})`)
   expect(alpha(activeBg)).toBeGreaterThan(0.5)
 
   const projectSelector = page.getByRole('combobox').first()
   await expect(projectSelector).toBeVisible()
   const selectorBg = await projectSelector.evaluate((el) => getComputedStyle(el).backgroundColor)
-  // eslint-disable-next-line no-console
   console.log(`[bug projeto] seletor bg (dark+rosa): ${selectorBg} (alpha=${alpha(selectorBg)})`)
   expect(alpha(selectorBg), 'seletor de projeto deve ser opaco').toBeGreaterThan(0.5)
 
@@ -89,7 +87,6 @@ test('bug 1: busca do histórico opaca (light + dark)', async ({ page }) => {
     const search = page.getByRole('textbox', { name: 'Buscar no histórico' })
     await expect(search).toBeVisible()
     const bg = await search.evaluate((el) => getComputedStyle(el).backgroundColor)
-    // eslint-disable-next-line no-console
     console.log(`[bug1] busca histórico bg (dark=${dark}): ${bg} (alpha=${alpha(bg)})`)
     expect(alpha(bg), `busca deve ser opaca (dark=${dark})`).toBeGreaterThan(0.5)
 
