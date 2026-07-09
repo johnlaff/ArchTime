@@ -74,7 +74,6 @@ describe('anti-flash script parity with custom-color.ts', () => {
     localStorage.setItem('archtime-accent', 'custom')
     localStorage.setItem('archtime-accent-custom', hex)
 
-    // eslint-disable-next-line no-new-func -- executing the real production IIFE, not arbitrary input
     new Function(script)()
 
     expect(document.documentElement.getAttribute('data-accent')).toBe('custom')

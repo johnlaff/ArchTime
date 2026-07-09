@@ -41,7 +41,7 @@ foi re-despachado; os achados de RLS (#2, #3) e Host (#7) vieram da 2ª.
 | 017 | Remover código morto e duplicado (sweep de hygiene) | P3 | S | — | DONE (migration 0008 criada; APLICAÇÃO em produção pendente do operador — ver STOP condition) |
 | 018 | Corrigir env var fantasma e docs de setup/segurança | P3 | S | 014 (recomendado) | DONE |
 | 019 | Gate de react-doctor no CI | P2 | S | — | DONE |
-| 020 | Adicionar linter (Biome) e remover `eslint-disable` mortos | P3 | M | — | TODO |
+| 020 | Adicionar linter (Biome) e remover `eslint-disable` mortos | P3 | M | — | DONE (linter-only: formatter e recommended desligados p/ evitar reformatar 342 linhas / 95 violações de estilo — full recommended fica p/ sweep separado) |
 | 021 | Endurecer `validateMutationOrigin` contra spoofing de Host | P3 | S | — | TODO |
 | 022 | Reduzir round-trips no recálculo do hour-bank e no dashboard | P3 | M | 016 (recomendado) | TODO |
 | 023 | Testes para boundaries de segurança (DELETE projects + isAllowedEmail) | P1 | S | — | TODO |
