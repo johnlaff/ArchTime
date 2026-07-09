@@ -16,7 +16,7 @@
    ```
 
 4. Rodar o Advisor do Supabase novamente. O esperado é não aparecer mais:
-   - `rls_disabled_in_public` para `users`, `projects`, `clock_entries`, `time_allocations`, `hour_bank`, `audit_log`;
+   - `rls_disabled_in_public` para `users`, `projects`, `clock_entries`, `time_allocations`, `hour_bank`, `audit_log`, `user_settings`;
    - `unindexed_foreign_keys` para `projects_user_id_fkey`, `time_allocations_clock_entry_id_fkey`, `time_allocations_project_id_fkey`.
 
 ## Auth
@@ -28,6 +28,15 @@
 
 - Configurar `ENTRY_HASH_SECRET` em produção com um segredo longo e aleatório.
 - Manter `ALLOWED_EMAILS` como lista explícita de usuários permitidos.
+
+## Regime de escrita (RLS)
+
+Diferente das leituras (SELECT policies ativas em todas as tabelas — decisão de
+arquitetura, `AGENTS.md`), **toda** escrita vai pelas API routes (Prisma, role
+`postgres`, que bypassa RLS). As policies `INSERT`/`UPDATE` client-direct foram
+removidas em `0006` (`clock_entries`, `projects`, `time_allocations`, `hour_bank`)
+e `0007` (`users`, `user_settings`). `DELETE` permanece bloqueado por ausência de
+policy em `users`/`user_settings`/`audit_log`.
 
 ## Observações
 
