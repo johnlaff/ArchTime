@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { sameOriginHeaders } from './helpers/request'
 
 // Mutating end-to-end of the activity feature against the REAL prod DB, made safe:
 // - skips entirely if the user has a real open session (won't touch it);
@@ -21,8 +22,9 @@ function brtWall(iso: string, addMinutes = 0): string {
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`
 }
 
-test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async ({ page }) => {
+test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async ({ page, baseURL }) => {
   test.setTimeout(120_000) // fluxo longo: várias navegações/loads + poll do servidor
+  const headers = sameOriginHeaders(baseURL)
   const activeBefore = await (await page.request.get('/api/clock/active')).json().catch(() => null)
   test.skip(Boolean(activeBefore), 'usuário tem uma sessão aberta real — pulando teste mutante')
 
@@ -72,6 +74,7 @@ test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async (
     const outWall = brtWall(active!.clockIn, 0)
     const patchRes = await page.request.patch(`/api/clock/${entryId}`, {
       data: { clockInAt: inWall, clockOutAt: outWall, activityType: 'modelagem' },
+      headers,
     })
     expect(patchRes.ok(), `PATCH de horários deveria ter sucesso (${patchRes.status()})`).toBeTruthy()
     const rowHHmm = inWall.slice(11, 16)
@@ -105,8 +108,8 @@ test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async (
         entryId = a?.id
       }
       if (entryId) {
-        await page.request.put(`/api/clock/${entryId}`).catch(() => {})
-        await page.request.delete(`/api/clock/${entryId}`).catch(() => {})
+        await page.request.put(`/api/clock/${entryId}`, { headers }).catch(() => {})
+        await page.request.delete(`/api/clock/${entryId}`, { headers }).catch(() => {})
       }
     } catch {
       // best-effort

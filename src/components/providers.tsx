@@ -67,8 +67,8 @@ function PreferencesHydrator() {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      {/* reducedMotion="never": animations are part of the product experience and
-          play regardless of the OS prefers-reduced-motion setting (deliberate choice). */}
+      {/* Feedbacks do produto mantêm sua animação; o Sheet oferece, no próprio
+          componente, uma alternativa instantânea para reduzir movimento na navegação. */}
       {/* LazyMotion + componente `m` (em vez de `motion`): carrega o conjunto de
           features uma única vez e mantém os bundles dos componentes enxutos.
           domMax inclui layout animations (layoutId no SidebarNav) e gestos. */}

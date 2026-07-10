@@ -14,17 +14,22 @@ function BalanceCard({
   title,
   balance,
   cumulativeBalance,
+  testId,
 }: {
   title: string
   balance: BalanceSummary
   cumulativeBalance?: number
+  testId: string
 }) {
   return (
-    <Card>
+    <Card
+      data-testid={testId}
+      className="w-fit max-w-full !gap-0 !py-0 sm:w-auto sm:!gap-[var(--pad-card)] sm:!py-[var(--pad-card)]"
+    >
       <CardHeader className="py-3 pb-1">
         <CardTitle className="text-sm text-muted-foreground font-normal">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="pb-3">
+      <CardContent className="min-w-0 break-words pb-3">
         <p className="text-2xl font-bold tabular-nums">{formatMinutes(balance.actualMinutes)}</p>
         <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
           <p>Previsto: {formatMinutes(balance.expectedMinutes)}</p>
@@ -39,25 +44,27 @@ function BalanceCard({
 export function DailySummaryCard({ summary }: DailySummaryProps) {
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 justify-items-start gap-3 sm:grid-cols-3 sm:justify-items-stretch">
         {[
-          { title: 'Hoje',   balance: summary.today, cumulative: undefined as number | undefined },
-          { title: 'Semana', balance: summary.week,  cumulative: undefined as number | undefined },
+          { title: 'Hoje', testId: 'summary-card-today', balance: summary.today, cumulative: undefined as number | undefined },
+          { title: 'Semana', testId: 'summary-card-week', balance: summary.week, cumulative: undefined as number | undefined },
           {
             title: 'Mês',
+            testId: 'summary-card-month',
             balance: summary.month,
             cumulative: summary.month.showCumulativeBalance
               ? summary.month.cumulativeBalance ?? undefined
               : undefined as number | undefined,
           },
-        ].map(({ title, balance, cumulative }, i) => (
+        ].map(({ title, testId, balance, cumulative }, i) => (
           <m.div
             key={title}
+            className="w-fit max-w-full sm:w-auto"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
-            <BalanceCard title={title} balance={balance} cumulativeBalance={cumulative} />
+            <BalanceCard title={title} testId={testId} balance={balance} cumulativeBalance={cumulative} />
           </m.div>
         ))}
       </div>

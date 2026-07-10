@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { sameOriginHeaders } from './helpers/request'
 
 type FailureMode = 'network' | 'response-lost' | 'server'
 
@@ -12,15 +13,17 @@ async function activeSession(page: Page) {
 
 async function exerciseRetry(
   page: Page,
+  baseURL: string | undefined,
   failureMode: FailureMode
 ) {
+  const headers = sameOriginHeaders(baseURL)
   const before = await activeSession(page)
   test.skip(Boolean(before), 'usuário tem uma sessão aberta real — pulando teste mutante')
 
   let entryId: string | undefined
   let primaryClockOutAt: string | undefined
   try {
-    const clockIn = await page.request.post('/api/clock', { data: { projectId: null } })
+    const clockIn = await page.request.post('/api/clock', { data: { projectId: null }, headers })
     expect(clockIn.ok(), `clock-in de teste deveria criar uma Sessão (${clockIn.status()})`).toBeTruthy()
     entryId = (await clockIn.json()).id
 
@@ -72,6 +75,7 @@ async function exerciseRetry(
       expect(primaryClockOutAt, 'o PUT primário deve carregar o horário do clique').toBeTruthy()
       const idempotent = await page.request.put(`/api/clock/${entryId}`, {
         data: { clockOutAt: '2000-01-01T00:00:00.000Z' },
+        headers,
       })
       expect(idempotent.ok(), `PUT idempotente deveria reler a Sessão (${idempotent.status()})`).toBeTruthy()
       expect((await idempotent.json()).clockOut).toBe(primaryClockOutAt)
@@ -82,20 +86,20 @@ async function exerciseRetry(
     if (entryId) {
       await page.unroute(`**/api/clock/${entryId}`)
       // PUT idempotente fecha apenas a Sessão criada neste teste se o retry falhar cedo.
-      await page.request.put(`/api/clock/${entryId}`).catch(() => {})
-      await page.request.delete(`/api/clock/${entryId}`).catch(() => {})
+      await page.request.put(`/api/clock/${entryId}`, { headers }).catch(() => {})
+      await page.request.delete(`/api/clock/${entryId}`, { headers }).catch(() => {})
     }
   }
 }
 
-test('clock-out recupera automaticamente de um 5xx sem a rede cair', async ({ page }) => {
-  await exerciseRetry(page, 'server')
+test('clock-out recupera automaticamente de um 5xx sem a rede cair', async ({ page, baseURL }) => {
+  await exerciseRetry(page, baseURL, 'server')
 })
 
-test('clock-out recupera automaticamente de uma falha de rede', async ({ page }) => {
-  await exerciseRetry(page, 'network')
+test('clock-out recupera automaticamente de uma falha de rede', async ({ page, baseURL }) => {
+  await exerciseRetry(page, baseURL, 'network')
 })
 
-test('clock-out preserva o horário quando a escrita conclui mas a resposta se perde', async ({ page }) => {
-  await exerciseRetry(page, 'response-lost')
+test('clock-out preserva o horário quando a escrita conclui mas a resposta se perde', async ({ page, baseURL }) => {
+  await exerciseRetry(page, baseURL, 'response-lost')
 })
