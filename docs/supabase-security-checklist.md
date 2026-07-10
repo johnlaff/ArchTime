@@ -30,6 +30,9 @@
   chave ativa e armazenar um segredo aleatório por `keyId`. `ENTRY_HASH_SECRET` permanece apenas
   durante a janela de rollout/rollback compatível.
 - Manter `ALLOWED_EMAILS` como lista explícita de usuários permitidos.
+- Observabilidade (ADR 0006): `NEXT_PUBLIC_SENTRY_DSN` é público (build-arg, inlinado no bundle);
+  `SENTRY_AUTH_TOKEN` é segredo e entra só como docker build secret (upload de source maps) — nunca
+  na imagem nem em runtime.
 
 ## Regime de escrita (RLS)
 
