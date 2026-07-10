@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs'
 import { prisma } from '@/lib/prisma'
 import {
   addMonthsToMonthKey,
@@ -266,6 +267,8 @@ export async function safeRecalculateHourBankForInterval(
       clockOut: clockOut?.toISOString() ?? null,
       error,
     })
+    // O erro é engolido de propósito, mas não pode ficar invisível: reporta ao Sentry.
+    Sentry.captureException(error, { extra: { scope: 'hour-bank:interval', userId } })
   }
 }
 
@@ -310,5 +313,7 @@ export async function safeRecalculateHourBankForIntervals(
       userId,
       error,
     })
+    // O erro é engolido de propósito, mas não pode ficar invisível: reporta ao Sentry.
+    Sentry.captureException(error, { extra: { scope: 'hour-bank:intervals', userId } })
   }
 }

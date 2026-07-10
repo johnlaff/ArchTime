@@ -92,7 +92,7 @@ export const config = {
   matcher: [
     {
       source:
-        '/((?!login|auth/callback|_next/static|_next/image|icons|api/icon|manifest\\.json|sw\\.js|favicon\\.ico).*)',
+        '/((?!login|auth/callback|_next/static|_next/image|icons|api/icon|api/health|monitoring|manifest\\.json|sw\\.js|favicon\\.ico).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },
