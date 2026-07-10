@@ -7,6 +7,7 @@ vi.mock('@/lib/offline-queue', () => ({ addPendingEntry: vi.fn() }))
 
 import { toast } from 'sonner'
 import { addPendingEntry } from '@/lib/offline-queue'
+import { REQUEST_PENDING_SYNC_EVENT } from '@/lib/sync-events'
 
 const addPendingEntryMock = vi.mocked(addPendingEntry)
 
@@ -163,12 +164,15 @@ describe('useClock', () => {
   it('clock-out: erro 5xx (transitório) enfileira para retry preservando o entryId, mantém a sessão encerrada', async () => {
     addPendingEntryMock.mockResolvedValueOnce(undefined)
     vi.stubGlobal('fetch', makeFetchFail({}, 500))
+    const requestSync = vi.fn()
+    window.addEventListener(REQUEST_PENDING_SYNC_EVENT, requestSync)
 
     const { result } = renderHook(() => useClock(closedSession))
     await act(async () => {
       await result.current.clockOut()
     })
 
+    window.removeEventListener(REQUEST_PENDING_SYNC_EVENT, requestSync)
     expect(addPendingEntryMock).toHaveBeenCalledTimes(1)
     const queued = addPendingEntryMock.mock.calls[0][0]
     expect(queued.type).toBe('clock_out')
@@ -178,6 +182,7 @@ describe('useClock', () => {
     expect(result.current.loading).toBe(false)
     expect(toast.error).not.toHaveBeenCalled()
     expect(toast.warning).toHaveBeenCalled()
+    expect(requestSync).toHaveBeenCalledTimes(1)
   })
 
   it('clock-out: erro de rede enfileira para retry e mantém a sessão encerrada', async () => {

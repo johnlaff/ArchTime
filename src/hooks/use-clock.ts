@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { addPendingEntry } from '@/lib/offline-queue'
+import { REQUEST_PENDING_SYNC_EVENT } from '@/lib/sync-events'
 import type { ActiveSession } from '@/types'
 
 interface UseClockReturn {
@@ -112,6 +113,7 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
         createdAt: timestamp,
       })
       toast.warning('Saída salva. Será sincronizada automaticamente.')
+      window.dispatchEvent(new Event(REQUEST_PENDING_SYNC_EVENT))
     }
 
     setSession(null)
