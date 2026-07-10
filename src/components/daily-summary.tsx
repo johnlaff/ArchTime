@@ -1,72 +1,154 @@
 'use client'
 
 import { m } from 'motion/react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { ActivityTag } from '@/components/activity-selector'
 import { formatBRT, formatMinutes } from '@/lib/dates'
+import { cn } from '@/lib/utils'
 import type { BalanceSummary, DailySummary } from '@/types'
 
 interface DailySummaryProps {
   summary: DailySummary
 }
 
-function BalanceCard({
+const REVEAL_EASE = [0.16, 1, 0.3, 1] as const
+
+/** Saldo negativo (débito) em vermelho, positivo (crédito) em verde, zero neutro. */
+function saldoClass(minutes: number): string {
+  if (minutes < 0) return 'text-destructive'
+  if (minutes > 0) return 'text-emerald-600 dark:text-emerald-400'
+  return 'text-foreground'
+}
+
+function ProgressRing({ actual, expected }: { actual: number; expected: number }) {
+  const radius = 24
+  const circumference = 2 * Math.PI * radius
+  const ratio = expected > 0 ? Math.min(actual / expected, 1) : 0
+  const label = expected > 0 ? `${Math.round((actual / expected) * 100)}%` : '—'
+
+  return (
+    // Decorativo: os números (feito, previsto, saldo) já estão no texto ao lado.
+    <div className="relative flex-none" aria-hidden="true">
+      <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
+        <circle
+          cx="28"
+          cy="28"
+          r={radius}
+          fill="none"
+          strokeWidth="6"
+          style={{ stroke: 'color-mix(in oklch, var(--primary) 18%, transparent)' }}
+        />
+        <circle
+          cx="28"
+          cy="28"
+          r={radius}
+          fill="none"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - ratio)}
+          style={{ stroke: 'var(--primary)' }}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold tabular-nums">
+        {label}
+      </span>
+    </div>
+  )
+}
+
+/** "Hoje" em destaque: número grande + anel de progresso (feito/previsto). */
+function TodayCard({ balance }: { balance: BalanceSummary }) {
+  return (
+    <Card
+      data-testid="summary-card-today"
+      className="w-full flex-row items-center justify-between gap-4 p-4"
+    >
+      <div className="min-w-0">
+        <p className="text-sm text-muted-foreground">Hoje</p>
+        <p className="mt-1 text-3xl font-bold leading-tight tabular-nums break-words">
+          {formatMinutes(balance.actualMinutes)}
+        </p>
+        <p className="mt-1.5 text-xs text-muted-foreground break-words">
+          de {formatMinutes(balance.expectedMinutes)} · saldo{' '}
+          <span className={cn('font-semibold', saldoClass(balance.balanceMinutes))}>
+            {formatMinutes(balance.balanceMinutes)}
+          </span>
+        </p>
+      </div>
+      <ProgressRing actual={balance.actualMinutes} expected={balance.expectedMinutes} />
+    </Card>
+  )
+}
+
+/** Semana / Mês: cards compactos lado a lado. */
+function CompactCard({
   title,
   balance,
-  cumulativeBalance,
+  cumulative,
   testId,
 }: {
   title: string
   balance: BalanceSummary
-  cumulativeBalance?: number
+  cumulative?: number
   testId: string
 }) {
   return (
-    <Card
-      data-testid={testId}
-      className="w-fit max-w-full !gap-0 !py-0 sm:w-auto sm:!gap-[var(--pad-card)] sm:!py-[var(--pad-card)]"
-    >
-      <CardHeader className="py-3 pb-1">
-        <CardTitle className="text-sm text-muted-foreground font-normal">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="min-w-0 break-words pb-3">
-        <p className="text-2xl font-bold tabular-nums">{formatMinutes(balance.actualMinutes)}</p>
-        <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
-          <p>Previsto: {formatMinutes(balance.expectedMinutes)}</p>
-          <p>Saldo: {formatMinutes(balance.balanceMinutes)}</p>
-          {cumulativeBalance != null && <p>Acumulado: {formatMinutes(cumulativeBalance)}</p>}
-        </div>
-      </CardContent>
+    <Card data-testid={testId} className="w-full gap-1 p-4">
+      <p className="text-sm text-muted-foreground">{title}</p>
+      <p className="text-xl font-bold leading-tight tabular-nums break-words">
+        {formatMinutes(balance.actualMinutes)}
+      </p>
+      <p className="text-xs break-words">
+        <span className="text-muted-foreground">saldo </span>
+        <span className={cn('font-semibold', saldoClass(balance.balanceMinutes))}>
+          {formatMinutes(balance.balanceMinutes)}
+        </span>
+      </p>
+      {cumulative != null && (
+        <p className="text-xs text-muted-foreground break-words">
+          acum. {formatMinutes(cumulative)}
+        </p>
+      )}
     </Card>
   )
 }
 
 export function DailySummaryCard({ summary }: DailySummaryProps) {
+  const cumulative = summary.month.showCumulativeBalance
+    ? summary.month.cumulativeBalance ?? undefined
+    : undefined
+
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 justify-items-start gap-3 sm:grid-cols-3 sm:justify-items-stretch">
-        {[
-          { title: 'Hoje', testId: 'summary-card-today', balance: summary.today, cumulative: undefined as number | undefined },
-          { title: 'Semana', testId: 'summary-card-week', balance: summary.week, cumulative: undefined as number | undefined },
-          {
-            title: 'Mês',
-            testId: 'summary-card-month',
-            balance: summary.month,
-            cumulative: summary.month.showCumulativeBalance
-              ? summary.month.cumulativeBalance ?? undefined
-              : undefined as number | undefined,
-          },
-        ].map(({ title, testId, balance, cumulative }, i) => (
-          <m.div
-            key={title}
-            className="w-fit max-w-full sm:w-auto"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <BalanceCard title={title} testId={testId} balance={balance} cumulativeBalance={cumulative} />
-          </m.div>
-        ))}
+      <div className="grid grid-cols-2 gap-3">
+        <m.div
+          className="col-span-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: REVEAL_EASE }}
+        >
+          <TodayCard balance={summary.today} />
+        </m.div>
+        <m.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.04, duration: 0.25, ease: REVEAL_EASE }}
+        >
+          <CompactCard title="Semana" balance={summary.week} testId="summary-card-week" />
+        </m.div>
+        <m.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.25, ease: REVEAL_EASE }}
+        >
+          <CompactCard
+            title="Mês"
+            balance={summary.month}
+            cumulative={cumulative}
+            testId="summary-card-month"
+          />
+        </m.div>
       </div>
 
       {summary.entries.length > 0 && (
