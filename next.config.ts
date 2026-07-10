@@ -16,9 +16,8 @@ const CSP_REPORT_ONLY = [
 ].join('; ')
 
 const nextConfig: NextConfig = {
-  // Standalone só é ligado no build do container (Azure), via BUILD_STANDALONE=true.
-  // O build da Netlify NÃO seta essa var, então lá o output permanece o padrão
-  // (o @netlify/plugin-nextjs gerencia o output) — zero regressão na produção atual.
+  // Standalone só é ligado no build do container (Azure, o hosting de produção) via
+  // BUILD_STANDALONE=true. Sem essa var, o output permanece o padrão do Next.
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
   cacheComponents: true,
   experimental: {

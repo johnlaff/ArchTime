@@ -1,9 +1,8 @@
 # syntax=docker/dockerfile:1
 #
-# Imagem de deploy do ArchTime para Azure App Service (container, região Brazil South).
-# A Netlify NÃO usa este arquivo — o build de produção lá segue inalterado. O output
-# `standalone` só é ligado aqui via BUILD_STANDALONE=true (o build da Netlify não seta
-# essa var), então a produção atual não sofre regressão.
+# Imagem de deploy do ArchTime para Azure App Service (container, região Brazil South) —
+# o hosting de produção. O output `standalone` só é ligado no build da imagem via
+# BUILD_STANDALONE=true; fora dela, o output permanece o padrão do Next.
 
 FROM node:22-bookworm-slim AS base
 # NODE_ENV NÃO é setado aqui de propósito: `deps` herda de `base`, e `npm ci` com

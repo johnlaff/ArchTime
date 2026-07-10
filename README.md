@@ -40,7 +40,7 @@ sem rede** — o registro entra numa fila local e sincroniza sozinho quando a co
 | 🎨 | **Projetos com cores** | Cada sessão é alocada a um projeto; cores dão leitura visual imediata no histórico e nos gráficos. |
 | 📊 | **Insights** | Heatmap anual e barras semanais **relativos à jornada** — enxerga padrões de esforço, não só totais brutos. |
 | 🗂️ | **Histórico auditável** | Edição de registros com trilha de auditoria; filtros por projeto e atividade sem deslocar a UI. |
-| 🔐 | **Integridade dos registros** | Cada sessão fechada carrega um **HMAC-SHA256** com `keyId`; `/api/integrity` distingue formato inválido, adulteração e uma chave histórica indisponível. |
+| 🔐 | **Integridade dos registros** | Cada sessão fechada carrega um **HMAC-SHA256** (versionado por `keyId` quando o keyring está configurado, como em produção); `/api/integrity` distingue formato inválido, adulteração e uma chave histórica indisponível. |
 | 📲 | **PWA instalável** | Service worker (Serwist), ícone/manifest e experiência de app nativo no celular. |
 
 ## Arquitetura
@@ -115,7 +115,7 @@ src/
 Produção em **Azure App Service** (container Linux B1, Brazil South), servida em
 **[archtime.app](https://archtime.app)** (TLS gerenciado; `www` → apex). A imagem é publicada no
 **GitHub Container Registry** (`ghcr.io/johnlaff/archtime`) pelo workflow `build-image` a cada push
-na `main`, e o App Service faz o pull automático via **webhook** de continuous deployment.
+na `main` (exceto mudanças só de documentação), e o App Service faz o pull automático via **webhook** de continuous deployment.
 
 > [!IMPORTANT]
 > O banco (Supabase) é **compartilhado entre ambientes** — cuidado com dados reais ao validar

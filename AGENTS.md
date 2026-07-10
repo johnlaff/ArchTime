@@ -59,7 +59,7 @@ Observações:
 
 - Todas as escritas devem passar por API Routes. Não escreva direto no banco a partir de Client Components.
 - Escritas relevantes devem preservar auditoria em `AuditLog`.
-- Clock-out calcula hash SHA-256 da entrada.
+- Clock-out e edição de sessão calculam um HMAC-SHA256 sobre os campos de integridade. Com o keyring configurado (produção), o formato é versionado por `keyId` (`hmac-v1:<keyId>:<digest>`); sem keyring, o fallback legado emite `hmac-v1:<digest>`. Ver ADR 0005.
 - Leituras simples podem usar Supabase client com RLS.
 - Agregações, joins e lógica sensível devem usar API Route com Prisma.
 - `src/app/layout.tsx` é Server Component.
@@ -97,10 +97,10 @@ Regras duras:
 
 ## Infraestrutura e Performance
 
-- Deploy em **Azure App Service** (container Linux B1, região Brazil South); produção em `https://archtime.app`. Imagem em `ghcr.io/johnlaff/archtime`, publicada pelo workflow `build-image` (push na `main`) e puxada pelo App Service via webhook de continuous deployment.
+- Deploy em **Azure App Service** (container Linux B1, região Brazil South); produção em `https://archtime.app`. Imagem em `ghcr.io/johnlaff/archtime`, publicada pelo workflow `build-image` (push na `main`, exceto mudanças só de docs) e puxada pelo App Service via webhook de continuous deployment.
 - Banco em Supabase PostgreSQL (`sa-east-1`/São Paulo — mesma região do App Service, latência app↔banco baixa).
-- Há latência relevante entre funções serverless e banco; evite colocar reads simples no caminho crítico de navegação quando client-direct com RLS for suficiente.
-- Cold starts podem afetar navegação. Prefira cache, lazy loading, code splitting e leituras client-direct quando seguro.
+- App e banco estão co-locados no Brasil (App Service Brazil South + Supabase São Paulo) e o B1 roda com **Always On** — a instância fica sempre carregada, sem cold start de ociosidade. Em regime, nem a latência ao banco nem cold start são gargalos de navegação; o custo residual de um read no servidor é o hop extra (cliente→app→banco) e a disputa pelo worker único do B1. Prefira client-direct com RLS para reads simples que dispensam o servidor.
+- Cold start só aparece após deploy/restart (a imagem nova recicla a instância), não em navegação estável. Cache, lazy loading e code splitting continuam valendo como boa prática.
 - Performance de navegação não pode degradar.
 - Para bibliotecas pesadas, prefira lazy-load/code-split em vez de reimplementar tudo custom por reflexo.
 
