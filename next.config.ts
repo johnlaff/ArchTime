@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs'
 import withSerwist from '@serwist/next'
 import type { NextConfig } from 'next'
 
@@ -51,7 +52,24 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSerwist({
-  swSrc: 'src/app/sw.ts',
-  swDest: 'public/sw.js',
-})(nextConfig)
+export default withSentryConfig(
+  withSerwist({
+    swSrc: 'src/app/sw.ts',
+    swDest: 'public/sw.js',
+  })(nextConfig),
+  {
+    org: 'john-laff',
+    project: 'archtime',
+    // Não enviar telemetria de build do plugin do Sentry.
+    telemetry: false,
+    // Roteia os eventos pelo próprio domínio (evita ad-blockers e mantém a CSP
+    // report-only intacta — connect-src 'self' cobre). Ver src/proxy.ts (allowlist).
+    tunnelRoute: '/monitoring',
+    // Release determinístico: o .git não entra no contexto do build Docker, então o
+    // SHA vem por env (SENTRY_RELEASE) no build-image.yml.
+    release: { name: process.env.SENTRY_RELEASE },
+    // Só sobe source maps quando o auth token existe (build da imagem); no CI e no dev,
+    // sem token, o upload é pulado e o build segue.
+    sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  }
+)

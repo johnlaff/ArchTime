@@ -28,11 +28,18 @@ COPY . .
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_SENTRY_DSN
+ARG SENTRY_RELEASE
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
     NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    SENTRY_RELEASE=$SENTRY_RELEASE \
     BUILD_STANDALONE=true
-RUN npx prisma generate && npm run build
+# O SENTRY_AUTH_TOKEN entra só como build secret (não persiste em layer nem no cache),
+# usado pelo withSentryConfig para subir source maps. Ausente → upload é pulado.
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN \
+    npx prisma generate && npm run build
 
 # --- runner: imagem mínima que só roda o server standalone ---
 FROM base AS runner
