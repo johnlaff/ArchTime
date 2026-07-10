@@ -22,6 +22,25 @@ try {
   // .env.local optional (e.g. CI provides env directly)
 }
 
+// Os E2E locais compartilham o banco de produção. Quando o clone ainda só tem
+// ENTRY_HASH_SECRET, espelhe o keyring de bootstrap da ADR 0005 para conseguir
+// verificar os hashes históricos já identificados. Um keyring explícito (inclusive
+// parcial) sempre prevalece, para que a validação de boot continue encontrando erro.
+const hasExplicitHashKeyring = [
+  'ENTRY_HASH_KEY_IDS',
+  'ENTRY_HASH_ACTIVE_KEY_ID',
+  'ENTRY_HASH_LEGACY_KEY_ID',
+].some((name) => process.env[name] !== undefined) ||
+  Object.keys(process.env).some((name) => name.startsWith('ENTRY_HASH_SECRET_'))
+
+if (!hasExplicitHashKeyring && process.env.ENTRY_HASH_SECRET) {
+  const bootstrapKeyId = 'k2026-07'
+  process.env.ENTRY_HASH_KEY_IDS = bootstrapKeyId
+  process.env.ENTRY_HASH_ACTIVE_KEY_ID = bootstrapKeyId
+  process.env.ENTRY_HASH_LEGACY_KEY_ID = bootstrapKeyId
+  process.env.ENTRY_HASH_SECRET_K2026_07 = process.env.ENTRY_HASH_SECRET
+}
+
 /** True when no base URL is set or it points at a loopback host (so we auto-start dev). */
 function isLocalBaseURL(baseURL: string | undefined): boolean {
   if (!baseURL) return true

@@ -78,7 +78,10 @@ export function Navbar() {
             </Button>
           </SheetTrigger>
 
-          <SheetContent side="left" className="w-[290px] p-0 flex flex-col gap-0">
+          <SheetContent
+            side="left"
+            className="w-[290px] p-0 flex flex-col gap-0 will-change-transform data-[state=open]:!duration-200 data-[state=closed]:!duration-150 data-[state=open]:[--tw-ease:var(--ease-out-expo)] data-[state=closed]:[--tw-ease:var(--ease-in)]"
+          >
             <SheetHeader className="px-4 py-4 border-b text-left">
               <SheetTitle className="flex items-center gap-2">
                 <LogoMark />
