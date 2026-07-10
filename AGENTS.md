@@ -104,6 +104,24 @@ Regras duras:
 - Performance de navegação não pode degradar.
 - Para bibliotecas pesadas, prefira lazy-load/code-split em vez de reimplementar tudo custom por reflexo.
 
+## Observabilidade
+
+- Error tracking via **Sentry** (`@sentry/nextjs`). Server inicializa no `src/instrumentation.ts`
+  (junto da validação do keyring, sem quebrá-la) e exporta `onRequestError`; client no
+  `src/instrumentation-client.ts`. Ligado **só em produção** (`NODE_ENV === 'production'`), com
+  `sendDefaultPii: false` — não envie dados da usuária.
+- Os eventos vão pelo tunnel same-origin **`/monitoring`** (`tunnelRoute`). Se mexer no matcher do
+  `src/proxy.ts`, mantenha `api/health` e `monitoring` na allowlist — senão o tunnel e o health
+  check quebram (redirect para login). A CSP (`connect-src 'self'`) já cobre o tunnel.
+- Catches que engolem erro de propósito (ex.: os `safeRecalculateHourBankFor*` do `hour-bank`)
+  devem reportar ao Sentry (`captureException`) sem deixar de engolir — falha silenciosa não pode
+  ficar invisível.
+- **Health check:** `GET /api/health` (público, `SELECT 1`) alimenta o probe do App Service
+  (`healthCheckPath = /api/health`) e o uptime monitor do Sentry. Use `await connection()` em rotas
+  dinâmicas que dependem de request time (com `cacheComponents`, `force-dynamic` é proibido).
+- Segredos: `NEXT_PUBLIC_SENTRY_DSN` é público (build-arg, inlinado no bundle); `SENTRY_AUTH_TOKEN`
+  é segredo, só docker build secret (upload de source maps). Ver ADR 0006.
+
 ## Design System
 
 - Use OKLCH nos tokens de cor.

@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 400" width="920" height="400" role="img" aria-label="Arquitetura do ArchTime: PWA offline-first servida pela Azure App Service, com Prisma 7 WASM e Supabase Postgres, entregue por CI/CD via GitHub Actions e ghcr.io.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" width="920" height="500" role="img" aria-label="Arquitetura do ArchTime: cliente PWA offline-first (Serwist, IndexedDB) fala por HTTPS com o archtime.app na Azure App Service (Next.js 16 App Router standalone, API Routes, Prisma 7 WASM), que acessa o Supabase Postgres com Auth Google OAuth em sa-east-1. Erros server e client sao reportados ao Sentry via tunnel /monitoring, com /api/health e source maps por release. Entrega continua: push na main dispara o GitHub Actions (build-image, source maps), publica a imagem no ghcr.io e um webhook aciona o pull e deploy na Azure.">
   <style>
     :root{
-      --card:#ffffff; --fg:#1f2937; --muted:#6b7280; --panel:#f9fafb; --panel2:#eef2ff;
-      --border:#e5e7eb; --stroke:#d1d5db; --accent:#6366f1; --line:#9ca3af;
+      --card:#ffffff; --fg:#1f2937; --muted:#5d6570; --panel:#f9fafb; --panel2:#eef2ff;
+      --border:#e5e7eb; --stroke:#d1d5db; --accent:#6366f1; --line:#7c8592;
     }
     @media (prefers-color-scheme: dark){
       :root{
         --card:#0d1117; --fg:#e6edf3; --muted:#9aa5b1; --panel:#161b22; --panel2:#1c2333;
-        --border:#30363d; --stroke:#30363d; --accent:#7c83ff; --line:#586372;
+        --border:#30363d; --stroke:#30363d; --accent:#7c83ff; --line:#66717f;
       }
     }
     .t{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;fill:var(--fg)}
@@ -20,83 +20,111 @@
     .chip{fill:var(--panel2);stroke:var(--stroke);stroke-width:1}
     .flow{stroke:var(--line);stroke-width:2;fill:none}
     .accent{stroke:var(--accent);stroke-width:2;fill:none}
+    .dash{stroke:var(--line);stroke-width:2;fill:none;stroke-dasharray:5 4}
+    .accentDash{stroke:var(--accent);stroke-width:2;fill:none;stroke-dasharray:5 4}
     .mk{fill:var(--line)}
     .mkA{fill:var(--accent)}
   </style>
   <defs>
     <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-      <path class="mk" d="M0,0 L9,4.5 L0,9 z"/>
+      <path class="mk" fill="#7c8592" d="M0,0 L9,4.5 L0,9 z"/>
     </marker>
     <marker id="arrowA" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-      <path class="mkA" d="M0,0 L9,4.5 L0,9 z"/>
+      <path class="mkA" fill="#6366f1" d="M0,0 L9,4.5 L0,9 z"/>
     </marker>
   </defs>
 
-  <rect class="card" x="1" y="1" width="918" height="398" rx="14"/>
+  <!-- Fallback: presentation attributes = tema claro. O CSS de <style> sempre vence,
+       então no GitHub nada muda; mas se um renderizador strippar o <style>, o pior caso
+       vira um diagrama claro estático em vez de um borrão preto (toda pintura é via CSS). -->
+  <rect class="card" fill="#ffffff" stroke="#e5e7eb" x="1" y="1" width="918" height="498" rx="14"/>
 
   <!-- RUNTIME -->
-  <text class="t lbl" x="28" y="34">RUNTIME</text>
+  <text class="t lbl" fill="#5d6570" x="28" y="34">RUNTIME</text>
 
   <!-- Cliente / PWA -->
-  <rect class="box" x="24" y="48" width="212" height="150" rx="12"/>
-  <text class="t title" x="44" y="78">Cliente · PWA</text>
-  <text class="t sub" x="44" y="97">mobile-first, offline-first</text>
-  <rect class="chip" x="44" y="112" width="172" height="26" rx="6"/>
-  <text class="t tag" x="56" y="129">Serwist service worker</text>
-  <rect class="chip" x="44" y="144" width="172" height="26" rx="6"/>
-  <text class="t tag" x="56" y="161">IndexedDB · fila offline</text>
+  <rect class="box" fill="#f9fafb" stroke="#d1d5db" x="24" y="48" width="212" height="150" rx="12"/>
+  <text class="t title" fill="#1f2937" x="44" y="78">Cliente · PWA</text>
+  <text class="t sub" fill="#5d6570" x="44" y="97">mobile-first, offline-first</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="44" y="112" width="172" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="56" y="129">Serwist service worker</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="44" y="144" width="172" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="56" y="161">IndexedDB · fila offline</text>
 
   <!-- archtime.app / Azure -->
-  <rect class="box" x="300" y="48" width="316" height="150" rx="12"/>
-  <text class="t title" x="322" y="78">archtime.app</text>
-  <text class="t sub" x="322" y="97">Azure App Service · container · Brazil South</text>
-  <rect class="chip" x="322" y="112" width="272" height="26" rx="6"/>
-  <text class="t tag" x="334" y="129">Next.js 16 · App Router · standalone (PPR)</text>
-  <rect class="chip" x="322" y="144" width="130" height="26" rx="6"/>
-  <text class="t tag" x="334" y="161">API Routes</text>
-  <rect class="chip" x="460" y="144" width="134" height="26" rx="6"/>
-  <text class="t tag" x="472" y="161">Prisma 7 · WASM</text>
+  <rect class="box" fill="#f9fafb" stroke="#d1d5db" x="300" y="48" width="316" height="150" rx="12"/>
+  <text class="t title" fill="#1f2937" x="322" y="78">archtime.app</text>
+  <text class="t sub" fill="#5d6570" x="322" y="97">Azure App Service · container · Brazil South</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="322" y="112" width="272" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="334" y="129">Next.js 16 · App Router · standalone (PPR)</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="322" y="144" width="130" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="334" y="161">API Routes</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="460" y="144" width="134" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="472" y="161">Prisma 7 · WASM</text>
 
   <!-- Supabase -->
-  <rect class="box" x="680" y="48" width="216" height="150" rx="12"/>
-  <text class="t title" x="700" y="78">Supabase</text>
-  <text class="t sub" x="700" y="97">região sa-east-1</text>
-  <rect class="chip" x="700" y="112" width="176" height="26" rx="6"/>
-  <text class="t tag" x="712" y="129">PostgreSQL</text>
-  <rect class="chip" x="700" y="144" width="176" height="26" rx="6"/>
-  <text class="t tag" x="712" y="161">Auth · Google OAuth</text>
+  <rect class="box" fill="#f9fafb" stroke="#d1d5db" x="680" y="48" width="216" height="150" rx="12"/>
+  <text class="t title" fill="#1f2937" x="700" y="78">Supabase</text>
+  <text class="t sub" fill="#5d6570" x="700" y="97">região sa-east-1</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="700" y="112" width="176" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="712" y="129">PostgreSQL</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="700" y="144" width="176" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="712" y="161">Auth · Google OAuth</text>
 
   <!-- flow arrows runtime -->
-  <path class="flow" d="M236,123 L298,123" marker-end="url(#arrow)"/>
-  <path class="flow" d="M616,123 L678,123" marker-end="url(#arrow)"/>
-  <text class="t sub" x="246" y="116">HTTPS</text>
-  <text class="t sub" x="628" y="116">TLS</text>
+  <path class="flow" stroke="#7c8592" fill="none" d="M236,123 L298,123" marker-end="url(#arrow)"/>
+  <path class="flow" stroke="#7c8592" fill="none" d="M616,123 L678,123" marker-end="url(#arrow)"/>
+  <text class="t sub" fill="#5d6570" text-anchor="middle" x="267" y="116">HTTPS</text>
+  <text class="t sub" fill="#5d6570" text-anchor="middle" x="647" y="116">TLS</text>
+
+  <!-- OBSERVABILIDADE: Sentry abaixo do app -->
+  <path class="dash" stroke="#7c8592" fill="none" d="M458,198 L458,224" marker-end="url(#arrow)"/>
+  <text class="t sub" fill="#5d6570" x="466" y="216">erros</text>
+  <rect class="box" fill="#f9fafb" stroke="#d1d5db" x="300" y="226" width="316" height="100" rx="12"/>
+  <text class="t title" fill="#1f2937" x="322" y="254">Observabilidade</text>
+  <text class="t sub" fill="#5d6570" x="322" y="272">Sentry · error tracking (server + client)</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="322" y="286" width="172" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="334" y="303">erros → /monitoring</text>
+  <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="502" y="286" width="92" height="26" rx="6"/>
+  <text class="t tag" fill="#1f2937" x="514" y="303">/api/health</text>
+
+  <!-- Legenda das setas (flanco direito, alinhada à coluna Supabase) -->
+  <path class="flow" stroke="#7c8592" fill="none" d="M680,248 L716,248"/>
+  <text class="t sub" fill="#5d6570" x="724" y="252">request</text>
+  <path class="dash" stroke="#7c8592" fill="none" d="M680,272 L716,272"/>
+  <text class="t sub" fill="#5d6570" x="724" y="276">telemetria</text>
+  <path class="accent" stroke="#6366f1" fill="none" d="M680,296 L716,296"/>
+  <text class="t sub" fill="#5d6570" x="724" y="300">CI/CD</text>
 
   <!-- DELIVERY / CI-CD -->
-  <text class="t lbl" x="28" y="254">ENTREGA CONTÍNUA</text>
-  <rect class="box" x="24" y="268" width="872" height="104" rx="12"/>
+  <text class="t lbl" fill="#5d6570" x="28" y="362">ENTREGA CONTÍNUA</text>
+  <rect class="box" fill="#f9fafb" stroke="#d1d5db" x="24" y="376" width="872" height="104" rx="12"/>
 
-  <g transform="translate(44,304)">
-    <rect class="chip" x="0" y="0" width="150" height="40" rx="8"/>
-    <text class="t tag" x="16" y="18">push → main</text>
-    <text class="t sub" x="16" y="33">GitHub</text>
+  <!-- fluxo de source maps: GitHub Actions -> Sentry (build-time, por isso accent tracejado) -->
+  <path class="accentDash" stroke="#6366f1" fill="none" d="M332,406 L332,328" marker-end="url(#arrowA)"/>
+  <text class="t sub" fill="#5d6570" x="340" y="360">source maps · SHA</text>
 
-    <path class="accent" d="M156,20 L200,20" marker-end="url(#arrowA)"/>
+  <g transform="translate(44,408)">
+    <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="0" y="0" width="150" height="40" rx="8"/>
+    <text class="t tag" fill="#1f2937" x="16" y="18">push → main</text>
+    <text class="t sub" fill="#5d6570" x="16" y="33">GitHub</text>
 
-    <rect class="chip" x="206" y="0" width="176" height="40" rx="8"/>
-    <text class="t tag" x="222" y="18">GitHub Actions</text>
-    <text class="t sub" x="222" y="33">build-image · docker</text>
+    <path class="accent" stroke="#6366f1" fill="none" d="M150,20 L198,20" marker-end="url(#arrowA)"/>
 
-    <path class="accent" d="M388,20 L432,20" marker-end="url(#arrowA)"/>
+    <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="200" y="0" width="176" height="40" rx="8"/>
+    <text class="t tag" fill="#1f2937" x="216" y="18">GitHub Actions</text>
+    <text class="t sub" fill="#5d6570" x="216" y="33">build-image · source maps</text>
 
-    <rect class="chip" x="438" y="0" width="176" height="40" rx="8"/>
-    <text class="t tag" x="454" y="18">ghcr.io</text>
-    <text class="t sub" x="454" y="33">imagem :latest (pública)</text>
+    <path class="accent" stroke="#6366f1" fill="none" d="M376,20 L424,20" marker-end="url(#arrowA)"/>
 
-    <path class="accent" d="M620,20 L664,20" marker-end="url(#arrowA)"/>
+    <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="426" y="0" width="176" height="40" rx="8"/>
+    <text class="t tag" fill="#1f2937" x="442" y="18">ghcr.io</text>
+    <text class="t sub" fill="#5d6570" x="442" y="33">imagem :latest (pública)</text>
 
-    <rect class="chip" x="670" y="0" width="180" height="40" rx="8"/>
-    <text class="t tag" x="686" y="18">webhook → Azure</text>
-    <text class="t sub" x="686" y="33">pull &amp; deploy</text>
+    <path class="accent" stroke="#6366f1" fill="none" d="M602,20 L650,20" marker-end="url(#arrowA)"/>
+
+    <rect class="chip" fill="#eef2ff" stroke="#d1d5db" x="652" y="0" width="180" height="40" rx="8"/>
+    <text class="t tag" fill="#1f2937" x="668" y="18">webhook → Azure</text>
+    <text class="t sub" fill="#5d6570" x="668" y="33">pull &amp; deploy</text>
   </g>
 </svg>

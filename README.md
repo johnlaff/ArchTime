@@ -42,12 +42,13 @@ sem rede** — o registro entra numa fila local e sincroniza sozinho quando a co
 | 🗂️ | **Histórico auditável** | Edição de registros com trilha de auditoria; filtros por projeto e atividade sem deslocar a UI. |
 | 🔐 | **Integridade dos registros** | Cada sessão fechada carrega um **HMAC-SHA256** (versionado por `keyId` quando o keyring está configurado, como em produção); `/api/integrity` distingue formato inválido, adulteração e uma chave histórica indisponível. |
 | 📲 | **PWA instalável** | Service worker (Serwist), ícone/manifest e experiência de app nativo no celular. |
+| 🔭 | **Observabilidade** | Erros de produção (server e client) capturados no **Sentry** com alerta; `/api/health` alimenta o health check do App Service e o uptime monitor. Ver [`docs/adr/0006`](docs/adr/). |
 
 ## Arquitetura
 
 <div align="center">
 
-![Arquitetura do ArchTime](docs/assets/architecture.svg)
+![Arquitetura do ArchTime: cliente PWA offline-first (Serwist, IndexedDB) fala por HTTPS com o archtime.app na Azure App Service (Next.js 16 App Router, API Routes, Prisma 7 WASM), que acessa o Supabase Postgres com Auth Google OAuth em sa-east-1. Erros server e client são reportados ao Sentry via tunnel /monitoring, com /api/health e source maps por release. Entrega contínua: push na main dispara o GitHub Actions (build-image, source maps), publica a imagem no ghcr.io e um webhook aciona o pull e deploy na Azure.](docs/assets/architecture.svg)
 
 </div>
 
@@ -56,7 +57,7 @@ sem rede** — o registro entra numa fila local e sincroniza sozinho quando a co
 | **Cliente** | PWA · React 19 · Serwist (service worker) · IndexedDB (`idb`) · Tailwind 4 + shadcn/ui + Radix |
 | **Servidor** | Next.js 16 App Router · `output: standalone` + PPR · API Routes · Prisma 7 (query compiler **WASM**) |
 | **Dados** | Supabase PostgreSQL (`sa-east-1`) · Supabase Auth (Google OAuth) |
-| **Infra** | Azure App Service (container Linux, Brazil South) · `ghcr.io` · GitHub Actions |
+| **Infra** | Azure App Service (container Linux, Brazil South) · `ghcr.io` · GitHub Actions · Sentry (observabilidade) |
 
 Princípio central: **toda escrita passa por uma API Route** — nenhum Client Component escreve
 direto no banco. O modelo de confiança de origem (CSRF via header `Host`/`Origin`) está detalhado

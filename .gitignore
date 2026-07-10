@@ -58,3 +58,6 @@ public/sw.js
 
 # Claude Code local settings / scratch
 .claude/
+
+# Playwright MCP session artifacts
+.playwright-mcp/
