@@ -12,35 +12,36 @@ async function openDashboard(page: Page, width: number) {
 }
 
 async function expectSummaryCardsFit(page: Page, contentWidth: number) {
-  for (const card of [
-    page.getByTestId('summary-card-today'),
-    page.getByTestId('summary-card-week'),
-    page.getByTestId('summary-card-month'),
-  ]) {
-    await expect(card).toBeVisible()
-    const metrics = await card.evaluate((element) => {
-      const style = getComputedStyle(element)
-      return {
-        clientHeight: element.clientHeight,
-        clientWidth: element.clientWidth,
-        gap: Number.parseFloat(style.rowGap),
-        paddingBottom: Number.parseFloat(style.paddingBottom),
-        paddingTop: Number.parseFloat(style.paddingTop),
-        scrollHeight: element.scrollHeight,
-        scrollWidth: element.scrollWidth,
-        width: element.getBoundingClientRect().width,
-      }
-    })
+  const today = page.getByTestId('summary-card-today')
+  const week = page.getByTestId('summary-card-week')
+  const month = page.getByTestId('summary-card-month')
 
-    // Com os dados normais da conta de teste, os três resumos devem continuar
-    // intrínsecos — ocupar toda a coluna reintroduziria a área vazia reportada.
-    expect(metrics.width).toBeLessThan(contentWidth)
+  for (const card of [today, week, month]) {
+    await expect(card).toBeVisible()
+    const metrics = await card.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      clientWidth: element.clientWidth,
+      scrollHeight: element.scrollHeight,
+      scrollWidth: element.scrollWidth,
+    }))
+    // Nenhum card pode ter overflow interno, nem com saldos longos.
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth)
     expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight)
-    expect(metrics.gap).toBe(0)
-    expect(metrics.paddingTop).toBe(0)
-    expect(metrics.paddingBottom).toBe(0)
   }
+
+  const [todayBox, weekBox, monthBox] = await Promise.all([
+    today.boundingBox(),
+    week.boundingBox(),
+    month.boundingBox(),
+  ])
+  if (!todayBox || !weekBox || !monthBox) throw new Error('summary cards sem boundingBox')
+
+  // "Hoje" em destaque ocupa (quase) toda a largura da coluna — sem a área vazia à direita.
+  expect(todayBox.width).toBeGreaterThan(contentWidth * 0.9)
+  // Semana e Mês ficam lado a lado (mesma linha) e cada um cabe na metade da coluna.
+  expect(Math.abs(weekBox.y - monthBox.y)).toBeLessThanOrEqual(2)
+  expect(weekBox.width).toBeLessThanOrEqual(contentWidth / 2 + 2)
+  expect(monthBox.width).toBeLessThanOrEqual(contentWidth / 2 + 2)
 }
 
 async function stubExtremeSummary(page: Page) {
