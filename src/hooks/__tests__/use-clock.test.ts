@@ -161,6 +161,29 @@ describe('useClock', () => {
     expect(toast.error).toHaveBeenCalledWith('Entrada não encontrada')
   })
 
+  it('clock-out: envia ao servidor o horário exato do clique', async () => {
+    const clickedAt = new Date('2026-05-24T18:30:00.000Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(clickedAt)
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      const { result } = renderHook(() => useClock(closedSession))
+      await act(async () => {
+        await result.current.clockOut()
+      })
+
+      expect(fetchMock).toHaveBeenCalledWith('/api/clock/session-abc', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clockOutAt: clickedAt.toISOString() }),
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('clock-out: erro 5xx (transitório) enfileira para retry preservando o entryId, mantém a sessão encerrada', async () => {
     addPendingEntryMock.mockResolvedValueOnce(undefined)
     vi.stubGlobal('fetch', makeFetchFail({}, 500))

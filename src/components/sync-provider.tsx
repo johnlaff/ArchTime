@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { syncPendingEntries } from '@/lib/offline-queue'
 import { REQUEST_PENDING_SYNC_EVENT, SYNC_COMPLETE_EVENT } from '@/lib/sync-events'
@@ -14,35 +14,40 @@ function retryDelayWithJitter(attempt: number): number {
 }
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const syncInFlightRef = useRef(false)
-  const retryAttemptRef = useRef(0)
-  const retryTimerRef = useRef<number | null>(null)
-
   useEffect(() => {
+    let disposed = false
+    let syncInFlight = false
+    let retryAttempt = 0
+    let retryTimer: number | null = null
+    let requestVersion = 0
+
     function clearScheduledRetry() {
-      if (retryTimerRef.current !== null) {
-        window.clearTimeout(retryTimerRef.current)
-        retryTimerRef.current = null
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer)
+        retryTimer = null
       }
     }
 
     function scheduleRetry() {
-      if (!navigator.onLine || retryTimerRef.current !== null) return
+      if (disposed || !navigator.onLine || retryTimer !== null) return
 
-      const delay = retryDelayWithJitter(retryAttemptRef.current)
-      retryAttemptRef.current += 1
-      retryTimerRef.current = window.setTimeout(() => {
-        retryTimerRef.current = null
+      const delay = retryDelayWithJitter(retryAttempt)
+      retryAttempt += 1
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null
         void runSync()
       }, delay)
     }
 
     async function runSync() {
-      if (syncInFlightRef.current) return
-      syncInFlightRef.current = true
+      if (disposed || syncInFlight) return
+      syncInFlight = true
+      const runRequestVersion = requestVersion
 
       try {
         const result = await syncPendingEntries()
+        if (disposed) return
+
         if (result.synced > 0 || result.failed > 0) {
           window.dispatchEvent(new CustomEvent(SYNC_COMPLETE_EVENT, { detail: result }))
         }
@@ -53,17 +58,19 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           toast.warning(`${result.failed} registro(s) offline precisam de revisão`)
         }
 
-        if (result.remaining > 0 && navigator.onLine) {
+        // Uma nova intenção pode entrar na fila enquanto este flush ainda lia o
+        // IndexedDB. Nesse caso, não deixe o resultado antigo cancelar o retry novo.
+        if ((result.remaining > 0 || requestVersion !== runRequestVersion) && navigator.onLine) {
           scheduleRetry()
         } else {
           clearScheduledRetry()
-          retryAttemptRef.current = 0
+          retryAttempt = 0
         }
       } catch {
         // Erro inesperado do IndexedDB não pode abandonar a intenção de sincronizar.
-        scheduleRetry()
+        if (!disposed) scheduleRetry()
       } finally {
-        syncInFlightRef.current = false
+        syncInFlight = false
       }
     }
 
@@ -73,14 +80,19 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     }
 
     const handleOnline = () => {
+      requestVersion += 1
       clearScheduledRetry()
-      retryAttemptRef.current = 0
+      retryAttempt = 0
       void runSync()
     }
-    const handleSyncRequest = () => scheduleRetry()
+    const handleSyncRequest = () => {
+      requestVersion += 1
+      scheduleRetry()
+    }
     window.addEventListener('online', handleOnline)
     window.addEventListener(REQUEST_PENDING_SYNC_EVENT, handleSyncRequest)
     return () => {
+      disposed = true
       clearScheduledRetry()
       window.removeEventListener('online', handleOnline)
       window.removeEventListener(REQUEST_PENDING_SYNC_EVENT, handleSyncRequest)

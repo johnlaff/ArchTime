@@ -127,7 +127,11 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
 
       let res: Response
       try {
-        res = await fetch(`/api/clock/${snapshot.id}`, { method: 'PUT' })
+        res = await fetch(`/api/clock/${snapshot.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clockOutAt: timestamp }),
+        })
       } catch {
         // Falha de rede — enfileira e sincroniza depois (o servidor é idempotente).
         await queueForRetry()

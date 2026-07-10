@@ -1,25 +1,26 @@
-import { test, expect, type APIRequestContext, type Page } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
-type FailureMode = 'network' | 'server'
+type FailureMode = 'network' | 'response-lost' | 'server'
 
 test.describe.configure({ mode: 'serial' })
 
-async function activeSession(request: APIRequestContext) {
-  const response = await request.get('/api/clock/active')
-  return response.json().catch(() => null) as Promise<{ id: string } | null>
+async function activeSession(page: Page) {
+  const response = await page.request.get('/api/clock/active')
+  expect(response.ok(), `leitura da Sessão ativa deveria estar autenticada (${response.status()})`).toBeTruthy()
+  return response.json() as Promise<{ id: string } | null>
 }
 
 async function exerciseRetry(
   page: Page,
-  request: APIRequestContext,
   failureMode: FailureMode
 ) {
-  const before = await activeSession(request)
+  const before = await activeSession(page)
   test.skip(Boolean(before), 'usuário tem uma sessão aberta real — pulando teste mutante')
 
   let entryId: string | undefined
+  let primaryClockOutAt: string | undefined
   try {
-    const clockIn = await request.post('/api/clock', { data: { projectId: null } })
+    const clockIn = await page.request.post('/api/clock', { data: { projectId: null } })
     expect(clockIn.ok(), `clock-in de teste deveria criar uma Sessão (${clockIn.status()})`).toBeTruthy()
     entryId = (await clockIn.json()).id
 
@@ -28,6 +29,13 @@ async function exerciseRetry(
       if (failOnce && route.request().method() === 'PUT') {
         failOnce = false
         if (failureMode === 'network') {
+          await route.abort('failed')
+        } else if (failureMode === 'response-lost') {
+          primaryClockOutAt = route.request().postDataJSON().clockOutAt
+          const committed = await route.fetch()
+          expect(committed.ok(), `PUT primário deveria gravar a saída (${committed.status()})`).toBeTruthy()
+          // A escrita chegou ao servidor, mas a resposta não ao PWA. O retry precisa
+          // ser idempotente e preservar exatamente o horário enviado no primeiro clique.
           await route.abort('failed')
         } else {
           await route.fulfill({
@@ -60,21 +68,34 @@ async function exerciseRetry(
       type: 'clock_out',
     })
 
-    await expect.poll(() => activeSession(request), { timeout: 10_000 }).toBeNull()
+    if (failureMode === 'response-lost') {
+      expect(primaryClockOutAt, 'o PUT primário deve carregar o horário do clique').toBeTruthy()
+      const idempotent = await page.request.put(`/api/clock/${entryId}`, {
+        data: { clockOutAt: '2000-01-01T00:00:00.000Z' },
+      })
+      expect(idempotent.ok(), `PUT idempotente deveria reler a Sessão (${idempotent.status()})`).toBeTruthy()
+      expect((await idempotent.json()).clockOut).toBe(primaryClockOutAt)
+    }
+
+    await expect.poll(() => activeSession(page), { timeout: 10_000 }).toBeNull()
   } finally {
     if (entryId) {
       await page.unroute(`**/api/clock/${entryId}`)
       // PUT idempotente fecha apenas a Sessão criada neste teste se o retry falhar cedo.
-      await request.put(`/api/clock/${entryId}`).catch(() => {})
-      await request.delete(`/api/clock/${entryId}`).catch(() => {})
+      await page.request.put(`/api/clock/${entryId}`).catch(() => {})
+      await page.request.delete(`/api/clock/${entryId}`).catch(() => {})
     }
   }
 }
 
-test('clock-out recupera automaticamente de um 5xx sem a rede cair', async ({ page, request }) => {
-  await exerciseRetry(page, request, 'server')
+test('clock-out recupera automaticamente de um 5xx sem a rede cair', async ({ page }) => {
+  await exerciseRetry(page, 'server')
 })
 
-test('clock-out recupera automaticamente de uma falha de rede', async ({ page, request }) => {
-  await exerciseRetry(page, request, 'network')
+test('clock-out recupera automaticamente de uma falha de rede', async ({ page }) => {
+  await exerciseRetry(page, 'network')
+})
+
+test('clock-out preserva o horário quando a escrita conclui mas a resposta se perde', async ({ page }) => {
+  await exerciseRetry(page, 'response-lost')
 })
