@@ -1,6 +1,39 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 
 const HASH_PREFIX = 'hmac-v1:'
+const DEV_SECRET = 'dev-only-entry-hash-secret'
+// 32 bytes em hex minúsculo — o formato de `openssl rand -hex 32`, o secret canônico
+// de produção. Casar um formato explícito rejeita string vazia, espaços e valores fracos
+// que passariam num teste `!secret` (`''` cai fora do `??`, e é exatamente esse buraco que
+// derrubou o clock-out em produção).
+const SECRET_PATTERN = /^[0-9a-f]{64}$/
+
+/**
+ * Resolve e valida o `ENTRY_HASH_SECRET`.
+ *
+ * Fora de produção aceita a ausência da var e usa um segredo de desenvolvimento fixo
+ * (para `npm run dev`/testes rodarem sem configuração). Em produção — ou sempre que a var
+ * esteja definida — exige o formato canônico e lança na hora. A validação acontece no boot
+ * (via `src/instrumentation.ts`), então um segredo ausente/mal formatado falha o START do
+ * container em vez de deixar o app subir e quebrar só no primeiro clock-out.
+ */
+function getEntryHashSecret(): string {
+  const secret = process.env.ENTRY_HASH_SECRET
+  if (secret === undefined && process.env.NODE_ENV !== 'production') {
+    return DEV_SECRET
+  }
+  if (secret === undefined || !SECRET_PATTERN.test(secret)) {
+    throw new Error(
+      'ENTRY_HASH_SECRET inválido ou ausente: esperado 32 bytes em 64 caracteres hexadecimais (ex.: `openssl rand -hex 32`).'
+    )
+  }
+  return secret
+}
+
+/** Valida a presença/formato do segredo. Chamado no boot para falhar cedo (fail-fast). */
+export function assertEntryHashSecret(): void {
+  getEntryHashSecret()
+}
 
 export async function generateEntryHash(entry: {
   clockIn: string
@@ -8,13 +41,7 @@ export async function generateEntryHash(entry: {
   userId: string
   entryDate: string
 }): Promise<string> {
-  const secret =
-    process.env.ENTRY_HASH_SECRET ??
-    (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-entry-hash-secret')
-
-  if (!secret) {
-    throw new Error('ENTRY_HASH_SECRET is required to generate entry hashes')
-  }
+  const secret = getEntryHashSecret()
 
   const data = JSON.stringify({
     clockIn: entry.clockIn,
