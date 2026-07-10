@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { addPendingEntry } from '@/lib/offline-queue'
+import { REQUEST_PENDING_SYNC_EVENT } from '@/lib/sync-events'
 import type { ActiveSession } from '@/types'
 
 interface UseClockReturn {
@@ -98,31 +99,63 @@ export function useClock(initialSession: ActiveSession | null): UseClockReturn {
     if (clockInFlightRef.current) return
 
     const snapshot = session
+    // Horário do clique — preservado se a saída cair na fila. O /api/sync usa este
+    // timestamp como clockOut, então o registro fica com a hora certa mesmo após retry
+    // (em vez de gravar "agora", que andaria pra frente a cada tentativa).
+    const timestamp = new Date().toISOString()
+
+    async function queueForRetry() {
+      await addPendingEntry({
+        id: crypto.randomUUID(),
+        entryId: snapshot.id,
+        type: 'clock_out',
+        timestamp,
+        createdAt: timestamp,
+      })
+      toast.warning('Saída salva. Será sincronizada automaticamente.')
+      window.dispatchEvent(new Event(REQUEST_PENDING_SYNC_EVENT))
+    }
+
     setSession(null)
     setLoading(true)
 
     try {
-      if (navigator.onLine) {
-        const res = await fetch(`/api/clock/${snapshot.id}`, { method: 'PUT' })
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}))
-          toast.error(data.error ?? 'Erro ao registrar saída')
-          setSession(snapshot)
-          return
-        }
-        toast.success('Saída registrada!')
-      } else {
-        const timestamp = new Date().toISOString()
-        await addPendingEntry({
-          id: crypto.randomUUID(),
-          entryId: snapshot.id,
-          type: 'clock_out',
-          timestamp,
-          createdAt: timestamp,
-        })
-        toast.warning('Saída salva offline. Será sincronizada ao reconectar.')
+      if (!navigator.onLine) {
+        await queueForRetry()
+        return
       }
+
+      let res: Response
+      try {
+        res = await fetch(`/api/clock/${snapshot.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clockOutAt: timestamp }),
+        })
+      } catch {
+        // Falha de rede — enfileira e sincroniza depois (o servidor é idempotente).
+        await queueForRetry()
+        return
+      }
+
+      if (res.ok) {
+        toast.success('Saída registrada!')
+        return
+      }
+
+      if (res.status >= 500) {
+        // Erro transitório do servidor: enfileira em vez de perder a saída. Foi
+        // exatamente esse caso (500 no clock-out) que deixou uma sessão presa em prod.
+        await queueForRetry()
+        return
+      }
+
+      // 4xx — erro permanente: informa e restaura a sessão para a pessoa decidir.
+      const data = await res.json().catch(() => ({}))
+      toast.error(data.error ?? 'Erro ao registrar saída')
+      setSession(snapshot)
     } catch {
+      // Inclui falha ao enfileirar (IndexedDB indisponível) — restaura a sessão.
       toast.error('Erro ao registrar saída')
       setSession(snapshot)
     } finally {

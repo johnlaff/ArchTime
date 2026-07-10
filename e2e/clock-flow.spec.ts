@@ -21,9 +21,9 @@ function brtWall(iso: string, addMinutes = 0): string {
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`
 }
 
-test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async ({ page, request }) => {
+test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async ({ page }) => {
   test.setTimeout(120_000) // fluxo longo: várias navegações/loads + poll do servidor
-  const activeBefore = await (await request.get('/api/clock/active')).json().catch(() => null)
+  const activeBefore = await (await page.request.get('/api/clock/active')).json().catch(() => null)
   test.skip(Boolean(activeBefore), 'usuário tem uma sessão aberta real — pulando teste mutante')
 
   let entryId: string | undefined
@@ -46,7 +46,7 @@ test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async (
     await expect
       .poll(
         async () => {
-          active = await (await request.get('/api/clock/active')).json().catch(() => null)
+          active = await (await page.request.get('/api/clock/active')).json().catch(() => null)
           return active?.id ?? null
         },
         { timeout: 15_000, message: 'sessão ativa não apareceu no servidor após ENTRADA' }
@@ -70,7 +70,7 @@ test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async (
     //    cairia no futuro e seria rejeitada), mantendo a atividade. Valida o PATCH.
     const inWall = brtWall(active!.clockIn, -30)
     const outWall = brtWall(active!.clockIn, 0)
-    const patchRes = await request.patch(`/api/clock/${entryId}`, {
+    const patchRes = await page.request.patch(`/api/clock/${entryId}`, {
       data: { clockInAt: inWall, clockOutAt: outWall, activityType: 'modelagem' },
     })
     expect(patchRes.ok(), `PATCH de horários deveria ter sucesso (${patchRes.status()})`).toBeTruthy()
@@ -91,7 +91,7 @@ test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async (
     await expect(page.getByText(NOTE).first()).toBeVisible({ timeout: 10_000 })
 
     // 9) busca server-side encontra a sessão pela nota (prova filtro por nota)
-    const found = await (await request.get(`/api/history?q=${encodeURIComponent(NOTE)}`)).json()
+    const found = await (await page.request.get(`/api/history?q=${encodeURIComponent(NOTE)}`)).json()
     const match = (found?.history?.entries ?? []).find((e: { entryId: string }) => e.entryId === entryId)
     expect(match, 'a busca por nota deveria retornar a sessão').toBeTruthy()
     expect(match.activityType).toBe('modelagem')
@@ -101,12 +101,12 @@ test('ponto com atividade: persiste, edita nota, busca e se auto-limpa', async (
     // sessão ativa e remove. Fecha (se aberta) e apaga — nunca deixa órfã.
     try {
       if (!entryId) {
-        const a = await (await request.get('/api/clock/active')).json().catch(() => null)
+        const a = await (await page.request.get('/api/clock/active')).json().catch(() => null)
         entryId = a?.id
       }
       if (entryId) {
-        await request.put(`/api/clock/${entryId}`).catch(() => {})
-        await request.delete(`/api/clock/${entryId}`).catch(() => {})
+        await page.request.put(`/api/clock/${entryId}`).catch(() => {})
+        await page.request.delete(`/api/clock/${entryId}`).catch(() => {})
       }
     } catch {
       // best-effort

@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fetchActiveSession, fetchProjects } from '@/lib/client-data'
 import { getLocalDateBRT } from '@/lib/dates'
 import { CLOCK_TOGGLE_EVENT, consumePendingClockToggle, setPendingClockToggle } from '@/lib/clock-bus'
+import { SYNC_COMPLETE_EVENT } from '@/lib/sync-events'
 import type { ActivityType } from '@/lib/activity-types'
 import DashboardLoading from './loading'
 import type { DailySummary } from '@/types'
@@ -67,8 +68,8 @@ export function DashboardClient() {
       refetchSession()
       refetchSummary()
     }
-    window.addEventListener('archtime:sync-complete', onSync)
-    return () => window.removeEventListener('archtime:sync-complete', onSync)
+    window.addEventListener(SYNC_COMPLETE_EVENT, onSync)
+    return () => window.removeEventListener(SYNC_COMPLETE_EVENT, onSync)
   }, [refetchSession, refetchSummary])
 
   // The daily summary's week balance depends on weekStartDay; refetch when settings

@@ -51,7 +51,9 @@ export default defineConfig({
   webServer: isLocalBaseURL(process.env.PLAYWRIGHT_BASE_URL)
     ? {
         command: 'npm run dev',
-        url: 'http://localhost:3000',
+        // `/` redireciona para `/login` quando não há sessão, e o Playwright não
+        // considera esse 307 como servidor reutilizável. A rota pública responde 200.
+        url: 'http://localhost:3000/login',
         reuseExistingServer: true,
         timeout: 180_000,
       }

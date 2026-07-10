@@ -7,6 +7,7 @@ vi.mock('@/lib/offline-queue', () => ({ addPendingEntry: vi.fn() }))
 
 import { toast } from 'sonner'
 import { addPendingEntry } from '@/lib/offline-queue'
+import { REQUEST_PENDING_SYNC_EVENT } from '@/lib/sync-events'
 
 const addPendingEntryMock = vi.mocked(addPendingEntry)
 
@@ -137,33 +138,98 @@ describe('useClock', () => {
     expect(toast.error).toHaveBeenCalledWith('Não foi possível salvar a entrada offline')
   })
 
-  it('clock-out: clears session immediately, restores snapshot on API failure', async () => {
-    const initialSession = {
-      id: 'session-abc',
-      clockIn: '2026-05-24T09:00:00Z',
-      projectId: null,
-      projectName: null,
-      projectColor: null,
-      activityType: null,
-    }
-    const { fn, resolve } = deferredFetch()
-    vi.stubGlobal('fetch', fn)
+  const closedSession = {
+    id: 'session-abc',
+    clockIn: '2026-05-24T09:00:00Z',
+    projectId: null,
+    projectName: null,
+    projectColor: null,
+    activityType: null,
+  }
 
-    const { result } = renderHook(() => useClock(initialSession))
-    expect(result.current.session?.id).toBe('session-abc')
+  it('clock-out: erro 4xx (permanente) restaura a sessão e mostra o erro', async () => {
+    vi.stubGlobal('fetch', makeFetchFail({ error: 'Entrada não encontrada' }, 404))
 
-    // Fire without awaiting — the session must clear before the API responds.
-    let pending: Promise<void>
-    act(() => {
-      pending = result.current.clockOut()
+    const { result } = renderHook(() => useClock(closedSession))
+    await act(async () => {
+      await result.current.clockOut()
     })
 
-    expect(result.current.session).toBeNull()
-    expect(result.current.loading).toBe(true)
+    expect(addPendingEntryMock).not.toHaveBeenCalled()
+    expect(result.current.session?.id).toBe('session-abc')
+    expect(result.current.loading).toBe(false)
+    expect(toast.error).toHaveBeenCalledWith('Entrada não encontrada')
+  })
 
+  it('clock-out: envia ao servidor o horário exato do clique', async () => {
+    const clickedAt = new Date('2026-05-24T18:30:00.000Z')
+    vi.useFakeTimers()
+    vi.setSystemTime(clickedAt)
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      const { result } = renderHook(() => useClock(closedSession))
+      await act(async () => {
+        await result.current.clockOut()
+      })
+
+      expect(fetchMock).toHaveBeenCalledWith('/api/clock/session-abc', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clockOutAt: clickedAt.toISOString() }),
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('clock-out: erro 5xx (transitório) enfileira para retry preservando o entryId, mantém a sessão encerrada', async () => {
+    addPendingEntryMock.mockResolvedValueOnce(undefined)
+    vi.stubGlobal('fetch', makeFetchFail({}, 500))
+    const requestSync = vi.fn()
+    window.addEventListener(REQUEST_PENDING_SYNC_EVENT, requestSync)
+
+    const { result } = renderHook(() => useClock(closedSession))
     await act(async () => {
-      resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
-      await pending
+      await result.current.clockOut()
+    })
+
+    window.removeEventListener(REQUEST_PENDING_SYNC_EVENT, requestSync)
+    expect(addPendingEntryMock).toHaveBeenCalledTimes(1)
+    const queued = addPendingEntryMock.mock.calls[0][0]
+    expect(queued.type).toBe('clock_out')
+    expect(queued.entryId).toBe('session-abc')
+    expect(typeof queued.timestamp).toBe('string')
+    expect(result.current.session).toBeNull()
+    expect(result.current.loading).toBe(false)
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(toast.warning).toHaveBeenCalled()
+    expect(requestSync).toHaveBeenCalledTimes(1)
+  })
+
+  it('clock-out: erro de rede enfileira para retry e mantém a sessão encerrada', async () => {
+    addPendingEntryMock.mockResolvedValueOnce(undefined)
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
+
+    const { result } = renderHook(() => useClock(closedSession))
+    await act(async () => {
+      await result.current.clockOut()
+    })
+
+    expect(addPendingEntryMock).toHaveBeenCalledTimes(1)
+    expect(addPendingEntryMock.mock.calls[0][0].type).toBe('clock_out')
+    expect(result.current.session).toBeNull()
+    expect(toast.warning).toHaveBeenCalled()
+  })
+
+  it('clock-out: 5xx mas a fila falha → restaura a sessão e mostra erro', async () => {
+    addPendingEntryMock.mockRejectedValueOnce(new Error('IndexedDB unavailable'))
+    vi.stubGlobal('fetch', makeFetchFail({}, 500))
+
+    const { result } = renderHook(() => useClock(closedSession))
+    await act(async () => {
+      await result.current.clockOut()
     })
 
     expect(result.current.session?.id).toBe('session-abc')
@@ -171,31 +237,27 @@ describe('useClock', () => {
     expect(toast.error).toHaveBeenCalledWith('Erro ao registrar saída')
   })
 
-  it('clock-out: clears session immediately and keeps it cleared on success', async () => {
-    const initialSession = {
-      id: 'session-abc',
-      clockIn: '2026-05-24T09:00:00Z',
-      projectId: null,
-      projectName: null,
-      projectColor: null,
-      activityType: null,
-    }
-    const { fn, resolve } = deferredFetch()
-    vi.stubGlobal('fetch', fn)
+  it('clock-out offline: enfileira e mantém a sessão encerrada', async () => {
+    vi.stubGlobal('navigator', { onLine: false })
+    addPendingEntryMock.mockResolvedValueOnce(undefined)
 
-    const { result } = renderHook(() => useClock(initialSession))
-
-    let pending: Promise<void>
-    act(() => {
-      pending = result.current.clockOut()
+    const { result } = renderHook(() => useClock(closedSession))
+    await act(async () => {
+      await result.current.clockOut()
     })
 
+    expect(addPendingEntryMock).toHaveBeenCalledTimes(1)
+    expect(addPendingEntryMock.mock.calls[0][0].type).toBe('clock_out')
     expect(result.current.session).toBeNull()
-    expect(result.current.loading).toBe(true)
+    expect(toast.warning).toHaveBeenCalled()
+  })
 
+  it('clock-out: sucesso mantém a sessão encerrada', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) }))
+
+    const { result } = renderHook(() => useClock(closedSession))
     await act(async () => {
-      resolve({ ok: true, json: () => Promise.resolve({}) })
-      await pending
+      await result.current.clockOut()
     })
 
     expect(result.current.session).toBeNull()
