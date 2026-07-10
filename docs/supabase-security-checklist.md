@@ -26,7 +26,9 @@
 
 ## Segredos
 
-- Configurar `ENTRY_HASH_SECRET` em produção com um segredo longo e aleatório.
+- Configurar o keyring de HMAC em produção conforme a ADR 0005: manter a chave legada, declarar a
+  chave ativa e armazenar um segredo aleatório por `keyId`. `ENTRY_HASH_SECRET` permanece apenas
+  durante a janela de rollout/rollback compatível.
 - Manter `ALLOWED_EMAILS` como lista explícita de usuários permitidos.
 
 ## Regime de escrita (RLS)

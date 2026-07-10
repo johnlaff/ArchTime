@@ -59,7 +59,7 @@ describe('GET /api/integrity', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body).toEqual({ checked: 1, unhashed: 0, mismatches: [] })
+    expect(body).toEqual({ checked: 1, unhashed: 0, malformed: [], mismatches: [], unverifiable: [] })
     expect(response.headers.get('Cache-Control')).toBe('private, no-store')
   })
 
@@ -74,7 +74,9 @@ describe('GET /api/integrity', () => {
     expect(response.status).toBe(200)
     expect(body.checked).toBe(1)
     expect(body.unhashed).toBe(0)
+    expect(body.malformed).toEqual([])
     expect(body.mismatches).toEqual([{ id: 'entry-1', entryDate: '2026-02-22' }])
+    expect(body.unverifiable).toEqual([])
   })
 
   it('counts an entry with a null hash as unhashed, not a mismatch', async () => {
@@ -84,6 +86,40 @@ describe('GET /api/integrity', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body).toEqual({ checked: 1, unhashed: 1, mismatches: [] })
+    expect(body).toEqual({ checked: 1, unhashed: 1, malformed: [], mismatches: [], unverifiable: [] })
+  })
+
+  it('reports an unavailable key separately from a tampered hash', async () => {
+    findManyMock.mockResolvedValue([
+      baseEntry({ hash: `hmac-v1:k2027-01:${'0'.repeat(64)}` }),
+    ])
+
+    const response = await GET()
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      checked: 1,
+      unhashed: 0,
+      malformed: [],
+      mismatches: [],
+      unverifiable: [{ id: 'entry-1', entryDate: '2026-02-22', keyId: 'k2027-01' }],
+    })
+  })
+
+  it('reports a malformed hash separately from a tampered hash', async () => {
+    findManyMock.mockResolvedValue([baseEntry({ hash: 'hmac-v1:k2026-07:incompleto' })])
+
+    const response = await GET()
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      checked: 1,
+      unhashed: 0,
+      malformed: [{ id: 'entry-1', entryDate: '2026-02-22' }],
+      mismatches: [],
+      unverifiable: [],
+    })
   })
 })
