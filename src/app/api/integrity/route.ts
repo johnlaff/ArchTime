@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyEntryHash } from '@/lib/hash'
+import { verifyEntryHashDetailed } from '@/lib/hash'
 import { getAuthenticatedUser } from '@/lib/server/auth'
 
 export async function GET() {
@@ -13,7 +13,9 @@ export async function GET() {
   })
 
   let unhashed = 0
+  const malformed: { id: string; entryDate: string }[] = []
   const mismatches: { id: string; entryDate: string }[] = []
+  const unverifiable: { id: string; entryDate: string; keyId: string }[] = []
 
   for (const entry of entries) {
     const entryDate = entry.entryDate.toISOString().slice(0, 10)
@@ -21,7 +23,7 @@ export async function GET() {
       unhashed += 1
       continue
     }
-    const valid = await verifyEntryHash(
+    const verification = await verifyEntryHashDetailed(
       {
         clockIn: entry.clockIn.toISOString(),
         clockOut: entry.clockOut!.toISOString(),
@@ -30,13 +32,17 @@ export async function GET() {
       },
       entry.hash
     )
-    if (!valid) {
+    if (verification.status === 'malformed') {
+      malformed.push({ id: entry.id, entryDate })
+    } else if (verification.status === 'unknown-key') {
+      unverifiable.push({ id: entry.id, entryDate, keyId: verification.keyId })
+    } else if (verification.status === 'mismatch') {
       mismatches.push({ id: entry.id, entryDate })
     }
   }
 
   return NextResponse.json(
-    { checked: entries.length, unhashed, mismatches },
+    { checked: entries.length, unhashed, malformed, mismatches, unverifiable },
     { headers: { 'Cache-Control': 'private, no-store' } }
   )
 }

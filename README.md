@@ -40,7 +40,7 @@ sem rede** — o registro entra numa fila local e sincroniza sozinho quando a co
 | 🎨 | **Projetos com cores** | Cada sessão é alocada a um projeto; cores dão leitura visual imediata no histórico e nos gráficos. |
 | 📊 | **Insights** | Heatmap anual e barras semanais **relativos à jornada** — enxerga padrões de esforço, não só totais brutos. |
 | 🗂️ | **Histórico auditável** | Edição de registros com trilha de auditoria; filtros por projeto e atividade sem deslocar a UI. |
-| 🔐 | **Integridade dos registros** | Cada sessão fechada carrega um **HMAC-SHA256** dos seus campos; `/api/integrity` recomputa e detecta adulteração. |
+| 🔐 | **Integridade dos registros** | Cada sessão fechada carrega um **HMAC-SHA256** com `keyId`; `/api/integrity` distingue formato inválido, adulteração e uma chave histórica indisponível. |
 | 📲 | **PWA instalável** | Service worker (Serwist), ícone/manifest e experiência de app nativo no celular. |
 
 ## Arquitetura
@@ -73,9 +73,10 @@ npm run dev                        # http://localhost:3000
 ```
 
 > [!TIP]
-> `ENTRY_HASH_SECRET` é o segredo do HMAC de integridade — gere com `openssl rand -hex 32` (32 bytes /
-> 64 hex). Em produção ele é validado no **boot** (`src/instrumentation.ts`): ausente ou mal formatado
-> **falha o start** do container, em vez de deixar o app subir e quebrar no primeiro clock-out.
+> `ENTRY_HASH_SECRET` é o fallback legado do HMAC de integridade — gere com `openssl rand -hex 32` (32 bytes /
+> 64 hex). Em produção, configure o keyring descrito em [ADR 0005](docs/adr/0005-keyed-entry-hash-rotation.md)
+> para permitir rotação sem re-hash. Toda a configuração é validada no **boot** (`src/instrumentation.ts`):
+> ausente, parcial ou mal formatada **falha o start** do container, em vez de quebrar no primeiro clock-out.
 
 ## Verificação
 

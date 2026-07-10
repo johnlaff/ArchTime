@@ -1,64 +1,96 @@
-import { createHmac, timingSafeEqual } from 'crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import {
+  assertEntryHashConfiguration,
+  getEntryHashConfiguration,
+} from '@/lib/entry-hash-config'
+import {
+  ENTRY_HASH_DIGEST_PATTERN,
+  ENTRY_HASH_KEY_ID_PATTERN,
+  ENTRY_HASH_PREFIX,
+} from '@/lib/entry-hash-format'
 
-const HASH_PREFIX = 'hmac-v1:'
-const DEV_SECRET = 'dev-only-entry-hash-secret'
-// 32 bytes em hex minúsculo — o formato de `openssl rand -hex 32`, o secret canônico
-// de produção. Casar um formato explícito rejeita string vazia, espaços e valores fracos
-// que passariam num teste `!secret` (`''` cai fora do `??`, e é exatamente esse buraco que
-// derrubou o clock-out em produção).
-const SECRET_PATTERN = /^[0-9a-f]{64}$/
-
-/**
- * Resolve e valida o `ENTRY_HASH_SECRET`.
- *
- * Fora de produção aceita a ausência da var e usa um segredo de desenvolvimento fixo
- * (para `npm run dev`/testes rodarem sem configuração). Em produção — ou sempre que a var
- * esteja definida — exige o formato canônico e lança na hora. A validação acontece no boot
- * (via `src/instrumentation.ts`), então um segredo ausente/mal formatado falha o START do
- * container em vez de deixar o app subir e quebrar só no primeiro clock-out.
- */
-function getEntryHashSecret(): string {
-  const secret = process.env.ENTRY_HASH_SECRET
-  if (secret === undefined && process.env.NODE_ENV !== 'production') {
-    return DEV_SECRET
-  }
-  if (secret === undefined || !SECRET_PATTERN.test(secret)) {
-    throw new Error(
-      'ENTRY_HASH_SECRET inválido ou ausente: esperado 32 bytes em 64 caracteres hexadecimais (ex.: `openssl rand -hex 32`).'
-    )
-  }
-  return secret
-}
-
-/** Valida a presença/formato do segredo. Chamado no boot para falhar cedo (fail-fast). */
-export function assertEntryHashSecret(): void {
-  getEntryHashSecret()
-}
-
-export async function generateEntryHash(entry: {
+type HashInput = {
   clockIn: string
   clockOut: string
   userId: string
   entryDate: string
-}): Promise<string> {
-  const secret = getEntryHashSecret()
+}
 
-  const data = JSON.stringify({
+type ParsedHash = { keyId: string | null; digest: string }
+
+export type EntryHashVerification =
+  | { status: 'valid' }
+  | { status: 'malformed' }
+  | { status: 'mismatch' }
+  | { status: 'unknown-key'; keyId: string }
+
+export { assertEntryHashConfiguration }
+export { assertEntryHashConfiguration as assertEntryHashSecret }
+
+function payload(entry: HashInput): string {
+  return JSON.stringify({
     clockIn: entry.clockIn,
     clockOut: entry.clockOut,
     userId: entry.userId,
     entryDate: entry.entryDate,
   })
-  return `${HASH_PREFIX}${createHmac('sha256', secret).update(data).digest('hex')}`
+}
+
+function digest(entry: HashInput, secret: string): string {
+  return createHmac('sha256', secret).update(payload(entry)).digest('hex')
+}
+
+function parseHash(storedHash: string): ParsedHash | null {
+  const parts = storedHash.split(':')
+  if (parts[0] !== ENTRY_HASH_PREFIX) return null
+
+  if (parts.length === 2 && ENTRY_HASH_DIGEST_PATTERN.test(parts[1])) {
+    return { keyId: null, digest: parts[1] }
+  }
+  if (
+    parts.length === 3 &&
+    ENTRY_HASH_KEY_ID_PATTERN.test(parts[1]) &&
+    ENTRY_HASH_DIGEST_PATTERN.test(parts[2])
+  ) {
+    return { keyId: parts[1], digest: parts[2] }
+  }
+  return null
+}
+
+function sameDigest(expected: string, actual: string): boolean {
+  const expectedBuffer = Buffer.from(expected)
+  const actualBuffer = Buffer.from(actual)
+  return expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer)
+}
+
+export async function generateEntryHash(entry: HashInput): Promise<string> {
+  const configuration = getEntryHashConfiguration()
+  const value = digest(entry, configuration.active.secret)
+  return configuration.keyed
+    ? `${ENTRY_HASH_PREFIX}:${configuration.active.keyId}:${value}`
+    : `${ENTRY_HASH_PREFIX}:${value}`
+}
+
+/** Recomputa o HMAC e informa se a chave necessária ainda está disponível. */
+export async function verifyEntryHashDetailed(
+  entry: HashInput,
+  storedHash: string
+): Promise<EntryHashVerification> {
+  const parsed = parseHash(storedHash)
+  if (!parsed) return { status: 'malformed' }
+
+  const configuration = getEntryHashConfiguration()
+  const secret = parsed.keyId === null
+    ? configuration.legacy.secret
+    : configuration.keys.get(parsed.keyId)
+
+  if (!secret) return { status: 'unknown-key', keyId: parsed.keyId! }
+  return sameDigest(digest(entry, secret), parsed.digest)
+    ? { status: 'valid' }
+    : { status: 'mismatch' }
 }
 
 /** Recomputa o HMAC e compara em tempo constante com o hash armazenado. */
-export async function verifyEntryHash(
-  entry: { clockIn: string; clockOut: string; userId: string; entryDate: string },
-  storedHash: string
-): Promise<boolean> {
-  const expected = await generateEntryHash(entry)
-  const a = Buffer.from(expected)
-  const b = Buffer.from(storedHash)
-  return a.length === b.length && timingSafeEqual(a, b)
+export async function verifyEntryHash(entry: HashInput, storedHash: string): Promise<boolean> {
+  return (await verifyEntryHashDetailed(entry, storedHash)).status === 'valid'
 }

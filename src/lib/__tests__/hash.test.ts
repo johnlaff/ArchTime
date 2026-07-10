@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { assertEntryHashSecret, generateEntryHash, verifyEntryHash } from '../hash'
+import {
+  assertEntryHashSecret,
+  generateEntryHash,
+  verifyEntryHash,
+  verifyEntryHashDetailed,
+} from '../hash'
 
 const VALID_SECRET = 'a'.repeat(64) // 64 chars hex — formato de `openssl rand -hex 32`
 
@@ -55,6 +60,67 @@ describe('verifyEntryHash', () => {
   })
 })
 
+describe('keyring de hashes de Sessão', () => {
+  const entry = {
+    clockIn: '2026-02-22T09:00:00.000Z',
+    clockOut: '2026-02-22T17:00:00.000Z',
+    userId: 'user-123',
+    entryDate: '2026-02-22',
+  }
+  const legacySecret = 'a'.repeat(64)
+  const activeSecret = 'b'.repeat(64)
+
+  function configureKeyring(activeKeyId = 'k2026-10') {
+    vi.stubEnv('ENTRY_HASH_KEY_IDS', 'k2026-07,k2026-10')
+    vi.stubEnv('ENTRY_HASH_ACTIVE_KEY_ID', activeKeyId)
+    vi.stubEnv('ENTRY_HASH_LEGACY_KEY_ID', 'k2026-07')
+    vi.stubEnv('ENTRY_HASH_SECRET_K2026_07', legacySecret)
+    vi.stubEnv('ENTRY_HASH_SECRET_K2026_10', activeSecret)
+  }
+
+  it('grava hashes novos com o keyId ativo', async () => {
+    configureKeyring()
+
+    await expect(generateEntryHash(entry)).resolves.toMatch(/^hmac-v1:k2026-10:[0-9a-f]{64}$/)
+  })
+
+  it('continua verificando hashes legados sem re-hash depois da migração para o keyring', async () => {
+    vi.stubEnv('ENTRY_HASH_SECRET', legacySecret)
+    const legacyHash = await generateEntryHash(entry)
+
+    configureKeyring()
+    const activeHash = await generateEntryHash(entry)
+
+    await expect(verifyEntryHash(entry, legacyHash)).resolves.toBe(true)
+    await expect(verifyEntryHash(entry, activeHash)).resolves.toBe(true)
+  })
+
+  it('continua verificando uma chave identificada anterior depois de trocar a chave ativa', async () => {
+    configureKeyring('k2026-07')
+    const historicalKeyedHash = await generateEntryHash(entry)
+
+    configureKeyring('k2026-10')
+
+    await expect(verifyEntryHash(entry, historicalKeyedHash)).resolves.toBe(true)
+  })
+
+  it('distingue um keyId indisponível de uma adulteração do hash', async () => {
+    configureKeyring()
+
+    await expect(
+      verifyEntryHashDetailed(entry, `hmac-v1:k2027-01:${'0'.repeat(64)}`)
+    ).resolves.toEqual({ status: 'unknown-key', keyId: 'k2027-01' })
+  })
+
+  it('distingue um hash malformado de uma adulteração criptográfica', async () => {
+    configureKeyring()
+
+    await expect(verifyEntryHashDetailed(entry, 'hmac-v1:k2026-10:incompleto')).resolves.toEqual({
+      status: 'malformed',
+    })
+  })
+})
+
 describe('assertEntryHashSecret — validação do segredo', () => {
   const entry = {
     clockIn: '2026-02-22T09:00:00.000Z',
@@ -99,5 +165,12 @@ describe('assertEntryHashSecret — validação do segredo', () => {
     vi.stubEnv('NODE_ENV', 'development')
     vi.stubEnv('ENTRY_HASH_SECRET', '')
     expect(() => assertEntryHashSecret()).toThrow(/ENTRY_HASH_SECRET/)
+  })
+
+  it('lança quando o keyring está configurado parcialmente', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('ENTRY_HASH_KEY_IDS', 'k2026-07')
+
+    expect(() => assertEntryHashSecret()).toThrow(/ENTRY_HASH_ACTIVE_KEY_ID/)
   })
 })
