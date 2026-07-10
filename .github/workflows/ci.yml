@@ -13,12 +13,12 @@ jobs:
       # módulos client. Nenhum segredo real é necessário — os testes mockam o Prisma.
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-      NEXT_PUBLIC_APP_URL: https://archtime.netlify.app
+      NEXT_PUBLIC_APP_URL: https://archtime.app
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22   # espelha NODE_VERSION do netlify.toml
+          node-version: 22   # mesma major do runtime de produção (Dockerfile: node:22-bookworm-slim)
           cache: npm
       - run: npm ci
       - run: npx prisma generate

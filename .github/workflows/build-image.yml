@@ -2,7 +2,8 @@ name: build-image
 
 # Builda a imagem de container e publica no GitHub Container Registry (ghcr.io),
 # de onde o Azure App Service (Brazil South) puxa. Roda em push na main (ignorando
-# mudanças só de documentação) e sob demanda. NÃO afeta a produção atual da Netlify.
+# mudanças só de documentação) e sob demanda. Em push na main, dispara o deploy de
+# produção no Azure App Service via webhook de CD (passo final deste workflow).
 #
 # Os NEXT_PUBLIC_* são valores públicos inlinados no bundle client em build time
 # (secrets do repo). Os segredos de RUNTIME (DATABASE_URL, ENTRY_HASH_SECRET,

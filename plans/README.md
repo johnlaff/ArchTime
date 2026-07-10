@@ -35,10 +35,10 @@ foi re-despachado; os achados de RLS (#2, #3) e Host (#7) vieram da 2ª.
 | 011 | Higiene: README real, SVGs órfãos, Node 22 | P3 | S | 001 | DONE |
 | 012 | Guard de resposta obsoleta no useSupabaseQuery | P3 | S | — | DONE |
 | 013 | Spike de design: faturamento (horas × hourlyRate) | P3 | M | 006 | DONE (design em docs/plans/2026-07-03-faturamento-design.md; 6 questões abertas aguardando o mantenedor) |
-| 014 | Sincronizar schema Prisma + completar lockdown RLS (migration 0007) | P1 | S | — | DONE (migration 0007 criada; APLICAÇÃO em produção pendente do operador — ver STOP condition) |
+| 014 | Sincronizar schema Prisma + completar lockdown RLS (migration 0007) | P1 | S | — | DONE (migration 0007 aplicada e verificada em produção em 2026-07-10 — colunas/índices de drift presentes; RLS de `users`/`user_settings` sem policy INSERT/UPDATE) |
 | 015 | Tratar falha do IndexedDB no clock-in offline | P1 | S | — | DONE |
 | 016 | Guarda condicional no UPDATE de clock-out (race) | P2 | M | — | DONE |
-| 017 | Remover código morto e duplicado (sweep de hygiene) | P3 | S | — | DONE (migration 0008 criada; APLICAÇÃO em produção pendente do operador — ver STOP condition) |
+| 017 | Remover código morto e duplicado (sweep de hygiene) | P3 | S | — | DONE (migration 0008 aplicada e verificada em produção em 2026-07-10 — coluna `audit_log.ip_address` removida) |
 | 018 | Corrigir env var fantasma e docs de setup/segurança | P3 | S | 014 (recomendado) | DONE |
 | 019 | Gate de react-doctor no CI | P2 | S | — | DONE |
 | 020 | Adicionar linter (Biome) e remover `eslint-disable` mortos | P3 | M | — | DONE (linter-only: formatter e recommended desligados p/ evitar reformatar 342 linhas / 95 violações de estilo — full recommended fica p/ sweep separado) |
@@ -58,9 +58,9 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (com motivo em uma linha) | R
   e o 005 renomeia o mock de `@/lib/hour-bank` usado neles.
 - **003 antes de 008 (recomendado)**: a verificação de hash assume que escrita client-direct já
   não existe; sem o lockdown ela ainda funciona, mas o cenário limpo é pós-003.
-- **011 requer 001**: o bump de Node atualiza `netlify.toml` e o `ci.yml` juntos.
+- **011 requer 001**: à época, o bump de Node atualizava `netlify.toml` e o `ci.yml` juntos.
 - **013 requer 006**: o spike de faturamento consome o contrato numérico de `hourlyRate` na API.
-- **003 e 008 tocam produção** (banco único, previews compartilham o DB — ADR 0003): a APLICAÇÃO
+- **003 e 008 tocam produção** (banco único; à época, os previews da Netlify compartilhavam o DB — ADR 0003): a APLICAÇÃO
   da migration do 003 é do operador, nunca do executor (STOP condition explícita no plano).
 
 ### Rodada 2
@@ -76,8 +76,9 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (com motivo em uma linha) | R
   conflitam (gates diferentes); podem ir em qualquer ordem ou em paralelo.
 - **023 e 024 são aditivos**: só criam test files, não tocam código de produção. Podem rodar em
   paralelo entre si e com qualquer outro plano.
-- **014 e 017 tocam produção** (migrations 0007/0008): a APLICAÇÃO em produção é do operador,
-  nunca do executor (STOP conditions explícitas em ambos).
+- **014 e 017 tocaram produção** (migrations 0007/0008): a aplicação foi do operador, nunca do
+  executor (STOP conditions explícitas em ambos). Ambas já estão aplicadas e verificadas em
+  produção (ledger `_prisma_migrations` com 0000–0008 completas em 2026-07-10).
 - **015 é independente e LOW risk**: toca só `src/hooks/use-clock.ts` (cliente); pode rodar a
   qualquer momento, inclusive antes de 016 (que toca o server).
 

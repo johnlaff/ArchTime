@@ -17,7 +17,7 @@ const fraunces = Fraunces({
   axes: ['opsz'],
 })
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archtime.netlify.app'
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://archtime.app'
 
 export const metadata: Metadata = {
   title: 'ArchTime',
