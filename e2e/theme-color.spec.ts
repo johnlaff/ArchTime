@@ -23,7 +23,12 @@ async function readThemeColor(page: Page): Promise<string> {
 // O accent rosa saturado (#ec4899) tem luminância ~0.30. Se a status bar seguisse o
 // accent (o bug), ela cairia nessa faixa média em ambos os temas. Seguindo o fundo,
 // ela é escura no dark e clara no light — bem fora dessa faixa.
-test('a status bar (theme-color) segue o fundo do tema escuro, não o accent', async ({ page }) => {
+//
+// emulateMedia força o prefers-color-scheme do SO a DIVERGIR do tema escolhido: é o
+// cenário que descarta <meta media="(prefers-color-scheme)"> estático (que segue o SO)
+// e exige a meta única sincronizada em runtime pelo tema resolvido do app.
+test('a status bar (theme-color) segue o fundo do tema escuro mesmo com SO claro', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
   await applyAppearance(page, { dark: true, pink: true })
   await page.goto('/dashboard')
   await expect(page.getByRole('heading', { name: 'Ponto' })).toBeVisible({ timeout: 30_000 })
@@ -32,7 +37,8 @@ test('a status bar (theme-color) segue o fundo do tema escuro, não o accent', a
   expect(luminance(color), `theme-color ${color} deveria ser um fundo escuro`).toBeLessThan(0.05)
 })
 
-test('a status bar (theme-color) segue o fundo do tema claro, não o accent', async ({ page }) => {
+test('a status bar (theme-color) segue o fundo do tema claro mesmo com SO escuro', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
   await applyAppearance(page, { dark: false, pink: true })
   await page.goto('/dashboard')
   await expect(page.getByRole('heading', { name: 'Ponto' })).toBeVisible({ timeout: 30_000 })

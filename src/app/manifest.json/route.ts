@@ -15,10 +15,12 @@ const ICON_PURPOSES = ['any', 'maskable'] as const
  * indigo fixo; como rota dinâmica ele fica fora do precache e reflete a cor atual em
  * instalações e atualizações do app.
  *
- * theme_color/background_color pintam a status bar e o splash na abertura do PWA e
- * usam o fundo do tema escuro (o app abre escuro por padrão), não o accent — a status
- * bar acompanha o app. Depois da abertura, o ThemeColorSync atualiza o <meta
- * name="theme-color"> em runtime para o fundo do tema efetivo (claro/escuro/tingido).
+ * theme_color/background_color pintam a status bar e o splash na abertura do PWA. O
+ * manifest não varia por esquema em nenhum browser, então usam uma cor única e fixa —
+ * o fundo escuro, como âncora de marca (não o accent). Depois da abertura, o
+ * ThemeColorSync atualiza o <meta name="theme-color"> em runtime para o fundo do tema
+ * efetivo (claro/escuro/tingido); um usuário com SO claro e sem preferência salva vê a
+ * splash escura por um instante antes dessa correção — limitação de plataforma, não bug.
  */
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies()
