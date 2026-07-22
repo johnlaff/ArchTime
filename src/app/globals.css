@@ -166,21 +166,37 @@ html {
   scrollbar-gutter: stable;
 }
 
-/* ─── Theme circular reveal — WAAPI controla o pseudo-elemento do snapshot ─── */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
+/* ─── Theme circular reveal — animação CSS no snapshot do novo tema ─────────────
+   O snapshot do tema atual (old) fica estático por baixo; o do novo tema (new) é
+   revelado por um círculo que cresce do ponto tocado. A animação é CSS (não um WAAPI
+   agendado em requestAnimationFrame/transition.ready): assim ela já está no primeiro
+   frame em que o pseudo-elemento nasce. Um WAAPI agendado abre, no mobile, um gap de
+   1-2 frames em que o novo tema aparece sem clip — um flash de tela cheia.
 
+   Easing = "emphasized decelerate" do Material 3: o círculo parte do raio 0, então a
+   curva acelera de imediato e assenta no fim (decelerate). Um ease-in-out faria o
+   reveal hesitar nos primeiros quadros e passaria sensação de lentidão. */
 html.theme-switching::view-transition-old(root) {
+  animation: none;
   z-index: 1;
 }
 
 html.theme-switching::view-transition-new(root) {
-  clip-path: circle(0px at var(--theme-reveal-x, 50vw) var(--theme-reveal-y, 50vh));
+  animation: theme-reveal 320ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  mix-blend-mode: normal;
   will-change: clip-path;
   z-index: 2;
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0px at var(--theme-reveal-x, 50vw) var(--theme-reveal-y, 50vh));
+  }
+  to {
+    clip-path: circle(
+      var(--theme-reveal-radius, 150vmax) at var(--theme-reveal-x, 50vw) var(--theme-reveal-y, 50vh)
+    );
+  }
 }
 
 /* ─── Stable theme switch — bloqueia transições concorrentes durante troca de tema ─── */

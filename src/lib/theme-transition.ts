@@ -1,14 +1,9 @@
 import type { ThemeMode } from '@/lib/preferences'
 
+// A duração e a curva do reveal vivem no CSS (@keyframes theme-reveal em globals.css),
+// onde a animação roda; aqui fica só a janela em que as transições de cor concorrentes
+// seguem suprimidas após a troca.
 export const THEME_SWITCH_SUPPRESSION_MS = 180
-export const THEME_REVEAL_DURATION_MS = 320
-
-// O círculo parte do raio 0: a curva tem de acelerar de imediato e desacelerar no
-// fim (decelerate / ease-out). Um ease-in-out faria o reveal "hesitar" no começo —
-// nada cresce nos primeiros quadros — e passaria a sensação de lentidão/travamento.
-// cubic-bezier(0.05, 0.7, 0.1, 1) é o "emphasized decelerate" (Material 3): abre
-// rápido e assenta suave.
-export const THEME_REVEAL_EASING = 'cubic-bezier(0.05, 0.7, 0.1, 1)'
 
 interface ViewportSize {
   width: number
