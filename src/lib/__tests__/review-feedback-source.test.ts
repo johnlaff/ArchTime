@@ -74,10 +74,11 @@ describe('review feedback regressions', () => {
   })
 
   it('keeps the circular reveal final frame filled until the browser removes the snapshot', () => {
-    const source = readSource('src/hooks/use-theme-toggle.ts')
+    // fill-mode `both` na animação CSS mantém o círculo no raio final (tela cheia) até
+    // o browser remover o snapshot — sem ele, o novo tema sumiria no último frame.
+    const css = readSource('src/app/globals.css')
 
-    expect(source).toContain("fill: 'both'")
-    expect(source).toContain('anim.finished')
+    expect(css).toMatch(/animation:\s*theme-reveal[^;]*\bboth\b/)
   })
 
   it('uses plain router.push and avoids mount-time route prefetch storms', () => {
