@@ -66,7 +66,6 @@ describe('review feedback regressions', () => {
     expect(source).toContain('document.head.appendChild(icon)')
     expect(source).toContain('clearBrowserAccentTimers')
     expect(source).toContain('activeBrowserAccentColor === color')
-    expect(source).toContain("querySelector('meta[name=\"theme-color\"]')")
     // Sem `color` explícito a resposta depende do cookie de accent → não pode ser
     // cacheada; com `color` na URL ela é determinística e pode.
     expect(iconRoute).toContain("requestedColor ? 'public, max-age=86400' : 'no-store, max-age=0'")
@@ -106,20 +105,32 @@ describe('review feedback regressions', () => {
     expect(existsSync(join(process.cwd(), 'src/hooks/use-route-prefetch.ts'))).toBe(false)
   })
 
-  it('keeps <head> icon/theme-color out of React metadata so browser-accent owns them (removeChild freeze regression)', () => {
-    // browser-accent.ts manages <link rel="icon">, apple-touch-icon and the
-    // theme-color <meta> imperatively at runtime (to track the accent color).
-    // If layout.tsx ALSO declares them via `metadata.icons` / `viewport.themeColor`,
-    // React 19 owns those same <head> nodes; when browser-accent removes them React's
-    // <head> reconciliation on the next client navigation throws "Cannot read
-    // properties of null (reading 'removeChild')" and the page swap freezes
-    // (URL changes, UI does not). Keep a single owner — do not re-add these here.
+  it('keeps <head> icon/theme-color out of React metadata so the runtime owns them (removeChild freeze regression)', () => {
+    // browser-accent.ts manages <link rel="icon">, apple-touch-icon and the manifest
+    // link imperatively at runtime (accent-driven); theme-color.ts manages the
+    // theme-color <meta> (theme-background-driven). If layout.tsx ALSO declares them
+    // via `metadata.icons` / `viewport.themeColor`, React 19 owns those same <head>
+    // nodes; when the runtime removes them React's <head> reconciliation on the next
+    // client navigation throws "Cannot read properties of null (reading 'removeChild')"
+    // and the page swap freezes (URL changes, UI does not). Keep a single owner — do
+    // not re-add these here.
     const layout = readSource('src/app/layout.tsx')
 
     expect(layout).not.toMatch(/^\s*icons\s*:/m)
     expect(layout).not.toMatch(/themeColor\s*:/)
     // O manifest também é do browser-accent (href carrega ?color= do accent).
     expect(layout).not.toMatch(/^\s*manifest\s*:/m)
+  })
+
+  it('splits status-bar ownership from accent: theme-color follows the theme background, not the accent', () => {
+    const browserAccent = readSource('src/lib/browser-accent.ts')
+    const themeColor = readSource('src/lib/theme-color.ts')
+
+    // browser-accent deixou de tocar no theme-color (agora é do theme-color.ts) —
+    // senão a status bar voltaria a seguir o accent (verde sobre app escuro).
+    expect(browserAccent).not.toContain('theme-color')
+    expect(themeColor).toContain("querySelector('meta[name=\"theme-color\"]')")
+    expect(themeColor).toContain('getComputedStyle(document.body).backgroundColor')
   })
 
   it('plays animations regardless of the OS reduced-motion setting (deliberate product decision)', () => {

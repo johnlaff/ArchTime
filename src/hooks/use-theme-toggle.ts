@@ -19,6 +19,7 @@ import {
   setThemeRevealGeometry,
   startThemeViewTransition,
   THEME_REVEAL_DURATION_MS,
+  THEME_REVEAL_EASING,
   THEME_SWITCH_SUPPRESSION_MS,
 } from '@/lib/theme-transition'
 
@@ -78,7 +79,7 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
               },
               {
                 duration: THEME_REVEAL_DURATION_MS,
-                easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                easing: THEME_REVEAL_EASING,
                 fill: 'both',
                 pseudoElement: '::view-transition-new(root)',
               }

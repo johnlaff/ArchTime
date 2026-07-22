@@ -11,6 +11,7 @@ import { usePerfMonitor } from '@/hooks/use-perf-monitor'
 import { useThemeToggle } from '@/hooks/use-theme-toggle'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { CommandPalette } from '@/components/command-palette'
+import { ThemeColorSync } from '@/components/theme-color-sync'
 import {
   getLastLocalPreferenceChange,
   hasLocalCustomAccentPreference,
@@ -76,6 +77,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <MotionConfig reducedMotion="never">
           <SyncProvider>
             <PreferencesHydrator />
+            <ThemeColorSync />
             {children}
             <CommandPalette />
             <Toaster richColors position="bottom-center" closeButton />
