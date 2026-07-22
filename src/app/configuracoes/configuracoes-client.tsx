@@ -91,6 +91,8 @@ export function ConfiguracoesClient({
   }, [activePreset, density])
 
   const [blueprint, setBlueprint] = useState<boolean>(false)
+  // Tingir o fundo com a cor de destaque: ligado por padrão (só 'off' desliga).
+  const [bgTint, setBgTint] = useState<boolean>(true)
 
   useEffect(() => {
     const saved = localStorage.getItem('archtime-blueprint')
@@ -98,6 +100,8 @@ export function ConfiguracoesClient({
     // react-doctor-disable-next-line react-doctor/no-initialize-state -- lê localStorage (indisponível no SSR); lazy initializer causaria hydration mismatch; useSyncExternalStore seria excessivo para essa flag simples.
     setBlueprint(enabled)
     if (enabled) document.documentElement.setAttribute('data-blueprint', 'true')
+    // react-doctor-disable-next-line react-doctor/no-initialize-state -- idem: espelha o atributo já aplicado pelo script anti-flash a partir do localStorage.
+    setBgTint(localStorage.getItem('archtime-bg-tint') !== 'off')
   }, [])
 
   function toggleBlueprint(enabled: boolean) {
@@ -108,6 +112,17 @@ export function ConfiguracoesClient({
     } else {
       document.documentElement.removeAttribute('data-blueprint')
       localStorage.removeItem('archtime-blueprint')
+    }
+  }
+
+  function toggleBgTint(enabled: boolean) {
+    setBgTint(enabled)
+    if (enabled) {
+      document.documentElement.setAttribute('data-bg-tint', 'on')
+      localStorage.removeItem('archtime-bg-tint') // ausência = ligado (padrão)
+    } else {
+      document.documentElement.removeAttribute('data-bg-tint')
+      localStorage.setItem('archtime-bg-tint', 'off')
     }
   }
 
@@ -376,7 +391,10 @@ export function ConfiguracoesClient({
                   key={key}
                   type="button"
                   onClick={() => setDensity(key)}
-                  className={`flex-1 py-1.5 px-2 rounded text-xs transition-colors ${
+                  title={preset.label}
+                  // min-w-0 deixa o flex-1 encolher abaixo do texto; truncate evita
+                  // overflow horizontal a 320px (WCAG 1.4.10) — o title preserva o rótulo.
+                  className={`min-w-0 flex-1 truncate py-1.5 px-1.5 rounded text-xs transition-colors ${
                     density === key
                       ? 'bg-background text-foreground shadow-sm font-medium'
                       : 'text-muted-foreground hover:text-foreground'
@@ -388,13 +406,15 @@ export function ConfiguracoesClient({
             </div>
           </div>
 
-          {/* Blueprint */}
-          <label className="flex items-center gap-3 text-sm cursor-pointer">
+          {/* Blueprint. items-start + py-3: alvo de toque de 44px e checkbox ancorado
+              à 1ª linha se o rótulo quebrar (320px/zoom) — mesmo padrão do toggle irmão
+              "Fundo tingido", para os dois toggles do card compartilharem a affordance. */}
+          <label className="flex items-start gap-3 text-sm py-3 cursor-pointer">
             <input
               type="checkbox"
               checked={blueprint}
               onChange={(e) => toggleBlueprint(e.target.checked)}
-              className="h-4 w-4 accent-primary"
+              className="mt-0.5 h-4 w-4 accent-primary"
             />
             Grid de prancha (fundo técnico)
           </label>
@@ -408,6 +428,29 @@ export function ConfiguracoesClient({
               onCustomColorChange={setCustomColor}
               className="max-w-[360px]"
             />
+            {/* Modificador da cor de destaque, ao fim da seção (com respiro abaixo, já
+                que a próxima seção é "Tema"). Sob um preset o efeito é inerte: o input
+                fica disabled (estilo via has-[:disabled]) e o motivo/como-reverter vai
+                num parágrafo à parte, ligado por aria-describedby — fora do nome
+                acessível e legível mesmo com o controle esmaecido. Alvo de toque 44px. */}
+            <div className="space-y-1">
+              <label className="flex items-start gap-3 text-sm py-3 cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+                <input
+                  type="checkbox"
+                  checked={bgTint}
+                  disabled={activePreset !== null}
+                  onChange={(e) => toggleBgTint(e.target.checked)}
+                  aria-describedby={activePreset !== null ? 'bg-tint-hint' : undefined}
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                />
+                Fundo tingido pela cor de destaque
+              </label>
+              {activePreset !== null && (
+                <p id="bg-tint-hint" className="pl-7 text-xs text-muted-foreground">
+                  Indisponível com um preset ativo — escolha “Nenhum” em Preset para habilitar.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1">
