@@ -95,6 +95,7 @@ export function DashboardClient() {
   // Clock toggle requested by the command palette / `B` key (docs/adr/0001). The ref
   // always points at the latest handlers so the listener subscribes once.
   const toggleRef = useRef<() => void>(() => {})
+  // react-doctor-disable-next-line react-doctor/no-ref-current-in-render -- latest-ref pattern (ver comentário acima): atribuição idempotente em render mantém o ref no handler mais recente para o listener assinar uma vez; não vaza estado de UI.
   toggleRef.current = () => {
     // Toggled before the optimistic session is seeded (brief skeleton window):
     // defer so we don't clock IN over an already-open server session. The
