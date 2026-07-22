@@ -23,14 +23,16 @@ export const metadata: Metadata = {
   title: 'ArchTime',
   description: 'Time tracking para freelancers e profissionais independentes',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'ArchTime' },
-  // Favicon / apple-touch-icon / theme-color / manifest are owned at runtime by
-  // browser-accent.ts so they track the user's accent color (the manifest link
-  // carries `?color=` because the browser fetches it without credentials). They are
-  // deliberately NOT declared here (metadata) nor in `viewport`: if React renders &
-  // owns these <head> nodes and browser-accent removes/replaces them, React's <head>
-  // reconciliation on every client navigation throws "Cannot read properties of
-  // null (reading 'removeChild')" and the page swap freezes (URL changes, UI does
-  // not). Keeping a single owner (browser-accent) eliminates that conflict.
+  // Favicon / apple-touch-icon / manifest are owned at runtime by browser-accent.ts
+  // so they track the user's accent color (the manifest link carries `?color=`
+  // because the browser fetches it without credentials); the theme-color <meta> is
+  // owned by theme-color.ts (ThemeColorSync) so the status bar tracks the resolved
+  // theme background. All are created imperatively and deliberately NOT declared here
+  // (metadata) nor in `viewport`: if React renders & owns these <head> nodes and the
+  // runtime removes/replaces them, React's <head> reconciliation on every client
+  // navigation throws "Cannot read properties of null (reading 'removeChild')" and
+  // the page swap freezes (URL changes, UI does not). Keeping the runtime as the sole
+  // owner eliminates that conflict.
   openGraph: {
     title: 'ArchTime',
     description: 'Time tracking para freelancers e profissionais independentes',
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
   },
 }
 
-// themeColor is set at runtime by browser-accent.ts (see metadata note above).
+// themeColor is set at runtime by theme-color.ts / ThemeColorSync (see metadata note above).
 export const viewport: Viewport = {}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

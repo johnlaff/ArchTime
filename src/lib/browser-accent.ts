@@ -81,14 +81,6 @@ function updateBrowserAccentLinks(color: string) {
     document.head.appendChild(manifest)
   }
   manifest.href = `/manifest.json?color=${encodeURIComponent(color)}`
-
-  let themeColor = document.head.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
-  if (!themeColor) {
-    themeColor = document.createElement('meta')
-    themeColor.name = 'theme-color'
-    document.head.appendChild(themeColor)
-  }
-  themeColor.content = color
 }
 
 export function syncBrowserAccentColor(hex: string) {
