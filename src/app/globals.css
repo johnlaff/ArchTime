@@ -9,14 +9,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -72,14 +64,6 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 
   /* ── Font display ── */
   --font-display: var(--font-geist-sans);
@@ -166,14 +150,6 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
@@ -702,6 +678,31 @@ html.theme-switching *::after {
   --accent-foreground: var(--custom-accent-soft-foreground-dark, oklch(0.96 0 0));
   --muted: var(--custom-accent-muted-dark, color-mix(in oklch, var(--custom-accent-hex) 10%, black));
   --muted-foreground: oklch(0.708 0 0);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FUNDO TINGIDO PELA COR DE DESTAQUE (accent-driven background tint)
+   Uma única regra deriva a matiz do --primary via relative color, servindo os 14
+   presets de accent E a cor personalizada (cujo --primary é o hex escolhido).
+   L fixo no valor do tema neutro + chroma clampado ⇒ WCAG AA preservado em toda
+   matiz (prova: src/lib/__tests__/background-tint.test.ts). Gated por
+   [data-bg-tint="on"] (toggle "Tingir o fundo", ligado por padrão); inativo sob
+   um preset arquitetônico — o preset tem precedência sobre o fundo.
+   O @supports é o fallback seguro: engines sem relative color ignoram o bloco e
+   ficam com os tokens neutros de :root/.dark, nunca com um --background inválido.
+   ═══════════════════════════════════════════════════════════════ */
+@supports (color: oklch(from red l c h)) {
+  [data-bg-tint="on"][data-accent]:not([data-preset]) {
+    --background:       oklch(from var(--primary) 0.98 clamp(0, c, 0.012) h);
+    --muted-foreground: oklch(from var(--primary) 0.5 clamp(0, c, 0.02) h);
+  }
+  .dark[data-bg-tint="on"][data-accent]:not([data-preset]) {
+    --background: oklch(from var(--primary) 0.145 clamp(0, c, 0.01) h);
+    --card:      oklch(from var(--primary) 0.205 clamp(0, c, 0.008) h);
+    /* O escurecimento do muted-foreground é só para o fundo claro; no escuro o valor
+       neutro (0.708) já passa AA com folga, então é restaurado aqui. */
+    --muted-foreground: oklch(0.708 0 0);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════

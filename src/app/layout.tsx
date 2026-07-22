@@ -125,6 +125,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               document.documentElement.setAttribute('data-density',d);
               if(localStorage.getItem('archtime-blueprint')==='true')
                 document.documentElement.setAttribute('data-blueprint','true');
+              if(localStorage.getItem('archtime-bg-tint')!=='off')
+                document.documentElement.setAttribute('data-bg-tint','on');
             })()`,
           }}
         />

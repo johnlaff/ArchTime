@@ -47,6 +47,7 @@ export function useSupabaseQuery<T>(
   const [loading, setLoading] = useState<boolean>(cached?.data === undefined)
 
   const fetcherRef = useRef(fetcher)
+  // react-doctor-disable-next-line react-doctor/no-ref-current-in-render -- latest-ref pattern: mantém o fetcher mais recente para o load() estável; atribuição idempotente em render, sem vazamento de UI.
   fetcherRef.current = fetcher
   const mountedRef = useRef(true)
 

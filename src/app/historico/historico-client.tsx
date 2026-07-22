@@ -219,6 +219,7 @@ export function HistoricoClient({
   const [searchInput, setSearchInput] = useState('')
   const [filters, setFilters] = useState<HistoryFilters>({})
   const filtersRef = useRef(filters)
+  // react-doctor-disable-next-line react-doctor/no-ref-current-in-render -- latest-ref pattern: espelha o filters mais recente para leitura em effects sem re-subscrever; atribuição idempotente, sem vazamento de UI.
   filtersRef.current = filters
 
   const didMount = useRef(false)
