@@ -3,12 +3,11 @@
 import { useCallback, useRef } from 'react'
 import type { MouseEvent } from 'react'
 import { useTheme } from 'next-themes'
-import { toast } from 'sonner'
 import {
   getNextThemeMode,
   markLocalPreferenceChange,
-  persistAppearanceSettings,
 } from '@/lib/appearance'
+import { enqueueAppearancePatch } from '@/lib/settings-sync'
 import {
   animateThemeReveal,
   beginThemeSwitch,
@@ -80,9 +79,7 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
         })
       }
 
-      persistAppearanceSettings({ themeMode: next }).catch((err) => {
-        toast.error(err instanceof Error ? err.message : 'Erro ao salvar tema')
-      })
+      enqueueAppearancePatch({ themeMode: next })
     },
     [resolvedTheme, setTheme]
   )
