@@ -38,17 +38,17 @@ describe('custom accent color helpers', () => {
     expect(getReadableCustomForeground('#111827')).toBe(CUSTOM_FOREGROUND_LIGHT)
   })
 
-  it('generates contrast-safe soft accent tokens for extreme custom colors', () => {
+  it('generates contrast-safe primary tokens for extreme custom colors', () => {
     const black = getCustomAccentTokens('#000000')
     const white = getCustomAccentTokens('#ffffff')
 
-    expect(black.accentDark).not.toBe('#000000')
-    expect(getContrastRatio(black.accentDark, black.accentForegroundDark)).toBeGreaterThanOrEqual(4.5)
-    expect(getContrastRatio(black.accentLight, black.accentForegroundLight)).toBeGreaterThanOrEqual(4.5)
+    expect(getContrastRatio(black.primary, black.primaryForeground)).toBeGreaterThanOrEqual(4.5)
+    expect(getContrastRatio(white.primary, white.primaryForeground)).toBeGreaterThanOrEqual(4.5)
 
     expect(white.primaryBorder).not.toBe('transparent')
     expect(getContrastRatio('#ffffff', white.primaryBorder)).toBeGreaterThanOrEqual(1.5)
-    expect(getContrastRatio(white.accentLight, white.accentForegroundLight)).toBeGreaterThanOrEqual(4.5)
+    expect(black.primaryBorder).not.toBe('transparent')
+    expect(getContrastRatio('#000000', black.primaryBorder)).toBeGreaterThanOrEqual(1.5)
   })
 
   it('builds browser icon URLs that force a refresh for the active accent color', () => {

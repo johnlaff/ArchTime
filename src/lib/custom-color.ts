@@ -37,25 +37,6 @@ function hexToRgb(hex: string | null | undefined): RgbColor {
   }
 }
 
-function rgbToHex({ r, g, b }: RgbColor): string {
-  return `#${[r, g, b].map((channel) => {
-    const value = Math.round(Math.max(0, Math.min(255, channel)))
-    return value.toString(16).padStart(2, '0')
-  }).join('')}`
-}
-
-function mixHex(from: string, to: string, toWeight: number): string {
-  const a = hexToRgb(from)
-  const b = hexToRgb(to)
-  const weight = Math.max(0, Math.min(1, toWeight))
-
-  return rgbToHex({
-    r: a.r * (1 - weight) + b.r * weight,
-    g: a.g * (1 - weight) + b.g * weight,
-    b: a.b * (1 - weight) + b.b * weight,
-  })
-}
-
 function relativeLuminance(hex: string | null | undefined): number {
   const { r, g, b } = hexToRgb(hex)
   const channels = [r, g, b].map((channel) => {
@@ -93,44 +74,24 @@ export function getVisibleCustomOutline(hex: string | null | undefined): string 
   return 'transparent'
 }
 
+/**
+ * Tokens que dependem de decisão de contraste em runtime (JS). As superfícies
+ * suaves (--accent/--muted) NÃO passam por aqui: são derivadas do hex direto no
+ * CSS, em OKLCH — ver o bloco [data-accent="custom"] de globals.css.
+ */
 export interface CustomAccentTokens {
   primary: string
   primaryForeground: string
   primaryBorder: string
-  accentLight: string
-  accentForegroundLight: string
-  mutedLight: string
-  accentDark: string
-  accentForegroundDark: string
-  mutedDark: string
 }
 
 export function getCustomAccentTokens(hex: string | null | undefined): CustomAccentTokens {
   const primary = getColorInputValue(hex)
-  const luminance = relativeLuminance(primary)
-  const accentLight = luminance > 0.78
-    ? mixHex(primary, '#111827', 0.12)
-    : mixHex(primary, '#ffffff', 0.88)
-  const mutedLight = luminance > 0.78
-    ? mixHex(primary, '#111827', 0.06)
-    : mixHex(primary, '#ffffff', 0.94)
-  const accentDark = luminance < 0.18
-    ? mixHex(primary, '#ffffff', 0.18)
-    : mixHex(primary, '#000000', 0.72)
-  const mutedDark = luminance < 0.18
-    ? mixHex(primary, '#ffffff', 0.11)
-    : mixHex(primary, '#000000', 0.82)
 
   return {
     primary,
     primaryForeground: getReadableCustomForeground(primary),
     primaryBorder: getVisibleCustomOutline(primary),
-    accentLight,
-    accentForegroundLight: getReadableCustomForeground(accentLight),
-    mutedLight,
-    accentDark,
-    accentForegroundDark: getReadableCustomForeground(accentDark),
-    mutedDark,
   }
 }
 

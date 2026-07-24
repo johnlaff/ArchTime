@@ -674,15 +674,25 @@ html.theme-switching *::after {
   --ring:               oklch(0.72 0.14 200);
 }
 
-/* ─── Custom accent color (color picker) ─── */
+/* ─── Custom accent color (color picker) ─────────────────────────────────────
+   Os tokens suaves são derivados do hex escolhido DIRETO no CSS, em OKLCH, com a
+   mesma estrutura dos presets: L fixo por papel e croma proporcional ao da cor com
+   teto igual ao dos presets. Assim QUALQUER cor de entrada — inclusive amarelos e
+   cianos claros e saturados, cuja luminância enganava a heurística em sRGB —
+   produz superfícies suaves e legíveis, no MESMO matiz perceptual do --primary
+   (logo, aba ativa e trilhas de progresso ficam na mesma família de cor).
+   Prova de contraste: src/lib/__tests__/custom-accent-tokens.test.ts.
+   O JS fornece só o hex e a decisão de contraste de foreground/borda do primary
+   (accent-color-provider + script anti-flash do layout).
+   Fallback sem relative color: color-mix perceptual em OKLCH (matiz preservado). */
 [data-accent="custom"] {
   --primary: var(--custom-accent-hex);
   --primary-foreground: var(--custom-accent-foreground);
   --primary-border: var(--custom-accent-border, transparent);
   --ring: var(--custom-accent-hex);
-  --accent: var(--custom-accent-soft-light, color-mix(in oklch, var(--custom-accent-hex) 12%, white));
-  --accent-foreground: var(--custom-accent-soft-foreground-light, oklch(0.20 0 0));
-  --muted: var(--custom-accent-muted-light, color-mix(in oklch, var(--custom-accent-hex) 6%, white));
+  --accent: color-mix(in oklch, var(--custom-accent-hex) 12%, white);
+  --accent-foreground: oklch(0.20 0 0);
+  --muted: color-mix(in oklch, var(--custom-accent-hex) 6%, white);
   --muted-foreground: oklch(0.556 0 0);
 }
 [data-accent="custom"].dark {
@@ -690,10 +700,22 @@ html.theme-switching *::after {
   --primary-foreground: var(--custom-accent-foreground);
   --primary-border: var(--custom-accent-border, transparent);
   --ring: var(--custom-accent-hex);
-  --accent: var(--custom-accent-soft-dark, color-mix(in oklch, var(--custom-accent-hex) 20%, black));
-  --accent-foreground: var(--custom-accent-soft-foreground-dark, oklch(0.96 0 0));
-  --muted: var(--custom-accent-muted-dark, color-mix(in oklch, var(--custom-accent-hex) 10%, black));
+  --accent: color-mix(in oklch, var(--custom-accent-hex) 20%, black);
+  --accent-foreground: oklch(0.96 0 0);
+  --muted: color-mix(in oklch, var(--custom-accent-hex) 10%, black);
   --muted-foreground: oklch(0.708 0 0);
+}
+@supports (color: oklch(from red l c h)) {
+  [data-accent="custom"] {
+    --accent:            oklch(from var(--custom-accent-hex) 0.95 clamp(0, calc(c * 0.28), 0.045) h);
+    --accent-foreground: oklch(from var(--custom-accent-hex) 0.25 clamp(0, calc(c * 0.35), 0.06) h);
+    --muted:             oklch(from var(--custom-accent-hex) 0.97 clamp(0, calc(c * 0.12), 0.012) h);
+  }
+  [data-accent="custom"].dark {
+    --accent:            oklch(from var(--custom-accent-hex) 0.26 clamp(0, calc(c * 0.35), 0.055) h);
+    --accent-foreground: oklch(from var(--custom-accent-hex) 0.96 clamp(0, calc(c * 0.12), 0.02) h);
+    --muted:             oklch(from var(--custom-accent-hex) 0.23 clamp(0, calc(c * 0.15), 0.025) h);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
