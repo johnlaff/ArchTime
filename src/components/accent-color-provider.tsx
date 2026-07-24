@@ -1,8 +1,8 @@
 'use client'
 
 import { createContext, use, useState, useEffect, useMemo } from 'react'
-import { toast } from 'sonner'
-import { markLocalPreferenceChange, persistAppearanceSettings, type AppearancePatch } from '@/lib/appearance'
+import { markLocalPreferenceChange, type AppearancePatch } from '@/lib/appearance'
+import { enqueueAppearancePatch } from '@/lib/settings-sync'
 import {
   ACCENT_PRESETS,
   isArchitecturalPreset,
@@ -91,9 +91,7 @@ function clearCustomAccentProperties() {
 }
 
 function persist(patch: AppearancePatch) {
-  persistAppearanceSettings(patch).catch((error) => {
-    toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
-  })
+  enqueueAppearancePatch(patch)
 }
 
 export function AccentColorProvider({ children }: { children: React.ReactNode }) {
