@@ -30,12 +30,14 @@ describe('review feedback regressions', () => {
     expect(browserAccentSource).toContain('if (architecturalPreset) return ARCHITECTURAL_PRESETS[architecturalPreset].color')
   })
 
-  it('prevents page text selection while dragging the custom color field', () => {
+  it('uses the accessible HSV color picker for the custom color field', () => {
     const source = readSource('src/components/accent-color-picker.tsx')
 
-    expect(source).toContain('event.preventDefault()')
-    expect(source).toContain('select-none')
-    expect(source).toContain('touch-none')
+    expect(source).toContain("import { HexColorPicker } from 'react-colorful'")
+    expect(source).toContain('<HexColorPicker color={currentColor} onChange={commitCustomColor} />')
+    expect(source).toContain('aria-label="Seletor de cor personalizada"')
+    expect(source).not.toContain('hexToHsl')
+    expect(source).not.toContain('hslToHex')
   })
 
   it('uses the computed accent foreground for active sidebar items', () => {
@@ -74,11 +76,12 @@ describe('review feedback regressions', () => {
   })
 
   it('keeps the circular reveal final frame filled until the browser removes the snapshot', () => {
-    // fill-mode `both` na animação CSS mantém o círculo no raio final (tela cheia) até
-    // o browser remover o snapshot — sem ele, o novo tema sumiria no último frame.
-    const css = readSource('src/app/globals.css')
+    // fill 'forwards' no WAAPI mantém o círculo no raio final (tela cheia) até o
+    // browser remover o snapshot — sem ele, o clip estático de raio 0 (globals.css)
+    // voltaria a esconder o novo tema no último frame.
+    const source = readSource('src/lib/theme-transition.ts')
 
-    expect(css).toMatch(/animation:\s*theme-reveal[^;]*\bboth\b/)
+    expect(source).toContain("fill: 'forwards'")
   })
 
   it('uses plain router.push and avoids mount-time route prefetch storms', () => {

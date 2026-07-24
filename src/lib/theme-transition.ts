@@ -1,9 +1,12 @@
 import type { ThemeMode } from '@/lib/preferences'
 
-// A duração e a curva do reveal vivem no CSS (@keyframes theme-reveal em globals.css),
-// onde a animação roda; aqui fica só a janela em que as transições de cor concorrentes
-// seguem suprimidas após a troca.
+// Janela em que as transições de cor concorrentes seguem suprimidas após a troca.
 export const THEME_SWITCH_SUPPRESSION_MS = 180
+
+export const THEME_REVEAL_DURATION_MS = 320
+// Emphasized decelerate (Material 3): o círculo parte do raio 0, acelera de imediato
+// e assenta no fim. Um ease-in-out hesitaria nos primeiros quadros e pareceria lento.
+export const THEME_REVEAL_EASING = 'cubic-bezier(0.05, 0.7, 0.1, 1)'
 
 interface ViewportSize {
   width: number
@@ -72,6 +75,38 @@ export function clearThemeRevealGeometry(root: HTMLElement): void {
   root.style.removeProperty('--theme-reveal-x')
   root.style.removeProperty('--theme-reveal-y')
   root.style.removeProperty('--theme-reveal-radius')
+}
+
+/**
+ * Cresce o círculo do reveal no snapshot do novo tema. Deve ser chamada em
+ * transition.ready (snapshots capturados): o pseudo-elemento nasce recortado em
+ * raio 0 pelo clip-path estático de globals.css, então o intervalo até o ready
+ * não mostra o novo tema — e a animação começa sem frames perdidos de captura.
+ */
+export function animateThemeReveal(
+  root: HTMLElement,
+  origin: RevealOrigin,
+  radius: number
+): Animation | null {
+  const center = `${origin.x}px ${origin.y}px`
+  try {
+    return root.animate(
+      { clipPath: [`circle(0px at ${center})`, `circle(${radius}px at ${center})`] },
+      {
+        duration: THEME_REVEAL_DURATION_MS,
+        easing: THEME_REVEAL_EASING,
+        // fill 'forwards' mantém o raio final até o browser remover o snapshot;
+        // sem ele o clip estático de raio 0 voltaria a esconder o novo tema.
+        fill: 'forwards',
+        pseudoElement: '::view-transition-new(root)',
+      }
+    )
+  } catch {
+    // Engine com View Transitions mas sem WAAPI em pseudo-elemento: sem animações
+    // rodando nos snapshots, a transição resolve em seguida e os pseudo-elementos
+    // somem — a troca acontece sem o círculo, sem esconder o novo tema.
+    return null
+  }
 }
 
 export function startThemeViewTransition(

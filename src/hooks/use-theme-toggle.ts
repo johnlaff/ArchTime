@@ -3,13 +3,13 @@
 import { useCallback, useRef } from 'react'
 import type { MouseEvent } from 'react'
 import { useTheme } from 'next-themes'
-import { toast } from 'sonner'
 import {
   getNextThemeMode,
   markLocalPreferenceChange,
-  persistAppearanceSettings,
 } from '@/lib/appearance'
+import { enqueueAppearancePatch } from '@/lib/settings-sync'
 import {
+  animateThemeReveal,
   beginThemeSwitch,
   clearThemeRevealGeometry,
   endThemeSwitch,
@@ -62,20 +62,24 @@ export function useThemeToggle(): (e?: MouseEvent) => void {
       if (!transition) {
         timerRef.current = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
       } else {
-        // O reveal é uma animação CSS (@keyframes theme-reveal no snapshot do novo
-        // tema), não um WAAPI agendado em transition.ready: começa no mesmo frame em
-        // que o pseudo-elemento nasce. O WAAPI agendado abria um gap de 1-2 frames no
-        // mobile (o ready resolve mais devagar) em que o novo tema aparecia sem o
-        // clip-path — um flash de tela cheia. A view transition só resolve `finished`
-        // quando a animação CSS termina.
+        // Reveal híbrido: o snapshot do novo tema nasce recortado em raio 0 pelo
+        // clip-path estático de globals.css (sem flash de tela cheia no gap até o
+        // ready, que no Chrome mobile leva 1-2 frames), e o círculo cresce via WAAPI
+        // criado aqui, em transition.ready — com os snapshots prontos, sem jank de
+        // captura. `finished` só resolve quando a animação termina.
+        transition.ready.then(
+          () => {
+            if (toggleId !== toggleIdRef.current) return
+            animateThemeReveal(root, origin, radius)
+          },
+          () => {}
+        )
         transition.finished.catch(() => {}).finally(() => {
           timerRef.current = window.setTimeout(clearSuppression, THEME_SWITCH_SUPPRESSION_MS)
         })
       }
 
-      persistAppearanceSettings({ themeMode: next }).catch((err) => {
-        toast.error(err instanceof Error ? err.message : 'Erro ao salvar tema')
-      })
+      enqueueAppearancePatch({ themeMode: next })
     },
     [resolvedTheme, setTheme]
   )

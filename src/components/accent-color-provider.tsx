@@ -1,8 +1,8 @@
 'use client'
 
 import { createContext, use, useState, useEffect, useMemo } from 'react'
-import { toast } from 'sonner'
-import { markLocalPreferenceChange, persistAppearanceSettings, type AppearancePatch } from '@/lib/appearance'
+import { markLocalPreferenceChange, type AppearancePatch } from '@/lib/appearance'
+import { enqueueAppearancePatch } from '@/lib/settings-sync'
 import {
   ACCENT_PRESETS,
   isArchitecturalPreset,
@@ -33,12 +33,6 @@ const CUSTOM_ACCENT_PROPERTIES = [
   '--custom-accent-hex',
   '--custom-accent-foreground',
   '--custom-accent-border',
-  '--custom-accent-soft-light',
-  '--custom-accent-soft-foreground-light',
-  '--custom-accent-muted-light',
-  '--custom-accent-soft-dark',
-  '--custom-accent-soft-foreground-dark',
-  '--custom-accent-muted-dark',
 ]
 
 interface AccentColorContextValue {
@@ -76,12 +70,6 @@ function applyCustomAccentProperties(hex: string) {
   root.style.setProperty('--custom-accent-hex', tokens.primary)
   root.style.setProperty('--custom-accent-foreground', tokens.primaryForeground)
   root.style.setProperty('--custom-accent-border', tokens.primaryBorder)
-  root.style.setProperty('--custom-accent-soft-light', tokens.accentLight)
-  root.style.setProperty('--custom-accent-soft-foreground-light', tokens.accentForegroundLight)
-  root.style.setProperty('--custom-accent-muted-light', tokens.mutedLight)
-  root.style.setProperty('--custom-accent-soft-dark', tokens.accentDark)
-  root.style.setProperty('--custom-accent-soft-foreground-dark', tokens.accentForegroundDark)
-  root.style.setProperty('--custom-accent-muted-dark', tokens.mutedDark)
 }
 
 function clearCustomAccentProperties() {
@@ -91,9 +79,7 @@ function clearCustomAccentProperties() {
 }
 
 function persist(patch: AppearancePatch) {
-  persistAppearanceSettings(patch).catch((error) => {
-    toast.error(error instanceof Error ? error.message : 'Erro ao salvar aparência')
-  })
+  enqueueAppearancePatch(patch)
 }
 
 export function AccentColorProvider({ children }: { children: React.ReactNode }) {

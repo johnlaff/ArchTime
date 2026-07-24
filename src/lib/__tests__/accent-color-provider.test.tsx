@@ -5,6 +5,7 @@ import {
   AccentColorProvider,
   useAccentColor,
 } from '@/components/accent-color-provider'
+import { __resetSettingsSyncForTests } from '@/lib/settings-sync'
 
 function ProviderHarness() {
   const { setAccent, setArchitecturalPreset, setCustomColor, setDensity, syncAppearanceFromRemote } = useAccentColor()
@@ -47,6 +48,7 @@ describe('AccentColorProvider browser accent sync', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })))
+    __resetSettingsSyncForTests()
     localStorage.clear()
     document.cookie = ''
     document.head.innerHTML = ''
@@ -60,7 +62,7 @@ describe('AccentColorProvider browser accent sync', () => {
   afterEach(() => {
     act(() => root.unmount())
     container.remove()
-    vi.runOnlyPendingTimers()
+    __resetSettingsSyncForTests()
     vi.useRealTimers()
     vi.unstubAllGlobals()
     localStorage.clear()
@@ -75,27 +77,34 @@ describe('AccentColorProvider browser accent sync', () => {
     return call ? JSON.parse(call[1].body) : null
   }
 
-  it('persists the architectural preset to the server when set', () => {
+  async function flushAppearancePatch() {
+    await vi.advanceTimersByTimeAsync(400)
+  }
+
+  it('persists the architectural preset to the server when set', async () => {
     act(() => {
       root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
     })
     act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(1)')?.click() })
+    await flushAppearancePatch()
     expect(lastPatch()).toEqual({ architecturalPreset: 'vegetacao' })
   })
 
-  it('persists density to the server when set', () => {
+  it('persists density to the server when set', async () => {
     act(() => {
       root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
     })
     act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(4)')?.click() })
+    await flushAppearancePatch()
     expect(lastPatch()).toEqual({ density: 'compact' })
   })
 
-  it('persists accent AND clears the preset server-side when an accent is chosen (regression: accent still syncs)', () => {
+  it('persists accent AND clears the preset server-side when an accent is chosen (regression: accent still syncs)', async () => {
     act(() => {
       root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
     })
     act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(2)')?.click() })
+    await flushAppearancePatch()
     expect(lastPatch()).toEqual({ accentPreset: 'rose', architecturalPreset: null })
   })
 
@@ -138,11 +147,12 @@ describe('AccentColorProvider browser accent sync', () => {
     expect(document.head.innerHTML).not.toContain('%232d7a4f')
   })
 
-  it('persists the custom color (and accent=custom, preset cleared) when a custom color is set', () => {
+  it('persists the custom color (and accent=custom, preset cleared) when a custom color is set', async () => {
     act(() => {
       root.render(<AccentColorProvider><ProviderHarness /></AccentColorProvider>)
     })
     act(() => { document.querySelector<HTMLButtonElement>('button:nth-of-type(3)')?.click() }) // setCustomColor('#ffffff')
+    await flushAppearancePatch()
     expect(lastPatch()).toEqual({ accentPreset: 'custom', customAccentColor: '#ffffff', architecturalPreset: null })
   })
 

@@ -28,25 +28,19 @@ function extractAntiFlashScript(): string {
   return match[1]
 }
 
-// CSS custom property <-> CustomAccentTokens field, per the plan's mapping table.
+// CSS custom property <-> CustomAccentTokens field. The soft surface tokens
+// (--accent/--muted) are derived in CSS via relative color and never touch JS,
+// so parity only covers the contrast-decision trio below.
 const PROPERTY_TO_TOKEN = [
   ['--custom-accent-hex', 'primary'],
   ['--custom-accent-foreground', 'primaryForeground'],
   ['--custom-accent-border', 'primaryBorder'],
-  ['--custom-accent-soft-light', 'accentLight'],
-  ['--custom-accent-soft-foreground-light', 'accentForegroundLight'],
-  ['--custom-accent-muted-light', 'mutedLight'],
-  ['--custom-accent-soft-dark', 'accentDark'],
-  ['--custom-accent-soft-foreground-dark', 'accentForegroundDark'],
-  ['--custom-accent-muted-dark', 'mutedDark'],
 ] as const
 
-// Covers the threshold branches in both implementations: luminance > 0.78,
-// luminance < 0.18, mid-range luminance, near-black/near-white edge cases,
-// pure saturated hues, and the 3-digit shorthand hex normalization path.
-// #24ffee sits right at luminance ~0.7807 — inside the narrow (0.78, 0.79)
-// band — so this matrix actually exercises the 0.78 threshold boundary
-// (verified: flipping 0.78 -> 0.79 in layout.tsx makes this test fail).
+// Covers the decision branches in both implementations: the foreground flip
+// (dark vs light text over the accent), the outline thresholds for near-white
+// and near-black accents, pure saturated hues, and the 3-digit shorthand hex
+// normalization path.
 const COLORS = [
   '#6366f1',
   '#f43f5e',

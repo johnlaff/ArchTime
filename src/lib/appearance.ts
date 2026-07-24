@@ -32,6 +32,14 @@ export function shouldApplyRemotePreferences(
   return lastLocalChangeAt == null || lastLocalChangeAt < hydrationStartedAt - graceMs
 }
 
+export function shouldApplyRemoteAppearance(
+  hydrationStartedAt: number,
+  lastLocalChangeAt: number | null,
+  hasPendingPatch: boolean
+): boolean {
+  return !hasPendingPatch && shouldApplyRemotePreferences(hydrationStartedAt, lastLocalChangeAt)
+}
+
 export function markLocalPreferenceChange(now = Date.now()): void {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(LOCAL_PREFERENCE_UPDATED_AT_KEY, String(now))

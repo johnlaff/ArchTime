@@ -37,25 +37,6 @@ function hexToRgb(hex: string | null | undefined): RgbColor {
   }
 }
 
-function rgbToHex({ r, g, b }: RgbColor): string {
-  return `#${[r, g, b].map((channel) => {
-    const value = Math.round(Math.max(0, Math.min(255, channel)))
-    return value.toString(16).padStart(2, '0')
-  }).join('')}`
-}
-
-function mixHex(from: string, to: string, toWeight: number): string {
-  const a = hexToRgb(from)
-  const b = hexToRgb(to)
-  const weight = Math.max(0, Math.min(1, toWeight))
-
-  return rgbToHex({
-    r: a.r * (1 - weight) + b.r * weight,
-    g: a.g * (1 - weight) + b.g * weight,
-    b: a.b * (1 - weight) + b.b * weight,
-  })
-}
-
 function relativeLuminance(hex: string | null | undefined): number {
   const { r, g, b } = hexToRgb(hex)
   const channels = [r, g, b].map((channel) => {
@@ -93,44 +74,24 @@ export function getVisibleCustomOutline(hex: string | null | undefined): string 
   return 'transparent'
 }
 
+/**
+ * Tokens que dependem de decisão de contraste em runtime (JS). As superfícies
+ * suaves (--accent/--muted) NÃO passam por aqui: são derivadas do hex direto no
+ * CSS, em OKLCH — ver o bloco [data-accent="custom"] de globals.css.
+ */
 export interface CustomAccentTokens {
   primary: string
   primaryForeground: string
   primaryBorder: string
-  accentLight: string
-  accentForegroundLight: string
-  mutedLight: string
-  accentDark: string
-  accentForegroundDark: string
-  mutedDark: string
 }
 
 export function getCustomAccentTokens(hex: string | null | undefined): CustomAccentTokens {
   const primary = getColorInputValue(hex)
-  const luminance = relativeLuminance(primary)
-  const accentLight = luminance > 0.78
-    ? mixHex(primary, '#111827', 0.12)
-    : mixHex(primary, '#ffffff', 0.88)
-  const mutedLight = luminance > 0.78
-    ? mixHex(primary, '#111827', 0.06)
-    : mixHex(primary, '#ffffff', 0.94)
-  const accentDark = luminance < 0.18
-    ? mixHex(primary, '#ffffff', 0.18)
-    : mixHex(primary, '#000000', 0.72)
-  const mutedDark = luminance < 0.18
-    ? mixHex(primary, '#ffffff', 0.11)
-    : mixHex(primary, '#000000', 0.82)
 
   return {
     primary,
     primaryForeground: getReadableCustomForeground(primary),
     primaryBorder: getVisibleCustomOutline(primary),
-    accentLight,
-    accentForegroundLight: getReadableCustomForeground(accentLight),
-    mutedLight,
-    accentDark,
-    accentForegroundDark: getReadableCustomForeground(accentDark),
-    mutedDark,
   }
 }
 
@@ -139,56 +100,4 @@ export function getBrowserAccentIconUrl(hex: string | null | undefined, size = 1
   const iconSize = Math.min(Math.max(Math.round(size), 32), 512)
   const cacheKey = color.replace('#', '')
   return `/api/icon?size=${iconSize}&color=${encodeURIComponent(color)}&v=${cacheKey}`
-}
-
-export interface HslColor {
-  h: number
-  s: number
-  l: number
-}
-
-export function hexToHsl(hex: string | null | undefined): HslColor {
-  const normalized = getColorInputValue(hex).slice(1)
-  const r = Number.parseInt(normalized.slice(0, 2), 16) / 255
-  const g = Number.parseInt(normalized.slice(2, 4), 16) / 255
-  const b = Number.parseInt(normalized.slice(4, 6), 16) / 255
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  const delta = max - min
-  const l = (max + min) / 2
-
-  if (delta === 0) return { h: 0, s: 0, l: Math.round(l * 100) }
-
-  const s = delta / (1 - Math.abs(2 * l - 1))
-  let h = 0
-  if (max === r) h = 60 * (((g - b) / delta) % 6)
-  else if (max === g) h = 60 * ((b - r) / delta + 2)
-  else h = 60 * ((r - g) / delta + 4)
-
-  return {
-    h: Math.round((h + 360) % 360),
-    s: Math.round(s * 100),
-    l: Math.round(l * 100),
-  }
-}
-
-export function hslToHex({ h, s, l }: HslColor): string {
-  const normalizedHue = ((h % 360) + 360) % 360
-  const saturation = Math.max(0, Math.min(100, s)) / 100
-  const lightness = Math.max(0, Math.min(100, l)) / 100
-  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation
-  const x = chroma * (1 - Math.abs(((normalizedHue / 60) % 2) - 1))
-  const match = lightness - chroma / 2
-  const [r1, g1, b1] =
-    normalizedHue < 60 ? [chroma, x, 0] :
-    normalizedHue < 120 ? [x, chroma, 0] :
-    normalizedHue < 180 ? [0, chroma, x] :
-    normalizedHue < 240 ? [0, x, chroma] :
-    normalizedHue < 300 ? [x, 0, chroma] :
-    [chroma, 0, x]
-
-  return `#${[r1, g1, b1].map((channel) => {
-    const value = Math.round((channel + match) * 255)
-    return value.toString(16).padStart(2, '0')
-  }).join('')}`
 }

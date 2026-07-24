@@ -70,17 +70,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
                 return '#'+h;
               }
-              function rgb(hex){
-                var h=norm(hex)||'#6366f1';
-                return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
-              }
-              function hex(rgb){
-                return '#'+rgb.map(function(v){return Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')}).join('');
-              }
-              function mix(a,b,w){
-                var x=rgb(a),y=rgb(b),m=Math.max(0,Math.min(1,w));
-                return hex([x[0]*(1-m)+y[0]*m,x[1]*(1-m)+y[1]*m,x[2]*(1-m)+y[2]*m]);
-              }
               function lum(hex){
                 var h=norm(hex)||'#6366f1';
                 function c(i){
@@ -106,20 +95,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               if(a==='custom'){
                 var c=norm(localStorage.getItem('archtime-accent-custom'));
                 if(!c) c='#6366f1';
-                var l=lum(c);
-                var light=l>0.78?mix(c,'#111827',0.12):mix(c,'#ffffff',0.88);
-                var mutedLight=l>0.78?mix(c,'#111827',0.06):mix(c,'#ffffff',0.94);
-                var dark=l<0.18?mix(c,'#ffffff',0.18):mix(c,'#000000',0.72);
-                var mutedDark=l<0.18?mix(c,'#ffffff',0.11):mix(c,'#000000',0.82);
                 document.documentElement.style.setProperty('--custom-accent-hex',c);
                 document.documentElement.style.setProperty('--custom-accent-foreground',fg(c));
                 document.documentElement.style.setProperty('--custom-accent-border',outline(c));
-                document.documentElement.style.setProperty('--custom-accent-soft-light',light);
-                document.documentElement.style.setProperty('--custom-accent-soft-foreground-light',fg(light));
-                document.documentElement.style.setProperty('--custom-accent-muted-light',mutedLight);
-                document.documentElement.style.setProperty('--custom-accent-soft-dark',dark);
-                document.documentElement.style.setProperty('--custom-accent-soft-foreground-dark',fg(dark));
-                document.documentElement.style.setProperty('--custom-accent-muted-dark',mutedDark);
               }
               var p=localStorage.getItem('archtime-preset');
               if(p) document.documentElement.setAttribute('data-preset',p);

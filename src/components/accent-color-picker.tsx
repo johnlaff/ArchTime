@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useState } from 'react'
 import { Check } from 'lucide-react'
+import { HexColorPicker } from 'react-colorful'
 import { Input } from '@/components/ui/input'
 import { ACCENTS } from '@/components/accent-color-provider'
 import { ACCENT_PRESETS, type AccentPreset } from '@/lib/preferences'
@@ -9,8 +10,6 @@ import { cn } from '@/lib/utils'
 import {
   getColorInputValue,
   getReadableCustomForeground,
-  hexToHsl,
-  hslToHex,
   normalizeHexColor,
 } from '@/lib/custom-color'
 
@@ -31,9 +30,9 @@ export function AccentColorPicker({
   onCustomColorChange,
   className,
 }: AccentColorPickerProps) {
-  const colorAreaRef = useRef<HTMLDivElement>(null)
-  const currentColor = getColorInputValue(customColor)
-  const currentHsl = hexToHsl(currentColor)
+  // Preset ativo semeia o seletor com a própria cor — a caixa "Personalizada"
+  // vira ponto de partida do preset, nunca um índigo fixo que parece bug.
+  const currentColor = accent === 'custom' ? getColorInputValue(customColor) : ACCENTS[accent]
   // Rastreia o ultimo currentColor confirmado para detectar mudanca externa durante render
   const [draftHex, setDraftHex] = useState(currentColor)
   // react-doctor-disable-next-line react-doctor/rerender-state-only-in-handlers -- committedColor é lido no render (comparação abaixo) como "prev value" do padrão de ajuste de estado durante o render; precisa ser state (não ref) para o React reagir a uma mudança externa de currentColor.
@@ -47,43 +46,12 @@ export function AccentColorPicker({
   }
 
   const normalizedDraft = normalizeHexColor(draftHex)
-  const hueColor = hslToHex({ h: currentHsl.h, s: 100, l: 50 })
-
   function commitCustomColor(value: string) {
     const normalized = normalizeHexColor(value)
     setDraftHex(value)
     if (!normalized) return
     setDraftHex(normalized)
     onCustomColorChange(normalized)
-  }
-
-  function commitHsl(next: Partial<typeof currentHsl>) {
-    commitCustomColor(hslToHex({ ...currentHsl, ...next }))
-  }
-
-  function updateAreaFromPointer(clientX: number, clientY: number) {
-    const rect = colorAreaRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
-    const y = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height))
-    commitHsl({
-      s: Math.round(x * 100),
-      l: Math.round((1 - y) * 100),
-    })
-  }
-
-  function handleAreaPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    event.preventDefault()
-    window.getSelection()?.removeAllRanges()
-    event.currentTarget.setPointerCapture(event.pointerId)
-    updateAreaFromPointer(event.clientX, event.clientY)
-  }
-
-  function handleAreaPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
-    event.preventDefault()
-    window.getSelection()?.removeAllRanges()
-    updateAreaFromPointer(event.clientX, event.clientY)
   }
 
   return (
@@ -122,32 +90,11 @@ export function AccentColorPicker({
           </span>
         </div>
 
-        <div
-          ref={colorAreaRef}
-          aria-hidden="true"
-          onPointerDown={handleAreaPointerDown}
-          onPointerMove={handleAreaPointerMove}
-          onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
-          onPointerCancel={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
-          onDragStart={(event) => event.preventDefault()}
-          className="relative mb-2 h-24 cursor-crosshair select-none touch-none overflow-hidden rounded-md border border-border shadow-inner"
-          style={{
-            background: `
-              linear-gradient(to top, black, transparent),
-              linear-gradient(to right, white, ${hueColor})
-            `,
-          }}
-        >
-          <span
-            className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgb(0_0_0_/_0.45)]"
-            style={{
-              left: `${currentHsl.s}%`,
-              top: `${100 - currentHsl.l}%`,
-            }}
-          />
+        <div className="accent-picker mb-2" role="group" aria-label="Seletor de cor personalizada">
+          <HexColorPicker color={currentColor} onChange={commitCustomColor} />
         </div>
 
-        <div className="mb-2 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-md border border-border shadow-xs',
@@ -161,18 +108,6 @@ export function AccentColorPicker({
           >
             A
           </div>
-          <input
-            type="range"
-            min={0}
-            max={359}
-            value={currentHsl.h}
-            aria-label="Matiz"
-            onChange={(event) => commitHsl({ h: Number(event.target.value) })}
-            className="h-2 flex-1 cursor-pointer appearance-none rounded-full border border-border bg-[linear-gradient(to_right,red,yellow,lime,cyan,blue,magenta,red)]"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
               #
@@ -181,6 +116,7 @@ export function AccentColorPicker({
               value={draftHex.replace(/^#/, '')}
               onChange={(event) => commitCustomColor(event.target.value)}
               onBlur={() => setDraftHex(currentColor)}
+              aria-label="Código hexadecimal da cor"
               aria-invalid={draftHex.length > 0 && !normalizedDraft}
               spellCheck={false}
               maxLength={6}

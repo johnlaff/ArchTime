@@ -15,8 +15,9 @@ import { ThemeColorSync } from '@/components/theme-color-sync'
 import {
   getLastLocalPreferenceChange,
   hasLocalCustomAccentPreference,
-  shouldApplyRemotePreferences,
+  shouldApplyRemoteAppearance,
 } from '@/lib/appearance'
+import { hasPendingAppearancePatch, restorePendingAppearanceSync } from '@/lib/settings-sync'
 
 function PreferencesHydrator() {
   const pathname = usePathname()
@@ -31,6 +32,7 @@ function PreferencesHydrator() {
 
   // react-doctor-disable-next-line react-doctor/no-fetch-in-effect -- sincronização pós-mount de preferências visuais (tema/cor): depende de estado cliente (useTheme, useAccentColor) e já tem flag de cancelamento; não é data fetching para render, não pode ser movido para RSC
   useEffect(() => {
+    restorePendingAppearanceSync()
     if (isAuthRoute) return
 
     let cancelled = false
@@ -39,7 +41,11 @@ function PreferencesHydrator() {
       .then((res) => res.ok ? res.json() : null)
       .then((body) => {
         if (cancelled || !body?.settings) return
-        if (!shouldApplyRemotePreferences(startedAt, getLastLocalPreferenceChange())) return
+        if (!shouldApplyRemoteAppearance(
+          startedAt,
+          getLastLocalPreferenceChange(),
+          hasPendingAppearancePatch()
+        )) return
         // Skip overwriting a local custom accent only when the server is a plain
         // preset — but when both sides are 'custom', the server hex is newer (the
         // user updated it on another device) so we DO sync it.

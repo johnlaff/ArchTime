@@ -166,37 +166,27 @@ html {
   scrollbar-gutter: stable;
 }
 
-/* ─── Theme circular reveal — animação CSS no snapshot do novo tema ─────────────
-   O snapshot do tema atual (old) fica estático por baixo; o do novo tema (new) é
-   revelado por um círculo que cresce do ponto tocado. A animação é CSS (não um WAAPI
-   agendado em requestAnimationFrame/transition.ready): assim ela já está no primeiro
-   frame em que o pseudo-elemento nasce. Um WAAPI agendado abre, no mobile, um gap de
-   1-2 frames em que o novo tema aparece sem clip — um flash de tela cheia.
-
-   Easing = "emphasized decelerate" do Material 3: o círculo parte do raio 0, então a
-   curva acelera de imediato e assenta no fim (decelerate). Um ease-in-out faria o
-   reveal hesitar nos primeiros quadros e passaria sensação de lentidão. */
+/* ─── Theme circular reveal — clip estático no CSS + WAAPI agendado no ready ────
+   O snapshot do tema atual (old) fica estático por baixo; o do novo tema (new) nasce
+   JÁ recortado num círculo de raio 0: o clip-path estático abaixo vale desde o
+   primeiro frame do pseudo-elemento, então não existe o flash de tela cheia do gap
+   entre a criação do snapshot e o transition.ready (1-2 frames no Chrome mobile).
+   O crescimento do círculo é uma animação WAAPI criada em transition.ready
+   (animateThemeReveal em theme-transition.ts): ela só começa com os snapshots
+   prontos — sem frames perdidos durante a captura no mobile — e o desktop, cujo
+   ready resolve em menos de um frame, mantém o reveal de sempre. A duração e a
+   curva (emphasized decelerate do M3) vivem junto do WAAPI em theme-transition.ts. */
 html.theme-switching::view-transition-old(root) {
   animation: none;
   z-index: 1;
 }
 
 html.theme-switching::view-transition-new(root) {
-  animation: theme-reveal 320ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  animation: none;
+  clip-path: circle(0px at var(--theme-reveal-x, 50vw) var(--theme-reveal-y, 50vh));
   mix-blend-mode: normal;
   will-change: clip-path;
   z-index: 2;
-}
-
-@keyframes theme-reveal {
-  from {
-    clip-path: circle(0px at var(--theme-reveal-x, 50vw) var(--theme-reveal-y, 50vh));
-  }
-  to {
-    clip-path: circle(
-      var(--theme-reveal-radius, 150vmax) at var(--theme-reveal-x, 50vw) var(--theme-reveal-y, 50vh)
-    );
-  }
 }
 
 /* ─── Stable theme switch — bloqueia transições concorrentes durante troca de tema ─── */
@@ -674,15 +664,25 @@ html.theme-switching *::after {
   --ring:               oklch(0.72 0.14 200);
 }
 
-/* ─── Custom accent color (color picker) ─── */
+/* ─── Custom accent color (color picker) ─────────────────────────────────────
+   Os tokens suaves são derivados do hex escolhido DIRETO no CSS, em OKLCH, com a
+   mesma estrutura dos presets: L fixo por papel e croma proporcional ao da cor com
+   teto igual ao dos presets. Assim QUALQUER cor de entrada — inclusive amarelos e
+   cianos claros e saturados, cuja luminância enganava a heurística em sRGB —
+   produz superfícies suaves e legíveis, no MESMO matiz perceptual do --primary
+   (logo, aba ativa e trilhas de progresso ficam na mesma família de cor).
+   Prova de contraste: src/lib/__tests__/custom-accent-tokens.test.ts.
+   O JS fornece só o hex e a decisão de contraste de foreground/borda do primary
+   (accent-color-provider + script anti-flash do layout).
+   Fallback sem relative color: color-mix perceptual em OKLCH (matiz preservado). */
 [data-accent="custom"] {
   --primary: var(--custom-accent-hex);
   --primary-foreground: var(--custom-accent-foreground);
   --primary-border: var(--custom-accent-border, transparent);
   --ring: var(--custom-accent-hex);
-  --accent: var(--custom-accent-soft-light, color-mix(in oklch, var(--custom-accent-hex) 12%, white));
-  --accent-foreground: var(--custom-accent-soft-foreground-light, oklch(0.20 0 0));
-  --muted: var(--custom-accent-muted-light, color-mix(in oklch, var(--custom-accent-hex) 6%, white));
+  --accent: color-mix(in oklch, var(--custom-accent-hex) 12%, white);
+  --accent-foreground: oklch(0.20 0 0);
+  --muted: color-mix(in oklch, var(--custom-accent-hex) 6%, white);
   --muted-foreground: oklch(0.556 0 0);
 }
 [data-accent="custom"].dark {
@@ -690,18 +690,32 @@ html.theme-switching *::after {
   --primary-foreground: var(--custom-accent-foreground);
   --primary-border: var(--custom-accent-border, transparent);
   --ring: var(--custom-accent-hex);
-  --accent: var(--custom-accent-soft-dark, color-mix(in oklch, var(--custom-accent-hex) 20%, black));
-  --accent-foreground: var(--custom-accent-soft-foreground-dark, oklch(0.96 0 0));
-  --muted: var(--custom-accent-muted-dark, color-mix(in oklch, var(--custom-accent-hex) 10%, black));
+  --accent: color-mix(in oklch, var(--custom-accent-hex) 20%, black);
+  --accent-foreground: oklch(0.96 0 0);
+  --muted: color-mix(in oklch, var(--custom-accent-hex) 10%, black);
   --muted-foreground: oklch(0.708 0 0);
+}
+@supports (color: oklch(from red l c h)) {
+  [data-accent="custom"] {
+    --accent:            oklch(from var(--custom-accent-hex) 0.95 clamp(0, calc(c * 0.28), 0.045) h);
+    --accent-foreground: oklch(from var(--custom-accent-hex) 0.25 clamp(0, calc(c * 0.35), 0.06) h);
+    --muted:             oklch(from var(--custom-accent-hex) 0.97 clamp(0, calc(c * 0.12), 0.012) h);
+  }
+  [data-accent="custom"].dark {
+    --accent:            oklch(from var(--custom-accent-hex) 0.26 clamp(0, calc(c * 0.35), 0.055) h);
+    --accent-foreground: oklch(from var(--custom-accent-hex) 0.96 clamp(0, calc(c * 0.12), 0.02) h);
+    --muted:             oklch(from var(--custom-accent-hex) 0.23 clamp(0, calc(c * 0.15), 0.025) h);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
    FUNDO TINGIDO PELA COR DE DESTAQUE (accent-driven background tint)
    Uma única regra deriva a matiz do --primary via relative color, servindo os 14
    presets de accent E a cor personalizada (cujo --primary é o hex escolhido).
-   L fixo no valor do tema neutro + chroma clampado ⇒ WCAG AA preservado em toda
-   matiz (prova: src/lib/__tests__/background-tint.test.ts). Gated por
+   L fixo no valor do tema neutro + croma PROPORCIONAL ao da cor (calc(c * fator),
+   com teto) ⇒ o fundo acompanha as variantes do seletor — vívido tinge mais,
+   pastel tinge menos, cinza não tinge — e o WCAG AA fica preservado em toda matiz
+   (prova: src/lib/__tests__/background-tint.test.ts). Gated por
    [data-bg-tint="on"] (toggle "Tingir o fundo", ligado por padrão); inativo sob
    um preset arquitetônico — o preset tem precedência sobre o fundo.
    O @supports é o fallback seguro: engines sem relative color ignoram o bloco e
@@ -709,12 +723,12 @@ html.theme-switching *::after {
    ═══════════════════════════════════════════════════════════════ */
 @supports (color: oklch(from red l c h)) {
   [data-bg-tint="on"][data-accent]:not([data-preset]) {
-    --background:       oklch(from var(--primary) 0.98 clamp(0, c, 0.012) h);
-    --muted-foreground: oklch(from var(--primary) 0.5 clamp(0, c, 0.02) h);
+    --background:       oklch(from var(--primary) 0.98 clamp(0, calc(c * 0.15), 0.03) h);
+    --muted-foreground: oklch(from var(--primary) 0.5 clamp(0, calc(c * 0.15), 0.02) h);
   }
   .dark[data-bg-tint="on"][data-accent]:not([data-preset]) {
-    --background: oklch(from var(--primary) 0.145 clamp(0, c, 0.01) h);
-    --card:      oklch(from var(--primary) 0.205 clamp(0, c, 0.008) h);
+    --background: oklch(from var(--primary) 0.145 clamp(0, calc(c * 0.18), 0.03) h);
+    --card:      oklch(from var(--primary) 0.205 clamp(0, calc(c * 0.15), 0.025) h);
     /* O escurecimento do muted-foreground é só para o fundo claro; no escuro o valor
        neutro (0.708) já passa AA com folga, então é restaurado aqui. */
     --muted-foreground: oklch(0.708 0 0);
@@ -882,4 +896,20 @@ html.dark[data-blueprint="true"] body {
   .print-h2    { font-size: var(--print-font-h2); font-weight: 600; color: var(--print-color-accent); }
   .print-body  { font-size: var(--print-font-body); line-height: var(--print-line-height); }
   .print-small { font-size: var(--print-font-small); color: var(--print-color-muted); }
+}
+
+/* ─── Accent color picker (react-colorful) ─── */
+.accent-picker .react-colorful { width: 100%; height: auto; gap: 8px; }
+.accent-picker .react-colorful__saturation {
+  height: 96px; border-radius: 6px; border-bottom: none;
+  border: 1px solid var(--border); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.accent-picker .react-colorful__hue { height: 8px; border-radius: 9999px; border: 1px solid var(--border); }
+.accent-picker .react-colorful__pointer { height: 12px; width: 12px; border-width: 2px; }
+/* Foco de teclado visível nos sliders internos: sem isto o único sinal seria o
+   pointer de 12px escalando ~1.1x — imperceptível. */
+.accent-picker .react-colorful__interactive:focus-visible .react-colorful__pointer {
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--ring) 55%, transparent),
+    0 0 0 1px rgb(0 0 0 / 0.45);
 }
