@@ -92,7 +92,7 @@ export function AccentColorPicker({
           <HexColorPicker color={currentColor} onChange={commitCustomColor} />
         </div>
 
-        <div className="mb-2 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div
             className={cn(
               'flex h-8 w-8 items-center justify-center rounded-md border border-border shadow-xs',
@@ -106,9 +106,6 @@ export function AccentColorPicker({
           >
             A
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
               #
@@ -117,6 +114,7 @@ export function AccentColorPicker({
               value={draftHex.replace(/^#/, '')}
               onChange={(event) => commitCustomColor(event.target.value)}
               onBlur={() => setDraftHex(currentColor)}
+              aria-label="Código hexadecimal da cor"
               aria-invalid={draftHex.length > 0 && !normalizedDraft}
               spellCheck={false}
               maxLength={6}
