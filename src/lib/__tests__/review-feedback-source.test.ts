@@ -74,11 +74,12 @@ describe('review feedback regressions', () => {
   })
 
   it('keeps the circular reveal final frame filled until the browser removes the snapshot', () => {
-    // fill-mode `both` na animação CSS mantém o círculo no raio final (tela cheia) até
-    // o browser remover o snapshot — sem ele, o novo tema sumiria no último frame.
-    const css = readSource('src/app/globals.css')
+    // fill 'forwards' no WAAPI mantém o círculo no raio final (tela cheia) até o
+    // browser remover o snapshot — sem ele, o clip estático de raio 0 (globals.css)
+    // voltaria a esconder o novo tema no último frame.
+    const source = readSource('src/lib/theme-transition.ts')
 
-    expect(css).toMatch(/animation:\s*theme-reveal[^;]*\bboth\b/)
+    expect(source).toContain("fill: 'forwards'")
   })
 
   it('uses plain router.push and avoids mount-time route prefetch storms', () => {
