@@ -906,3 +906,10 @@ html.dark[data-blueprint="true"] body {
 }
 .accent-picker .react-colorful__hue { height: 8px; border-radius: 9999px; border: 1px solid var(--border); }
 .accent-picker .react-colorful__pointer { height: 12px; width: 12px; border-width: 2px; }
+/* Foco de teclado visível nos sliders internos: sem isto o único sinal seria o
+   pointer de 12px escalando ~1.1x — imperceptível. */
+.accent-picker .react-colorful__interactive:focus-visible .react-colorful__pointer {
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--ring) 55%, transparent),
+    0 0 0 1px rgb(0 0 0 / 0.45);
+}

@@ -30,7 +30,9 @@ export function AccentColorPicker({
   onCustomColorChange,
   className,
 }: AccentColorPickerProps) {
-  const currentColor = getColorInputValue(customColor)
+  // Preset ativo semeia o seletor com a própria cor — a caixa "Personalizada"
+  // vira ponto de partida do preset, nunca um índigo fixo que parece bug.
+  const currentColor = accent === 'custom' ? getColorInputValue(customColor) : ACCENTS[accent]
   // Rastreia o ultimo currentColor confirmado para detectar mudanca externa durante render
   const [draftHex, setDraftHex] = useState(currentColor)
   // react-doctor-disable-next-line react-doctor/rerender-state-only-in-handlers -- committedColor é lido no render (comparação abaixo) como "prev value" do padrão de ajuste de estado durante o render; precisa ser state (não ref) para o React reagir a uma mudança externa de currentColor.
