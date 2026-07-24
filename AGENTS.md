@@ -66,6 +66,7 @@ Observações:
 - Providers client-side ficam em `src/components/providers.tsx`.
 - Fluxo offline fica em `src/lib/offline-queue.ts` e sincroniza via `POST /api/sync`.
 - Fila offline deve ser ordenada cronologicamente antes do flush.
+- Preferências de aparência persistem SEMPRE via `enqueueAppearancePatch` (`src/lib/settings-sync.ts` — fila serial com merge, debounce e retry offline; a hidratação remota respeita pendência local). Nunca chame `persistAppearanceSettings` direto de componente: PATCHes concorrentes chegam fora de ordem e o last-write-wins do servidor grava valor obsoleto.
 - Assets PWA como `/_next/*`, `/icons/*`, `/manifest.json` e `/sw.js` não devem ser bloqueados por auth.
 
 ## Datas e Timezone
@@ -129,6 +130,9 @@ Regras duras:
 - Emerald para clock-in, Rose para clock-out e Amber para warning são cores semânticas e não devem mudar com accent.
 - Para superfícies neutras que não devem herdar accent, prefira tokens neutros como `--secondary` e `--card` conforme o contexto.
 - Evite usar `--muted`, `--input` ou `--accent` para controles que precisam permanecer neutros sob custom accent.
+- No accent personalizado, os tokens suaves (`--accent`/`--muted`/foregrounds) derivam do hex em OKLCH direto no CSS (relative color, bloco `[data-accent="custom"]` de `globals.css`); o JS decide apenas contraste de foreground/borda (provider + script anti-flash do layout, com paridade travada por teste). Não reintroduza derivação de superfície em JS/sRGB: limiar de luminância em sRGB falha para cores claras saturadas (amarelo/ciano viram superfície quase pura).
+- As fórmulas de cor de `globals.css` têm prova WCAG espelhada em teste que também lê a folha e trava drift (`custom-accent-tokens.test.ts`, `background-tint.test.ts`): quem muda a fórmula atualiza a prova no mesmo commit.
+- O reveal de tema é híbrido por necessidade: clip-path estático de raio 0 no CSS (o pseudo-elemento nasce recortado — sem flash no gap até o `ready` no mobile) + WAAPI criado em `transition.ready` (anima com snapshots prontos — sem truncamento durante a captura). Não mover a animação para keyframes CSS nem agendar WAAPI sem o clip estático.
 - Ao modificar UI, mantenha consistência com o design system documentado em `docs/` e com `CONTEXT.md`.
 
 ## Bibliotecas e UI
