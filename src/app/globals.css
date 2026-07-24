@@ -883,3 +883,12 @@ html.dark[data-blueprint="true"] body {
   .print-body  { font-size: var(--print-font-body); line-height: var(--print-line-height); }
   .print-small { font-size: var(--print-font-small); color: var(--print-color-muted); }
 }
+
+/* ─── Accent color picker (react-colorful) ─── */
+.accent-picker .react-colorful { width: 100%; height: auto; gap: 8px; }
+.accent-picker .react-colorful__saturation {
+  height: 96px; border-radius: 6px; border-bottom: none;
+  border: 1px solid var(--border); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.accent-picker .react-colorful__hue { height: 8px; border-radius: 9999px; border: 1px solid var(--border); }
+.accent-picker .react-colorful__pointer { height: 12px; width: 12px; border-width: 2px; }

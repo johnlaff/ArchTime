@@ -30,12 +30,14 @@ describe('review feedback regressions', () => {
     expect(browserAccentSource).toContain('if (architecturalPreset) return ARCHITECTURAL_PRESETS[architecturalPreset].color')
   })
 
-  it('prevents page text selection while dragging the custom color field', () => {
+  it('uses the accessible HSV color picker for the custom color field', () => {
     const source = readSource('src/components/accent-color-picker.tsx')
 
-    expect(source).toContain('event.preventDefault()')
-    expect(source).toContain('select-none')
-    expect(source).toContain('touch-none')
+    expect(source).toContain("import { HexColorPicker } from 'react-colorful'")
+    expect(source).toContain('<HexColorPicker color={currentColor} onChange={commitCustomColor} />')
+    expect(source).toContain('aria-label="Seletor de cor personalizada"')
+    expect(source).not.toContain('hexToHsl')
+    expect(source).not.toContain('hslToHex')
   })
 
   it('uses the computed accent foreground for active sidebar items', () => {
